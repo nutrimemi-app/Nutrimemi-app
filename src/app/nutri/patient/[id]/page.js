@@ -100,35 +100,41 @@ export default function PatientFile() {
 
   return (
     <div style={{ padding: '20px', paddingBottom: '120px' }} className="fade-in">
-      <header style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+      <header style={{ marginBottom: '24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
           <Link href="/nutri/dashboard" style={{ color: 'var(--text-primary)' }}>
             <ArrowLeft size={24} />
           </Link>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: '900' }}>{patient.name}</h2>
-            <p style={{ fontSize: '0.8rem', opacity: 0.5 }}>DNI: {patient.details?.ci} | Tel: {patient.details?.phone}</p>
+          <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+            <h2 style={{ fontSize: '1.8rem', fontWeight: '900', color: 'var(--text-primary)', marginBottom: '4px' }}>{patient.name}</h2>
+            <p style={{ fontSize: '0.85rem', opacity: 0.6, fontWeight: '700' }}>DNI: {patient.details?.ci} | Tel: {patient.details?.phone}</p>
           </div>
         </div>
         
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+        {/* Fila de Acciones */}
+        <div style={{ 
+          display: 'flex', 
+          gap: '12px', 
+          flexWrap: 'wrap',
+          marginBottom: '10px'
+        }}>
           {(() => {
             const appointments = JSON.parse(localStorage.getItem('nutri_appointments') || '[]');
             const myNext = appointments.find(a => a.patientId == patient.id && new Date(a.date) >= new Date());
             return myNext ? (
-              <Link href="/nutri/agenda" style={{ textDecoration: 'none', background: 'var(--card-yellow-light)', color: 'var(--accent)', padding: '10px 16px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Calendar size={16} /> Próxima Cita: {myNext.date.split('-').reverse().join('/')}
+              <Link href="/nutri/agenda" style={{ textDecoration: 'none', background: 'var(--card-yellow-light)', color: 'var(--accent)', padding: '12px 18px', borderRadius: '16px', fontSize: '0.8rem', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid var(--accent)' }}>
+                <Calendar size={18} /> Cita: {myNext.date.split('-').reverse().join('/')}
               </Link>
             ) : (
-              <Link href="/nutri/agenda" style={{ textDecoration: 'none', background: 'rgba(0,0,0,0.05)', color: '#666', padding: '10px 16px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Calendar size={16} /> Programar Cita
+              <Link href="/nutri/agenda" style={{ textDecoration: 'none', background: 'rgba(0,0,0,0.05)', color: '#666', padding: '12px 18px', borderRadius: '16px', fontSize: '0.8rem', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid rgba(0,0,0,0.1)' }}>
+                <Calendar size={18} /> Programar Cita
               </Link>
             );
           })()}
-          <Link href={`/nutri/patient/${patient.id}/report`} className="btn-secondary" style={{ textDecoration: 'none', padding: '12px 24px', borderRadius: '16px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Link href={`/nutri/patient/${patient.id}/report`} style={{ textDecoration: 'none', background: 'white', color: 'var(--primary)', padding: '12px 18px', borderRadius: '16px', fontWeight: '900', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '8px', border: '1.5px solid var(--primary)' }}>
             <Printer size={18} /> Informe Imprimible
           </Link>
-          <Link href={`/nutri/patient/${patient.id}/menu`} className="btn-primary" style={{ textDecoration: 'none', padding: '12px 24px', borderRadius: '16px', fontWeight: '800' }}>
+          <Link href={`/nutri/patient/${patient.id}/menu`} className="btn-primary" style={{ textDecoration: 'none', padding: '12px 24px', borderRadius: '16px', fontWeight: '900', fontSize: '0.8rem' }}>
             Planificador de Menú
           </Link>
         </div>
@@ -259,10 +265,29 @@ export default function PatientFile() {
 
       {/* Notas del Nutricionista */}
       <section className="glass-panel" style={{ padding: '20px', marginBottom: '20px', background: 'rgba(0,0,0,0.02)' }}>
-        <p style={{ fontSize: '0.7rem', fontWeight: '800', opacity: 0.5, marginBottom: '8px' }}>NOTAS Y OBSERVACIONES CLÍNICAS</p>
-        <p style={{ fontSize: '0.9rem', color: '#444', fontStyle: 'italic' }}>
-          {patient.details?.notes || 'Escribe aquí tus notas sobre exámenes o recordatorios para la próxima sesión...'}
-        </p>
+        <p style={{ fontSize: '0.75rem', fontWeight: '900', color: 'var(--text-primary)', opacity: 0.6, marginBottom: '12px' }}>NOTAS Y OBSERVACIONES CLÍNICAS</p>
+        <textarea 
+          style={{ 
+            width: '100%', 
+            minHeight: '100px', 
+            background: 'white', 
+            border: '1.5px solid rgba(0,0,0,0.05)', 
+            borderRadius: '16px', 
+            padding: '16px', 
+            fontSize: '0.9rem', 
+            fontFamily: 'inherit',
+            color: '#444',
+            outline: 'none',
+            resize: 'none'
+          }}
+          placeholder="Escribe aquí tus notas sobre exámenes o recordatorios para la próxima sesión..."
+          defaultValue={patient.details?.notes || ''}
+          onBlur={(e) => {
+            const updatedDetails = { ...patient.details, notes: e.target.value };
+            const updatedPatient = { ...patient, details: updatedDetails };
+            savePatientUpdate(updatedPatient);
+          }}
+        />
       </section>
 
       {/* Tarjeta Fórmula Dietética (Oliva) */}

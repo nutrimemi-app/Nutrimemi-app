@@ -21,20 +21,18 @@ export default function LoginPage() {
       alignItems: 'center', 
       justifyContent: 'center', 
       height: '100vh',
+      width: '100vw',
       padding: '24px',
-      background: 'var(--bg-primary)'
+      background: 'var(--bg-primary)',
+      overflow: 'hidden'
     }}>
       <div className="fade-in" style={{ 
         width: '100%', 
-        maxWidth: '420px', 
-        textAlign: 'center',
-        padding: '40px 32px',
-        background: 'white',
-        borderRadius: '32px',
-        boxShadow: '0 20px 50px rgba(0,0,0,0.05)'
+        maxWidth: '400px', 
+        textAlign: 'center'
       }}>
         {/* Logo Imagen */}
-        <div style={{ marginBottom: '40px' }}>
+        <div style={{ marginBottom: '48px' }}>
           <img 
             src="/logo.png" 
             alt="Nutrimemi Logo" 
@@ -44,7 +42,7 @@ export default function LoginPage() {
 
         <h1 style={{ 
           marginBottom: '8px', 
-          fontSize: '1.8rem', 
+          fontSize: '2rem', 
           fontWeight: '900',
           color: 'var(--text-primary)',
           fontFamily: 'Belinda, sans-serif'
@@ -52,10 +50,10 @@ export default function LoginPage() {
           Bienvenido
         </h1>
         <p style={{ 
-          marginBottom: '40px', 
+          marginBottom: '48px', 
           opacity: 0.6, 
-          fontWeight: '600',
-          fontSize: '0.95rem' 
+          fontWeight: '800',
+          fontSize: '0.9rem' 
         }}>
           Gestiona tu nutrición de forma experta
         </p>
@@ -65,7 +63,7 @@ export default function LoginPage() {
             type="text" 
             placeholder="Usuario" 
             className="input-field" 
-            style={{ margin: 0, padding: '18px', borderRadius: '16px', border: '1.5px solid rgba(0,0,0,0.05)', fontSize: '1rem', background: '#f9f9f9' }}
+            style={{ margin: 0, padding: '20px', borderRadius: '18px', border: '1.5px solid rgba(0,0,0,0.05)', fontSize: '1rem', background: 'rgba(255,255,255,0.8)' }}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -74,7 +72,7 @@ export default function LoginPage() {
             type="password" 
             placeholder="Contraseña" 
             className="input-field" 
-            style={{ margin: 0, padding: '18px', borderRadius: '16px', border: '1.5px solid rgba(0,0,0,0.05)', fontSize: '1rem', background: '#f9f9f9' }}
+            style={{ margin: 0, padding: '20px', borderRadius: '18px', border: '1.5px solid rgba(0,0,0,0.05)', fontSize: '1rem', background: 'rgba(255,255,255,0.8)' }}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -86,8 +84,8 @@ export default function LoginPage() {
             style={{ 
               width: '100%', 
               marginTop: '12px',
-              padding: '18px',
-              borderRadius: '16px',
+              padding: '20px',
+              borderRadius: '18px',
               fontSize: '1rem',
               fontWeight: '900',
               background: 'var(--action)',
@@ -100,7 +98,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div style={{ marginTop: '32px', fontSize: '0.9rem', opacity: 0.5, fontWeight: '700' }}>
+        <div style={{ marginTop: '32px', fontSize: '0.85rem', opacity: 0.5, fontWeight: '700' }}>
           ¿Olvidaste tu contraseña?
         </div>
       </div>
