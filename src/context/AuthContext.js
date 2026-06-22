@@ -18,7 +18,7 @@ export function AuthProvider({ children }) {
       localStorage.setItem('nutri_user', JSON.stringify(userData));
       router.push('/nutri/dashboard');
     } else if (email === 'paciente' && password === '123') {
-      const userData = { email, role: 'Paciente', name: 'Paciente Premium' };
+      const userData = { email, role: 'Paciente', name: 'Paciente' };
       setUser(userData);
       localStorage.setItem('nutri_user', JSON.stringify(userData));
       router.push('/patient/home');
