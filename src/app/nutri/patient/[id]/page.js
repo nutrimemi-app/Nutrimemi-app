@@ -155,7 +155,10 @@ export default function PatientFile() {
             style={{ background: 'none', border: 'none', outline: 'none', fontSize: '0.75rem', width: '80px', padding: '4px' }}
            />
            <button onClick={addTag} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: 'bold' }}>+</button>
-        </div>      {/* Grid Superior Reorganizado a Horizontal */}
+        </div>
+      </div>
+
+      {/* Grid Superior Reorganizado a Horizontal */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '20px' }}>
         {/* Resumen Clínico Horizontal */}
         <section className="glass-panel" style={{
