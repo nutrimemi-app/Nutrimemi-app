@@ -151,22 +151,24 @@ export default function NutriProfile() {
         <button 
             onClick={shareVirtualCard}
             style={{
-                background: 'var(--primary)',
+                background: '#1D512D',
                 color: 'white',
                 border: 'none',
-                padding: '12px 20px',
+                padding: '16px 24px',
                 borderRadius: '100px',
-                fontSize: '0.8rem',
+                fontSize: '0.9rem',
                 fontWeight: '900',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '8px',
+                justifyContent: 'center',
+                gap: '10px',
                 marginTop: '16px',
                 cursor: 'pointer',
-                boxShadow: '0 8px 16px rgba(29, 81, 45, 0.2)'
+                boxShadow: '0 8px 16px rgba(29, 81, 45, 0.3)',
+                width: '100%'
             }}
         >
-            <Share2 size={16} /> COMPARTIR TARJETA VIRTUAL
+            <Share2 size={18} /> COMPARTIR TARJETA VIRTUAL
         </button>
       </section>
 
