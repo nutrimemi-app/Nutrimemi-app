@@ -256,7 +256,6 @@ export default function PatientFile() {
             )}
           </div>
         </section>
-      </div></section>
       </div>
 
       {/* Notas del Nutricionista */}
