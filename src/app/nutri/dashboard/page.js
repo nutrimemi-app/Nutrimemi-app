@@ -62,21 +62,69 @@ export default function NutriDashboard() {
         />
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <h3 style={{ fontSize: '1.2rem' }}>Tus Pacientes</h3>
-        <div style={{ display: 'flex', gap: '8px' }}>
+      <div style={{ marginBottom: '24px' }}>
+        <h3 style={{ fontSize: '1.4rem', fontWeight: '900', marginBottom: '16px', color: 'var(--text-primary)' }}>
+          Tus Pacientes
+        </h3>
+        
+        {/* Contenedor de Botones de Acción */}
+        <div style={{ 
+          display: 'flex', 
+          gap: '12px', 
+          overflowX: 'auto', 
+          paddingBottom: '8px',
+          scrollbarWidth: 'none', // Ocultar scroll en Firefox
+          msOverflowStyle: 'none' // Ocultar scroll en IE/Edge
+        }}>
           <Link href="/nutri/agenda" style={{ textDecoration: 'none' }}>
-            <button className="btn-secondary" style={{ padding: '8px 16px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--card-yellow)', color: 'white' }}>
+            <button className="glass-panel" style={{ 
+              padding: '12px 16px', 
+              borderRadius: '16px', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '8px', 
+              background: 'var(--card-yellow)', 
+              color: 'white',
+              border: 'none',
+              fontWeight: '900',
+              fontSize: '0.9rem',
+              whiteSpace: 'nowrap'
+            }}>
               <Calendar size={18} /> Agenda
             </button>
           </Link>
+
           <Link href="/nutri/foods" style={{ textDecoration: 'none' }}>
-            <button className="btn-secondary" style={{ padding: '8px 16px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              Mis Alimentos
+            <button className="glass-panel" style={{ 
+              padding: '12px 16px', 
+              borderRadius: '16px', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '8px', 
+              background: 'white',
+              fontWeight: '900',
+              fontSize: '0.9rem',
+              whiteSpace: 'nowrap',
+              border: '2px solid rgba(0,0,0,0.05)'
+            }}>
+               Mis Alimentos
             </button>
           </Link>
+
           <Link href="/nutri/new-patient" style={{ textDecoration: 'none' }}>
-            <button className="btn-accent" style={{ padding: '8px 16px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button className="glass-panel" style={{ 
+              padding: '12px 16px', 
+              borderRadius: '16px', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '8px', 
+              background: 'var(--action)', 
+              color: 'white',
+              border: 'none',
+              fontWeight: '900',
+              fontSize: '0.9rem',
+              whiteSpace: 'nowrap'
+            }}>
               <Plus size={18} /> Nuevo
             </button>
           </Link>
