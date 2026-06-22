@@ -108,10 +108,16 @@ export default function NutriAgenda() {
   };
 
   const deleteAppointment = (id) => {
-    if (!confirm('¿Seguro que desea eliminar esta cita?')) return;
-    const updated = appointments.filter(a => a.id !== id);
-    setAppointments(updated);
-    localStorage.setItem('nutri_appointments', JSON.stringify(updated));
+    showConfirm(
+      "Eliminar Cita",
+      "¿Estás seguro de que deseas cancelar esta cita? Esta acción no se puede deshacer.",
+      () => {
+        const updated = appointments.filter(a => a.id !== id);
+        setAppointments(updated);
+        localStorage.setItem('nutri_appointments', JSON.stringify(updated));
+        showToast("Cita eliminada correctamente", "success");
+      }
+    );
   };
 
   const openEdit = (app) => {
@@ -287,14 +293,28 @@ export default function NutriAgenda() {
                 )}
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
                 <div>
-                  <label style={{ fontSize: '0.8rem', fontWeight: '800', opacity: 0.5, marginBottom: '8px', display: 'block' }}>FECHA</label>
-                  <input type="date" className="input-field" value={formData.date} onChange={(e) => setFormData({...formData, date: e.target.value})} required style={{ marginBottom: 0 }} />
+                  <label style={{ fontSize: '0.85rem', fontWeight: '900', color: 'var(--primary)', marginBottom: '10px', display: 'block' }}>📅 FECHA</label>
+                  <input 
+                    type="date" 
+                    className="input-field" 
+                    value={formData.date} 
+                    onChange={(e) => setFormData({...formData, date: e.target.value})} 
+                    required 
+                    style={{ marginBottom: 0, padding: '16px', borderRadius: '16px', fontSize: '1rem', background: '#f8f8f8' }} 
+                  />
                 </div>
                 <div>
-                  <label style={{ fontSize: '0.8rem', fontWeight: '800', opacity: 0.5, marginBottom: '8px', display: 'block' }}>HORA</label>
-                  <input type="time" className="input-field" value={formData.time} onChange={(e) => setFormData({...formData, time: e.target.value})} required style={{ marginBottom: 0 }} />
+                  <label style={{ fontSize: '0.85rem', fontWeight: '900', color: 'var(--primary)', marginBottom: '10px', display: 'block' }}>⌚ HORA</label>
+                  <input 
+                    type="time" 
+                    className="input-field" 
+                    value={formData.time} 
+                    onChange={(e) => setFormData({...formData, time: e.target.value})} 
+                    required 
+                    style={{ marginBottom: 0, padding: '16px', borderRadius: '16px', fontSize: '1rem', background: '#f8f8f8' }} 
+                  />
                 </div>
               </div>
 

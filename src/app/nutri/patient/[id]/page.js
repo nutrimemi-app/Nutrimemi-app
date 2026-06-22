@@ -112,30 +112,27 @@ export default function PatientFile() {
           </div>
         </div>
         
-        {/* Fila de Acciones */}
-        <div style={{ 
-          display: 'flex', 
-          gap: '12px', 
-          flexWrap: 'wrap',
-          marginBottom: '10px'
-        }}>
-          {(() => {
-            const appointments = JSON.parse(localStorage.getItem('nutri_appointments') || '[]');
-            const myNext = appointments.find(a => a.patientId == patient.id && new Date(a.date) >= new Date());
-            return myNext ? (
-              <Link href="/nutri/agenda" style={{ textDecoration: 'none', background: 'var(--card-yellow-light)', color: 'var(--accent)', padding: '12px 18px', borderRadius: '16px', fontSize: '0.8rem', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid var(--accent)' }}>
-                <Calendar size={18} /> Cita: {myNext.date.split('-').reverse().join('/')}
-              </Link>
-            ) : (
-              <Link href="/nutri/agenda" style={{ textDecoration: 'none', background: 'rgba(0,0,0,0.05)', color: '#666', padding: '12px 18px', borderRadius: '16px', fontSize: '0.8rem', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid rgba(0,0,0,0.1)' }}>
-                <Calendar size={18} /> Programar Cita
-              </Link>
-            );
-          })()}
-          <Link href={`/nutri/patient/${patient.id}/report`} style={{ textDecoration: 'none', background: 'white', color: 'var(--primary)', padding: '12px 18px', borderRadius: '16px', fontWeight: '900', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '8px', border: '1.5px solid var(--primary)' }}>
-            <Printer size={18} /> Informe Imprimible
-          </Link>
-          <Link href={`/nutri/patient/${patient.id}/menu`} className="btn-primary" style={{ textDecoration: 'none', padding: '12px 24px', borderRadius: '16px', fontWeight: '900', fontSize: '0.8rem' }}>
+        {/* Fila de Acciones Reorganizada */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            {(() => {
+              const appointments = JSON.parse(localStorage.getItem('nutri_appointments') || '[]');
+              const myNext = appointments.find(a => a.patientId == patient.id && new Date(a.date) >= new Date());
+              return myNext ? (
+                <Link href="/nutri/agenda" style={{ flex: 1, textDecoration: 'none', background: 'var(--card-yellow-light)', color: 'var(--accent)', padding: '14px', borderRadius: '16px', fontSize: '0.8rem', fontWeight: '900', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', border: '1px solid var(--accent)' }}>
+                  <Calendar size={18} /> {myNext.date.split('-').reverse().join('/')}
+                </Link>
+              ) : (
+                <Link href="/nutri/agenda" style={{ flex: 1, textDecoration: 'none', background: 'rgba(0,0,0,0.05)', color: '#666', padding: '14px', borderRadius: '16px', fontSize: '0.8rem', fontWeight: '900', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', border: '1px solid rgba(0,0,0,0.1)' }}>
+                  <Calendar size={18} /> Programar Cita
+                </Link>
+              );
+            })()}
+            <Link href={`/nutri/patient/${patient.id}/report`} style={{ flex: 1, textDecoration: 'none', background: 'white', color: 'var(--primary)', padding: '14px', borderRadius: '16px', fontWeight: '900', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', border: '1.5px solid var(--primary)' }}>
+              <Printer size={18} /> Informe Imprimible
+            </Link>
+          </div>
+          <Link href={`/nutri/patient/${patient.id}/menu`} className="btn-primary" style={{ textDecoration: 'none', padding: '16px', borderRadius: '16px', fontWeight: '900', fontSize: '1rem', textAlign: 'center', display: 'block', boxShadow: '0 8px 20px rgba(29, 81, 45, 0.2)' }}>
             Planificador de Menú
           </Link>
         </div>
@@ -158,17 +155,15 @@ export default function PatientFile() {
             style={{ background: 'none', border: 'none', outline: 'none', fontSize: '0.75rem', width: '80px', padding: '4px' }}
            />
            <button onClick={addTag} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: 'bold' }}>+</button>
-        </div>
-      </div>
-
-      {/* Grid Superior */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '20px', marginBottom: '20px' }}>
-        {/* Resumen Clínico */}
+        </div>      {/* Grid Superior Reorganizado a Horizontal */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '20px' }}>
+        {/* Resumen Clínico Horizontal */}
         <section className="glass-panel" style={{
           background: 'white',
-          border: `2px solid ${getProfileColor(clinical.profile)}`,
+          border: `2.5px solid ${getProfileColor(clinical.profile)}`,
           padding: '24px',
-          position: 'relative'
+          position: 'relative',
+          borderRadius: '24px'
         }}>
            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
              <h3 style={{ fontSize: '1.4rem', fontWeight: '900', color: getProfileColor(clinical.profile) }}>{clinical.profile}</h3>
@@ -176,92 +171,92 @@ export default function PatientFile() {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', textAlign: 'center' }}>
             <div>
-              <p style={{ fontSize: '0.6rem', fontWeight: '800', opacity: 0.5 }}>IMC</p>
-              <p style={{ fontSize: '1.1rem', fontWeight: '900' }}>{clinical.imc}</p>
+              <p style={{ fontSize: '0.65rem', fontWeight: '800', opacity: 0.5, marginBottom: '4px' }}>IMC REAL</p>
+              <p style={{ fontSize: '1.4rem', fontWeight: '900' }}>{clinical.imc}</p>
             </div>
             <div>
-              <p style={{ fontSize: '0.6rem', fontWeight: '800', opacity: 0.5 }}>P. REF (PC)</p>
-              <p style={{ fontSize: '1.1rem', fontWeight: '900' }}>{clinical.pc}kg</p>
+              <p style={{ fontSize: '0.65rem', fontWeight: '800', opacity: 0.5, marginBottom: '4px' }}>P. REF (PC)</p>
+              <p style={{ fontSize: '1.4rem', fontWeight: '900' }}>{clinical.pc}kg</p>
             </div>
             <div>
-              <p style={{ fontSize: '0.6rem', fontWeight: '800', opacity: 0.5 }}>P. IDEAL</p>
-              <p style={{ fontSize: '1.1rem', fontWeight: '900' }}>{clinical.pi}kg</p>
+              <p style={{ fontSize: '0.65rem', fontWeight: '800', opacity: 0.5, marginBottom: '4px' }}>P. IDEAL</p>
+              <p style={{ fontSize: '1.4rem', fontWeight: '900' }}>{clinical.pi}kg</p>
             </div>
           </div>
           
-          {/* Tracker de Evolución (Desde última cita) */}
+          {/* Tracker de Evolución */}
           {patient.history?.length > 0 && (
-            <div style={{ 
-              marginTop: '16px', 
-              padding: '12px', 
-              background: 'rgba(0,0,0,0.03)', 
-              borderRadius: '12px',
-              border: '1px dashed rgba(0,0,0,0.1)'
-            }}>
-              <p style={{ fontSize: '0.6rem', fontWeight: '800', opacity: 0.5, marginBottom: '8px' }}>SEGUIMIENTO (VS ÚLTIMA CITA)</p>
-              <div style={{ display: 'flex', gap: '20px' }}>
-                {(() => {
-                  const last = patient.history[patient.history.length - 1];
-                  const dWeight = (parseFloat(patient.details.weight) - parseFloat(last.details.weight)).toFixed(1);
-                  const dImc = (parseFloat(clinical.imc) - parseFloat(last.imc)).toFixed(1);
-                  return (
-                    <>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '0.8rem', fontWeight: '700', color: dWeight <= 0 ? '#1D512D' : '#cc0000' }}>
-                          {dWeight > 0 ? `+${dWeight}` : dWeight} kg
-                        </span>
-                        <span style={{ fontSize: '0.6rem', opacity: 0.5 }}>Peso</span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '0.8rem', fontWeight: '700', color: dImc <= 0 ? '#1D512D' : '#cc0000' }}>
-                          {dImc > 0 ? `+${dImc}` : dImc}
-                        </span>
-                        <span style={{ fontSize: '0.6rem', opacity: 0.5 }}>IMC</span>
-                      </div>
-                    </>
-                  );
-                })()}
-              </div>
-            </div>
-          )}
-
-          {/* Expediente de Informes Guardados */}
-          {patient.reports?.length > 0 && (
-            <div style={{ marginTop: '16px', borderTop: '1px solid rgba(0,0,0,0.05)', paddingTop: '16px' }}>
-              <p style={{ fontSize: '0.65rem', fontWeight: '800', opacity: 0.5, marginBottom: '8px' }}>EXPEDIENTE DE INFORMES (RE-IMPRESIÓN)</p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {[...patient.reports].reverse().map(report => (
-                  <Link key={report.id} href={`/nutri/patient/${patient.id}/report?reportId=${report.id}`} style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    textDecoration: 'none', background: 'var(--card-yellow-light)', color: 'var(--primary)',
-                    padding: '10px 14px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '800',
-                    border: '1px solid var(--accent)'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', textTransform: 'uppercase' }}>
-                      <FileText size={16} /> Copia Informe
+            <div style={{ marginTop: '16px', padding: '12px', background: 'rgba(0,0,0,0.03)', borderRadius: '12px', border: '1px dashed rgba(0,0,0,0.1)', display: 'flex', justifyContent: 'space-around', alignItems: 'center' }}>
+              <p style={{ fontSize: '0.6rem', fontWeight: '900', opacity: 0.5 }}>ULTIMA CITA VS HOY:</p>
+              {(() => {
+                const last = patient.history[patient.history.length - 1];
+                const dWeight = (parseFloat(patient.details.weight) - parseFloat(last.details.weight)).toFixed(1);
+                const dImc = (parseFloat(clinical.imc) - parseFloat(last.imc)).toFixed(1);
+                return (
+                  <div style={{ display: 'flex', gap: '25px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '1.1rem', fontWeight: '900', color: dWeight <= 0 ? '#1D512D' : '#cc0000' }}>{dWeight > 0 ? `+${dWeight}` : dWeight} <span style={{fontSize: '0.6rem'}}>kg</span></span>
                     </div>
-                    <span style={{ fontSize: '0.65rem', opacity: 0.8 }}>{new Date(report.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                  </Link>
-                ))}
-              </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '1.1rem', fontWeight: '900', color: dImc <= 0 ? '#1D512D' : '#cc0000' }}>{dImc > 0 ? `+${dImc}` : dImc} <span style={{fontSize: '0.6rem'}}>IMC</span></span>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
         </section>
 
-        {/* Ficha Clínica Rápida */}
-        <section className="glass-panel shadow-premium" style={{ padding: '20px', background: 'var(--card-green)', color: 'white' }}>
-          <h4 style={{ fontSize: '0.8rem', fontWeight: '800', marginBottom: '12px' }}>FICHA CLÍNICA</h4>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {/* Ficha Clínica Editable Horizontal */}
+        <section className="glass-panel shadow-premium" style={{ padding: '24px', background: 'var(--card-green)', color: 'white', borderRadius: '24px' }}>
+          <h4 style={{ fontSize: '0.85rem', fontWeight: '900', marginBottom: '16px', letterSpacing: '1px', borderBottom: '1px solid rgba(255,255,255,0.2)', paddingBottom: '8px' }}>FICHA CLÍNICA (EDITABLE)</h4>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div>
-              <p style={{ fontSize: '0.6rem', opacity: 0.7, fontWeight: '800' }}>ANTECEDENTES</p>
-              <p style={{ fontSize: '0.8rem', fontWeight: '600' }}>{patient.details?.clinicalHistory || 'Sin registrar'}</p>
+              <p style={{ fontSize: '0.65rem', opacity: 0.8, fontWeight: '900', marginBottom: '6px' }}>ANTECEDENTES FAMILIARES / PATOLÓGICOS</p>
+              <textarea 
+                defaultValue={patient.details?.clinicalHistory || ''}
+                onBlur={(e) => {
+                  const updatedPatient = { ...patient, details: { ...patient.details, clinicalHistory: e.target.value } };
+                  savePatientUpdate(updatedPatient);
+                  showToast('Antecedentes actualizados', 'success');
+                }}
+                style={{ width: '100%', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '12px', padding: '12px', color: 'white', fontSize: '0.85rem', outline: 'none', resize: 'none', minHeight: '80px' }}
+                placeholder="Escribir antecedentes aquí..."
+              />
             </div>
             <div>
-              <p style={{ fontSize: '0.6rem', opacity: 0.7, fontWeight: '800' }}>MEDICAMENTOS</p>
-              <p style={{ fontSize: '0.8rem', fontWeight: '600' }}>{patient.details?.medications || 'Sin registrar'}</p>
+              <p style={{ fontSize: '0.65rem', opacity: 0.8, fontWeight: '900', marginBottom: '6px' }}>MEDICAMENTOS EN USO</p>
+              <textarea 
+                defaultValue={patient.details?.medications || ''}
+                onBlur={(e) => {
+                  const updatedPatient = { ...patient, details: { ...patient.details, medications: e.target.value } };
+                  savePatientUpdate(updatedPatient);
+                  showToast('Medicación actualizada', 'success');
+                }}
+                style={{ width: '100%', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '12px', padding: '12px', color: 'white', fontSize: '0.85rem', outline: 'none', resize: 'none', minHeight: '60px' }}
+                placeholder="Listar medicamentos aquí..."
+              />
             </div>
+            {/* Expediente de Informes Guardados (Moviéndolo aquí para visibilidad) */}
+            {patient.reports?.length > 0 && (
+              <div style={{ marginTop: '8px', borderTop: '1px solid rgba(255,255,255,0.2)', paddingTop: '16px' }}>
+                <p style={{ fontSize: '0.65rem', fontWeight: '900', opacity: 0.8, marginBottom: '10px' }}>HISTORIAL DE INFORMES</p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  {[...patient.reports].reverse().slice(0, 4).map(report => (
+                    <Link key={report.id} href={`/nutri/patient/${patient.id}/report?reportId=${report.id}`} style={{
+                      textDecoration: 'none', background: 'rgba(255,255,255,0.15)', color: 'white',
+                      padding: '10px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: '800',
+                      textAlign: 'center', border: '1px solid rgba(255,255,255,0.3)'
+                    }}>
+                      Copia {new Date(report.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </section>
+      </div></section>
       </div>
 
       {/* Notas del Nutricionista */}

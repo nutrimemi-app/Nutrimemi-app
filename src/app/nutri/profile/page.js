@@ -2,13 +2,21 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useUI } from '@/context/UIContext';
-import { User, Mail, Shield, LogOut, Settings, Award, Users, Calendar, ArrowLeft, Camera, Share2, Save, Edit2 } from 'lucide-react';
+import { User, Mail, Shield, LogOut, Settings, Award, Users, Calendar, ArrowLeft, Camera, Share2, Save, Edit2, Bell } from 'lucide-react';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 import Link from 'next/link';
 
 export default function NutriProfile() {
   const { user, logout } = useAuth();
   const { showToast } = useUI();
   const [isEditing, setIsEditing] = useState(false);
+  const { permission, loading, subscribe, sendNotification } = usePushNotifications('nutri');
+
+  const sendTestToPatient = () => {
+    const patientSub = localStorage.getItem('push_sub_role_paciente');
+    if (!patientSub) return alert('El paciente no tiene notificaciones activadas aún.');
+    sendNotification(JSON.parse(patientSub), '🥗 Nutrimemi', 'Tu nutricionista te ha enviado un mensaje', '/patient/profile');
+  };
   const [stats, setStats] = useState({ patients: 0, appointments: 0 });
   
   // Datos editables de la Nutricionista
@@ -215,6 +223,32 @@ export default function NutriProfile() {
               </div>
           </div>
       </section>
+
+      {/* Notificaciones Area */}
+      {!isEditing && (
+        <div style={{ marginBottom: '24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <button
+            onClick={subscribe}
+            disabled={loading || permission === 'granted'}
+            className="glass-panel"
+            style={{ padding: '16px 20px', border: 'none', display: 'flex', alignItems: 'center', gap: '12px', textAlign: 'left', cursor: permission === 'granted' ? 'default' : 'pointer', width: '100%', marginBottom: '8px' }}
+          >
+            <Bell size={18} color="var(--primary)" />
+            <span style={{ flex: 1, fontWeight: '600' }}>
+              {permission === 'granted' ? '✅ Mis notificaciones activas' : 'Activar mis notificaciones'}
+            </span>
+          </button>
+
+          <button
+            onClick={sendTestToPatient}
+            className="glass-panel"
+            style={{ padding: '16px 20px', border: 'none', display: 'flex', alignItems: 'center', gap: '12px', textAlign: 'left', cursor: 'pointer', width: '100%', marginBottom: '8px' }}
+          >
+            <Bell size={18} color="var(--action)" />
+            <span style={{ fontWeight: '600' }}>Notificar al paciente (test)</span>
+          </button>
+        </div>
+      )}
 
       {/* Danger Zone */}
       {!isEditing && (

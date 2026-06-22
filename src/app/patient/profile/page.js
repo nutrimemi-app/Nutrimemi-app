@@ -2,9 +2,11 @@
 import { useAuth } from '@/context/AuthContext';
 import TabBar from '@/components/patient/TabBar';
 import { MessageCircle, Settings, LogOut, Bell } from 'lucide-react';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 export default function PatientProfile() {
   const { user, logout } = useAuth();
+  const { permission, loading, subscribe } = usePushNotifications('paciente');
 
   return (
     <div style={{ padding: '24px', paddingBottom: '100px' }}>
@@ -52,8 +54,19 @@ export default function PatientProfile() {
       </section>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <button className="glass-panel" style={{ padding: '16px 20px', border: 'none', display: 'flex', alignItems: 'center', gap: '12px', textAlign: 'left', cursor: 'pointer' }}>
-          <Bell size={18} opacity={0.6} /> Mis Notificaciones
+        <button
+          onClick={subscribe}
+          disabled={loading || permission === 'granted'}
+          className="glass-panel"
+          style={{ padding: '16px 20px', border: 'none', display: 'flex', alignItems: 'center', gap: '12px', textAlign: 'left', cursor: permission === 'granted' ? 'default' : 'pointer', width: '100%' }}
+        >
+          <Bell size={18} opacity={0.6} />
+          <span style={{ flex: 1 }}>
+            {permission === 'granted' ? '✅ Notificaciones activadas' : loading ? 'Activando...' : 'Activar Notificaciones'}
+          </span>
+          {permission !== 'granted' && (
+            <span style={{ fontSize: '0.7rem', background: 'var(--action)', color: 'white', padding: '2px 8px', borderRadius: '10px', fontWeight: '800' }}>NUEVO</span>
+          )}
         </button>
         <button className="glass-panel" style={{ padding: '16px 20px', border: 'none', display: 'flex', alignItems: 'center', gap: '12px', textAlign: 'left', cursor: 'pointer' }}>
           <Settings size={18} opacity={0.6} /> Configuración

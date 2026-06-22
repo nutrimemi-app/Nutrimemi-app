@@ -136,8 +136,7 @@ export default function ManageMenu() {
     const used = { cereales: 0, proteinas: 0, vegetales: 0, frutas: 0, lacteos: 0, grasas: 0 };
     meal.selectedFoods?.forEach(f => {
       if (used[f.groupKey] !== undefined) {
-         // Intentamos extraer el número de la porción (ej: "1 taza" -> 1)
-         const num = parseFloat(f.portion.split(' ')[0]) || 0;
+         const num = (parseFloat(f.portion.split(' ')[0]) || 1) * (f.qty || 1);
          used[f.groupKey] += num;
       }
     });
@@ -210,11 +209,28 @@ export default function ManageMenu() {
         <div className="fade-in">
           {/* Molécula Calórica Paso 1 */}
           <section className="glass-panel" style={{ padding: '24px', background: 'white', marginBottom: '24px', border: '1px solid rgba(0,0,0,0.1)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', alignItems: 'center' }}>
-              <h4 style={{ fontWeight: '900', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '8px' }}><Activity size={18} /> Requerimientos del Día</h4>
-              <div style={{ display: 'flex', gap: '6px' }}>
+            <div style={{ marginBottom: '20px' }}>
+              <h4 style={{ fontWeight: '900', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                <Activity size={18} /> Requerimientos del Día
+              </h4>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 {Object.keys(DISTRIBUTION_TEMPLATES).map(k => (
-                  <button key={k} onClick={() => applyTemplate(k)} className="btn-secondary" style={{ fontSize: '0.6rem', padding: '4px 8px', borderRadius: '8px' }}>{DISTRIBUTION_TEMPLATES[k].name.split('/')[0]}</button>
+                  <button 
+                    key={k} 
+                    onClick={() => applyTemplate(k)} 
+                    className="btn-secondary" 
+                    style={{ 
+                      fontSize: '0.7rem', 
+                      padding: '8px 14px', 
+                      borderRadius: '10px', 
+                      border: '1px solid var(--primary)',
+                      background: 'white',
+                      color: 'var(--primary)',
+                      fontWeight: '800'
+                    }}
+                  >
+                    {DISTRIBUTION_TEMPLATES[k].name}
+                  </button>
                 ))}
               </div>
             </div>
@@ -278,22 +294,25 @@ export default function ManageMenu() {
         <div className="fade-in">
           <section className="glass-panel" style={{ padding: '20px', background: 'var(--card-yellow-light)', marginBottom: '24px', border: '1.5px dashed var(--accent)', borderRadius: '16px' }}>
              <h4 style={{ color: 'var(--primary)', fontSize: '0.8rem', fontWeight: '900', marginBottom: '10px' }}>📊 SEGUIMIENTO DE RACIONES</h4>
-             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '8px' }}>
+             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
                 {foodGroups.map(g => {
                    let defined = 0;
                    let used = 0;
                    Object.keys(menu).forEach(mKey => {
                       defined += parseFloat(menu[mKey].portions?.[g.key]) || 0;
                       menu[mKey].selectedFoods?.forEach(f => {
-                         if (f.groupKey === g.key) used += parseFloat(f.portion.split(' ')[0]) || 0;
+                         if (f.groupKey === g.key) {
+                           const portionValue = parseFloat(f.portion.split(' ')[0]) || 1;
+                           used += portionValue * (f.qty || 1);
+                         }
                       });
                    });
                    const isOver = used > defined;
                    return (
                      <div key={g.key} style={{ textAlign: 'center', background: 'white', padding: '8px', borderRadius: '8px', border: isOver ? '1.5px solid #ff4444' : '1px solid #eee' }}>
-                        <p style={{ fontSize: '0.5rem', fontWeight: '900', color: g.color }}>{g.name.substring(0,4)}</p>
-                        <p style={{ fontSize: '0.8rem', fontWeight: '900', color: isOver ? '#ff4444' : '#333' }}>
-                           {used} <span style={{ opacity: 0.3, fontSize: '0.6rem' }}>/ {defined}</span>
+                        <p style={{ fontSize: '0.6rem', fontWeight: '900', color: g.color }}>{g.name.toUpperCase()}</p>
+                        <p style={{ fontSize: '0.85rem', fontWeight: '900', color: isOver ? '#ff4444' : '#333' }}>
+                           {used.toFixed(1).replace('.0', '')} <span style={{ opacity: 0.3, fontSize: '0.6rem' }}>/ {defined}</span>
                         </p>
                         {isOver && <div style={{ width: '6px', height: '6px', background: '#ff4444', borderRadius: '50%', margin: '4px auto 0' }} />}
                      </div>
@@ -326,12 +345,22 @@ export default function ManageMenu() {
                     </div>
                     
                     {searchTerms[meal.key] && (
-                       <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', zInterval: 1000, maxHeight: '200px', overflowY: 'auto', border: '1px solid #eee', marginTop: '4px' }}>
+                       <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', zIndex: 1000, maxHeight: '200px', overflowY: 'auto', border: '1px solid #eee', marginTop: '4px' }}>
                          {foodDB.filter(f => f.name.toLowerCase().includes(searchTerms[meal.key].toLowerCase())).map(food => (
                             <div key={food.id} onClick={() => {
-                              const updatedFoods = [...(mealData.selectedFoods || []), { ...food, instanceId: Date.now() }];
+                              const existingIdx = mealData.selectedFoods?.findIndex(f => f.id === food.id);
+                              let updatedFoods;
+                              if (existingIdx !== undefined && existingIdx !== -1) {
+                                // Incrementar cantidad
+                                updatedFoods = [...mealData.selectedFoods];
+                                updatedFoods[existingIdx] = { ...updatedFoods[existingIdx], qty: (updatedFoods[existingIdx].qty || 1) + 1 };
+                              } else {
+                                // Agregar nuevo
+                                updatedFoods = [...(mealData.selectedFoods || []), { ...food, instanceId: Date.now(), qty: 1 }];
+                              }
                               setMenu({...menu, [meal.key]: { ...mealData, selectedFoods: updatedFoods }});
                               setSearchTerms({...searchTerms, [meal.key]: ''});
+                              showToast(`${food.name} agregado`, 'success');
                             }} style={{ padding: '12px 16px', borderBottom: '1px solid #f9f9f9', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                               <span style={{ fontWeight: '700', color: foodGroups.find(g => g.key === food.groupKey)?.color }}>{food.name}</span>
                               <span style={{ fontSize: '0.7rem', opacity: 0.5 }}>{food.portion}</span>
@@ -342,23 +371,43 @@ export default function ManageMenu() {
                   </div>
 
                   {/* Visualización del Menú Ejemplo con edición de porción */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                      {mealData.selectedFoods?.map(item => {
                        const group = foodGroups.find(g => g.key === item.groupKey);
                        return (
-                        <div key={item.instanceId} style={{ background: 'white', border: `1px solid ${group.color}30`, padding: '6px 14px', borderRadius: '12px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: group.color }}></div>
-                          <input 
-                             type="text" 
-                             value={item.portion} 
-                             onChange={(e) => handleItemPortionChange(meal.key, item.instanceId, e.target.value)}
-                             style={{ width: '80px', border: '1px solid #eee', background: '#f9f9f9', borderRadius: '4px', fontSize: '0.75rem', padding: '2px 4px', fontWeight: '800', color: group.color }}
-                          />
-                          <span style={{ flex: 1, fontWeight: '700', color: group.color }}>de {item.name}</span>
+                        <div key={item.instanceId} style={{ background: '#f5f5f5', padding: '10px 14px', borderRadius: '16px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '12px', border: `1px solid ${group.color}20` }}>
+                          <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: group.color }}></div>
+                          <div style={{ flex: 1 }}>
+                            <p style={{ margin: 0, fontWeight: '900', color: group.color, fontSize: '0.9rem' }}>{item.name}</p>
+                            <p style={{ margin: 0, fontSize: '0.75rem', opacity: 0.6, fontWeight: '700' }}>P. Base: {item.portion}</p>
+                          </div>
+                          
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'white', padding: '4px 8px', borderRadius: '10px', border: '1px solid #eee' }}>
+                            <button 
+                              onClick={() => {
+                                const updatedFoods = mealData.selectedFoods.map(f => 
+                                  f.instanceId === item.instanceId ? { ...f, qty: Math.max(1, (f.qty || 1) - 1) } : f
+                                );
+                                setMenu({...menu, [meal.key]: { ...mealData, selectedFoods: updatedFoods }});
+                              }}
+                              style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: '900', cursor: 'pointer', padding: '4px' }}
+                            >-</button>
+                            <span style={{ fontWeight: '900', fontSize: '0.9rem', minWidth: '15px', textAlign: 'center' }}>{item.qty || 1}</span>
+                            <button 
+                              onClick={() => {
+                                const updatedFoods = mealData.selectedFoods.map(f => 
+                                  f.instanceId === item.instanceId ? { ...f, qty: (f.qty || 1) + 1 } : f
+                                );
+                                setMenu({...menu, [meal.key]: { ...mealData, selectedFoods: updatedFoods }});
+                              }}
+                              style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: '900', cursor: 'pointer', padding: '4px' }}
+                            >+</button>
+                          </div>
+
                           <button onClick={() => {
                             const updatedFoods = mealData.selectedFoods.filter(f => f.instanceId !== item.instanceId);
                             setMenu({...menu, [meal.key]: { ...mealData, selectedFoods: updatedFoods }});
-                          }} style={{ background: 'none', border: 'none', opacity: 0.3, cursor: 'pointer' }}><X size={16} /></button>
+                          }} style={{ background: 'rgba(255,0,0,0.05)', border: 'none', color: '#ff4444', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><X size={14} /></button>
                         </div>
                        );
                      })}
@@ -387,33 +436,43 @@ export default function ManageMenu() {
              </div>
 
              <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '10px' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '950px', tableLayout: 'fixed' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '950px', tableLayout: 'fixed', borderRadius: '12px 12px 0 0', overflow: 'hidden' }}>
                     <thead>
-                      <tr style={{ background: 'var(--primary)', color: 'white' }}>
+                      <tr style={{ background: 'var(--primary)', color: 'white', position: 'sticky', top: 0, zIndex: 10 }}>
                           {mealTypes.map(m => (
-                            <th key={m.key} style={{ padding: '15px 10px', fontSize: '0.85rem', fontWeight: '900', border: '1px solid white', textAlign: 'center' }}>{m.title.toUpperCase()}</th>
+                            <th key={m.key} style={{ padding: '15px 10px', fontSize: '0.9rem', fontWeight: '900', border: '1px solid rgba(255,255,255,0.2)', textAlign: 'center', textTransform: 'uppercase' }}>
+                              {m.title}
+                            </th>
                           ))}
                       </tr>
                     </thead>
                     <tbody>
-                      {Array.from({ length: Math.max(...Object.values(menu).map(m => m.selectedFoods?.length || 0), 1) }).map((_, rowIdx) => (
+                       {Array.from({ length: Math.max(...Object.values(menu).map(m => m.selectedFoods?.length || 0), 1) }).map((_, rowIdx) => (
                           <tr key={rowIdx}>
                             {mealTypes.map(meal => {
                                 const food = menu[meal.key].selectedFoods?.[rowIdx];
-                                const group = foodGroups.find(g => g.key === food?.groupKey);
+                                if (!food) return <td key={meal.key} style={{ padding: '15px 12px', border: '1px solid #eee', verticalAlign: 'top', height: '140px' }}><div style={{ opacity: 0.1, fontSize: '0.8rem', textAlign: 'center', paddingTop: '40px' }}>-</div></td>;
+                                
+                                const group = foodGroups.find(g => g.key === food.groupKey);
+                                // Lógica inteligente de porción: si es 1, mostrar normal. Si es > 1, mostrar "X porciones de Y (Total)"
+                                const basePortionVal = parseFloat(food.portion.split(' ')[0]) || 1;
+                                const unit = food.portion.split(' ').slice(1).join(' ');
+                                const totalVal = basePortionVal * (food.qty || 1);
+                                
                                 return (
                                   <td key={meal.key} style={{ padding: '15px 12px', border: '1px solid #eee', verticalAlign: 'top', height: '140px' }}>
-                                      {food ? (
-                                        <div style={{ fontSize: '0.9rem', borderLeft: `5px solid ${group.color}`, paddingLeft: '10px' }}>
-                                            <p style={{ margin: '0 0 4px 0', fontWeight: '900', color: group.color, fontSize: '1rem' }}>{food.portion}</p>
-                                            <p style={{ margin: 0, fontWeight: '700', color: '#111' }}>{food.name}</p>
-                                        </div>
-                                      ) : <div style={{ opacity: 0.1, fontSize: '0.8rem', textAlign: 'center', paddingTop: '40px' }}>-</div>}
+                                      <div style={{ fontSize: '0.85rem', borderLeft: `5px solid ${group.color}`, paddingLeft: '10px' }}>
+                                          <p style={{ margin: '0 0 4px 0', fontWeight: '900', color: group.color, fontSize: '1rem' }}>
+                                            {totalVal.toFixed(1).replace('.0', '')} {unit}
+                                          </p>
+                                          <p style={{ margin: 0, fontWeight: '700', color: '#111', lineHeight: '1.2' }}>{food.name}</p>
+                                          {(food.qty > 1) && <p style={{ margin: '4px 0 0 0', fontSize: '0.65rem', opacity: 0.4, fontWeight: '800' }}>({food.qty} raciones de {food.portion})</p>}
+                                      </div>
                                   </td>
                                 );
                             })}
                           </tr>
-                      ))}
+                       ))}
                     </tbody>
                 </table>
              </div>

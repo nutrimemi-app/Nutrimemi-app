@@ -111,40 +111,43 @@ export function UIProvider({ children }) {
         </div>
       )}
       
-      {/* Toast Notification (Glassmorphism Native Style) */}
+      {/* Toast Notification (Glassmorphism Native Style - REFINADO) */}
       {toast && (
         <div 
           className="fade-in"
           style={{
             position: 'fixed',
-            top: '30px',
+            top: '40px',
             left: '50%',
             transform: 'translateX(-50%)',
-            background: 'rgba(255, 255, 255, 0.95)',
-            backdropFilter: 'blur(20px)',
-            padding: '16px 24px',
+            background: 'rgba(255, 255, 255, 0.94)',
+            backdropFilter: 'blur(25px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(25px) saturate(180%)',
+            padding: '18px 24px',
             borderRadius: '24px',
-            boxShadow: '0 20px 50px rgba(0,0,0,0.15)',
-            zIndex: 10000,
+            boxShadow: '0 20px 40px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.05)',
+            zIndex: 100000,
             display: 'flex',
             alignItems: 'center',
             gap: '14px',
-            minWidth: '280px',
-            border: `1.5px solid ${toast.type === 'success' ? '#1d512d20' : '#ff444420'}`
+            width: 'calc(100% - 40px)',
+            maxWidth: '380px',
+            boxSizing: 'border-box'
           }}
         >
           <div style={{ 
+            flexShrink: 0,
             width: '32px', 
             height: '32px', 
             borderRadius: '50%', 
-            background: toast.type === 'success' ? '#1d512d15' : '#ff444415',
+            background: toast.type === 'success' ? '#1d512d' : '#ff4444',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
           }}>
-            {toast.type === 'success' ? <CheckCircle size={20} color="#1d512d" /> : <XCircle size={20} color="#ff4444" />}
+            {toast.type === 'success' ? <CheckCircle size={18} color="white" /> : <XCircle size={18} color="white" />}
           </div>
-          <span style={{ fontWeight: '800', color: '#1d512d', fontSize: '0.9rem' }}>{toast.message}</span>
+          <p style={{ margin: 0, fontWeight: '800', color: '#1d512d', fontSize: '0.9rem', lineHeight: '1.3' }}>{toast.message}</p>
         </div>
       )}
 

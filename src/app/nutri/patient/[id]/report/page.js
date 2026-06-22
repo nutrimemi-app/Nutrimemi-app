@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Printer, MapPin, Phone, User, Activity, FileText, ArrowLeft, Save, CheckCircle, Info } from 'lucide-react';
+import { Printer, MapPin, Phone, User, Activity, FileText, ArrowLeft, Save, CheckCircle, Info, Bell } from 'lucide-react';
 import { useUI } from '@/context/UIContext';
 import { calculateClinicalData } from '@/utils/calculationUtils';
 
@@ -59,33 +59,37 @@ export default function ClinicalReport() {
     .sort((a, b) => new Date(a.date) - new Date(b.date))[0];
 
   const handleSaveReport = () => {
-    if (!confirm("¿Deseas guardar una copia inmutable de este informe en el expediente del paciente para poder re-imprimirlo en el futuro?")) return;
-    
-    const newReport = {
-      id: Date.now(),
-      date: new Date().toISOString(),
-      details: { ...patient.details },
-      measurements: { ...patient.measurements },
-      menu: { ...patient.menu },
-      clinical: { imc: clinical.imc, profile: clinical.profile, pi: clinical.pi },
-      nextAppDate: nextApp?.date || null
-    };
+    showConfirm(
+      "Guardar Informe",
+      "¿Deseas guardar una copia inmutable de este informe en el expediente del paciente para poder re-imprimirlo en el futuro?",
+      () => {
+        const newReport = {
+          id: Date.now(),
+          date: new Date().toISOString(),
+          details: { ...patient.details },
+          measurements: { ...patient.measurements },
+          menu: { ...patient.menu },
+          clinical: { imc: clinical.imc, profile: clinical.profile, pi: clinical.pi },
+          nextAppDate: nextApp?.date || null
+        };
 
-    const updatedPatient = { ...patient, reports: [...(patient.reports || []), newReport] };
-    const savedPatients = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
-    localStorage.setItem('nutri_patients', JSON.stringify(savedPatients.map(p => p.id === patient.id ? updatedPatient : p)));
-    setPatient(updatedPatient);
-    showToast('¡Informe guardado en el Expediente!', 'success');
+        const updatedPatient = { ...patient, reports: [...(patient.reports || []), newReport] };
+        const savedPatients = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
+        localStorage.setItem('nutri_patients', JSON.stringify(savedPatients.map(p => p.id === patient.id ? updatedPatient : p)));
+        setPatient(updatedPatient);
+        showToast('¡Informe guardado en el expediente!', 'success');
+      }
+    );
   };
 
   return (
     <div className="report-container" style={{ background: '#f5f5f5', minHeight: '100vh', padding: '40px 0' }}>
       <style jsx global>{`
         @media print {
-          .no-print { display: none !important; }
-          body { background: white !important; margin: 0; padding: 0; }
-          .report-container { background: white !important; padding: 0 !important; }
-          .a4-page { 
+          .no-print, nav, footer:not(.report-footer), .tab-bar, #tab-bar { display: none !important; }
+          body { background: white !important; margin: 0 !important; padding: 0 !important; }
+          .report-container { background: white !important; padding: 0 !important; margin: 0 !important; }
+          .letter-page { 
             box-shadow: none !important; 
             border: none !important; 
             margin: 0 !important; 
@@ -94,12 +98,18 @@ export default function ClinicalReport() {
             padding: 0 !important;
             print-color-adjust: exact !important;
             -webkit-print-color-adjust: exact !important;
+            page-break-after: always;
           }
         }
-        .a4-page {
+        .letter-page {
           width: 215.9mm;
           height: 279.4mm;
           position: relative;
+          background: white;
+          margin: 0 auto;
+          box-shadow: 0 10px 40px rgba(0,0,0,0.05);
+          border-radius: 2px;
+          overflow: hidden;
         }
       `}</style>
 
@@ -142,11 +152,7 @@ export default function ClinicalReport() {
         </button>
       </div>
 
-      <div className="a4-page" style={{ 
-        margin: '0 auto', background: 'white', 
-        boxShadow: '0 10px 40px rgba(0,0,0,0.05)', 
-        borderRadius: '2px', overflow: 'hidden'
-      }}>
+      <div className="letter-page">
         
         {/* Fondo Membretado Físico (img tag asegura impresión correcta) */}
         <img 
@@ -165,7 +171,7 @@ export default function ClinicalReport() {
         />
 
         {/* Contenedor Superior de Datos (zIndex 1 asegura que renderiza sobre el fondo) */}
-        <div style={{ position: 'relative', zIndex: 1, padding: '4.8cm 1.5cm 2cm 1.5cm', width: '100%', height: '100%' }}>
+        <div style={{ position: 'relative', zIndex: 1, padding: '4.8cm 1.2cm 2cm 1.2cm', width: '100%', height: '100%' }}>
           
           {/* Widget de Próxima Cita Siempre Visible */}
           <div style={{
@@ -298,19 +304,21 @@ export default function ClinicalReport() {
             </div>
           )}
 
-          <div style={{ border: '2px solid var(--primary)', borderRadius: '12px', background: 'white', overflow: 'hidden', marginBottom: '25px' }}>
+          {/* PLAN DE MENÚ DINÁMICO SEGÚN PACIENTE */}
+          <div style={{ border: '2px solid var(--primary)', borderRadius: '12px', background: 'white', overflow: 'hidden', marginBottom: '25px', pageBreakInside: 'avoid' }}>
              <h3 style={{ margin: '0', background: 'var(--primary)', color: 'white', padding: '10px', fontSize: '1rem', fontWeight: '900', textAlign: 'center', textTransform: 'uppercase' }}>PLAN DE MENÚ ESTIMADO</h3>
              <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
                 <thead>
                    <tr style={{ background: 'var(--card-green-light)', color: 'var(--primary)' }}>
                       {[
                         { key: 'desayuno', label: 'DESAYUNO' },
-                        { key: 'meriendaAM', label: 'MERIENDA' },
+                        { key: 'meriendaAM', label: 'MER. AM', active: ['3+1', '3+2', '3+3'].includes(patient.mealPlan) },
                         { key: 'almuerzo', label: 'ALMUERZO' },
-                        { key: 'meriendaPM', label: 'MERIENDA' },
-                        { key: 'cena', label: 'CENA' }
-                      ].map(meal => (
-                        <th key={meal.key} style={{ padding: '12px 5px', fontSize: '0.65rem', fontWeight: '900', border: '1px solid var(--primary)' }}>
+                        { key: 'meriendaPM', label: 'MER. PM', active: ['3+2', '3+3'].includes(patient.mealPlan) },
+                        { key: 'cena', label: 'CENA' },
+                        { key: 'snackNoche', label: 'S. NOCHE', active: patient.mealPlan === '3+3' }
+                      ].filter(m => m.active !== false).map(meal => (
+                        <th key={meal.key} style={{ padding: '10px 5px', fontSize: '0.65rem', fontWeight: '900', border: '1px solid var(--primary)' }}>
                            {meal.label}
                         </th>
                       ))}
@@ -319,17 +327,24 @@ export default function ClinicalReport() {
                 <tbody>
                    {Array.from({ length: Math.max(...Object.values(targetMenu || {}).map(m => m.selectedFoods?.length || 0), 1) }).map((_, rowIdx) => (
                       <tr key={rowIdx}>
-                         {['desayuno', 'meriendaAM', 'almuerzo', 'meriendaPM', 'cena'].map(mealKey => {
-                            const food = targetMenu?.[mealKey]?.selectedFoods?.[rowIdx];
+                         {[
+                            { key: 'desayuno' },
+                            { key: 'meriendaAM', active: ['3+1', '3+2', '3+3'].includes(patient.mealPlan) },
+                            { key: 'almuerzo' },
+                            { key: 'meriendaPM', active: ['3+2', '3+3'].includes(patient.mealPlan) },
+                            { key: 'cena' },
+                            { key: 'snackNoche', active: patient.mealPlan === '3+3' }
+                         ].filter(m => m.active !== false).map(meal => {
+                            const food = targetMenu?.[meal.key]?.selectedFoods?.[rowIdx];
                             return (
-                               <td key={mealKey} style={{ padding: '10px 8px', border: '1px solid var(--primary)', verticalAlign: 'top', height: '80px' }}>
+                               <td key={meal.key} style={{ padding: '8px 6px', border: '1px solid var(--primary)', verticalAlign: 'top', height: '60px' }}>
                                   {food ? (
                                      <div style={{ fontSize: '0.62rem', borderLeft: `3px solid ${foodGroups[food.groupKey]?.color || '#333'}`, paddingLeft: '4px', lineHeight: '1.2' }}>
                                         <p style={{ margin: '0 0 2px 0', fontWeight: '900', color: foodGroups[food.groupKey]?.color }}>{food.portion}</p>
                                         <p style={{ margin: 0, fontWeight: '700', color: '#111' }}>{food.name}</p>
                                      </div>
                                   ) : (
-                                    <div style={{ opacity: 0.1, fontSize: '0.5rem', textAlign: 'center' }}>-</div>
+                                    <div style={{ opacity: 0.05, fontSize: '0.5rem', textAlign: 'center' }}>-</div>
                                   )}
                                </td>
                             );
