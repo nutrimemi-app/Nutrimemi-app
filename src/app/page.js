@@ -20,29 +20,32 @@ export default function LoginPage() {
       flexDirection: 'column', 
       alignItems: 'center', 
       justifyContent: 'center', 
-      height: '100vh',
-      width: '100vw',
-      padding: '24px',
-      background: 'var(--bg-primary)',
-      overflow: 'hidden'
+      minHeight: '100vh',
+      width: '100%',
+      backgroundColor: 'var(--bg-primary)',
+      padding: '20px',
+      boxSizing: 'border-box'
     }}>
       <div className="fade-in" style={{ 
         width: '100%', 
-        maxWidth: '400px', 
+        maxWidth: '380px', 
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
         textAlign: 'center'
       }}>
         {/* Logo Imagen */}
-        <div style={{ marginBottom: '48px' }}>
+        <div style={{ marginBottom: '40px', width: '100%' }}>
           <img 
             src="/logo.png" 
             alt="Nutrimemi Logo" 
-            style={{ width: '100%', maxWidth: '280px', height: 'auto' }}
+            style={{ width: '100%', maxWidth: '240px', height: 'auto', margin: '0 auto', display: 'block' }}
           />
         </div>
 
         <h1 style={{ 
-          marginBottom: '8px', 
-          fontSize: '2rem', 
+          marginBottom: '12px', 
+          fontSize: '2.2rem', 
           fontWeight: '900',
           color: 'var(--text-primary)',
           fontFamily: 'Belinda, sans-serif'
@@ -50,20 +53,32 @@ export default function LoginPage() {
           Bienvenido
         </h1>
         <p style={{ 
-          marginBottom: '48px', 
-          opacity: 0.6, 
-          fontWeight: '800',
-          fontSize: '0.9rem' 
+          marginBottom: '40px', 
+          opacity: 0.8, 
+          fontWeight: '700',
+          fontSize: '1rem',
+          color: 'var(--text-primary)',
+          lineHeight: '1.4'
         }}>
           Gestiona tu nutrición de forma experta
         </p>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <form onSubmit={handleSubmit} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <input 
             type="text" 
             placeholder="Usuario" 
-            className="input-field" 
-            style={{ margin: 0, padding: '20px', borderRadius: '18px', border: '1.5px solid rgba(0,0,0,0.05)', fontSize: '1rem', background: 'rgba(255,255,255,0.8)' }}
+            style={{ 
+              width: '100%',
+              padding: '20px', 
+              borderRadius: '20px', 
+              border: '1.5px solid rgba(29, 81, 45, 0.1)', 
+              fontSize: '1rem', 
+              background: 'white',
+              outline: 'none',
+              color: 'var(--text-primary)',
+              boxSizing: 'border-box',
+              boxShadow: 'var(--shadow-subtle)'
+            }}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -71,8 +86,18 @@ export default function LoginPage() {
           <input 
             type="password" 
             placeholder="Contraseña" 
-            className="input-field" 
-            style={{ margin: 0, padding: '20px', borderRadius: '18px', border: '1.5px solid rgba(0,0,0,0.05)', fontSize: '1rem', background: 'rgba(255,255,255,0.8)' }}
+            style={{ 
+              width: '100%',
+              padding: '20px', 
+              borderRadius: '20px', 
+              border: '1.5px solid rgba(29, 81, 45, 0.1)', 
+              fontSize: '1rem', 
+              background: 'white',
+              outline: 'none',
+              color: 'var(--text-primary)',
+              boxSizing: 'border-box',
+              boxShadow: 'var(--shadow-subtle)'
+            }}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -80,25 +105,26 @@ export default function LoginPage() {
           
           <button 
             type="submit" 
-            className="btn-primary" 
             style={{ 
               width: '100%', 
-              marginTop: '12px',
+              marginTop: '8px',
               padding: '20px',
-              borderRadius: '18px',
-              fontSize: '1rem',
+              borderRadius: '20px',
+              fontSize: '1.1rem',
               fontWeight: '900',
               background: 'var(--action)',
-              boxShadow: '0 10px 25px rgba(253, 158, 20, 0.3)',
               border: 'none',
-              color: 'white'
+              color: 'white',
+              cursor: 'pointer',
+              boxShadow: '0 10px 25px rgba(253, 158, 20, 0.3)',
+              transition: 'transform 0.2s'
             }}
           >
             Iniciar Sesión
           </button>
         </form>
 
-        <div style={{ marginTop: '32px', fontSize: '0.85rem', opacity: 0.5, fontWeight: '700' }}>
+        <div style={{ marginTop: '40px', fontSize: '0.9rem', opacity: 0.6, fontWeight: '700', color: 'var(--text-primary)' }}>
           ¿Olvidaste tu contraseña?
         </div>
       </div>
