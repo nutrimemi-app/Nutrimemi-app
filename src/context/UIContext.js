@@ -41,6 +41,7 @@ export function UIProvider({ children }) {
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) {
+      showToast('Toca los 3 puntos de tu navegador y busca "Instalar"', 'info');
       setPwaPrompt(false);
       return;
     }
