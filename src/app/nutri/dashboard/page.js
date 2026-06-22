@@ -8,11 +8,7 @@ export default function NutriDashboard() {
   const { user, logout } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
 
-  const [patients, setPatients] = useState([
-    { id: 1, name: 'Juan Pérez', goal: 'Pérdida de peso', status: 'Activo', lastSeen: 'Hoy' },
-    { id: 2, name: 'María García', goal: 'Ganancia muscular', status: 'Activo', lastSeen: 'Ayer' },
-    { id: 3, name: 'Carlos Ruiz', goal: 'Mantenimiento', status: 'Inactivo', lastSeen: 'Hace 3 días' },
-  ]);
+  const [patients, setPatients] = useState([]);
 
   useEffect(() => {
     const savedPatients = localStorage.getItem('nutri_patients');
