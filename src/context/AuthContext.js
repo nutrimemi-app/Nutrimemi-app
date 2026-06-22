@@ -1,12 +1,14 @@
 'use client';
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useUI } from './UIContext';
 
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const router = useRouter();
+  const { showToast } = useUI();
 
   const login = (email, password) => {
     // Lógica de roles personalizada por el usuario
@@ -21,7 +23,7 @@ export function AuthProvider({ children }) {
       localStorage.setItem('nutri_user', JSON.stringify(userData));
       router.push('/patient/home');
     } else {
-      alert('Credenciales incorrectas. Usa meme/123 o paciente/123');
+      showToast('Credenciales incorrectas. Usa meme/123 o paciente/123', 'error');
     }
   };
 

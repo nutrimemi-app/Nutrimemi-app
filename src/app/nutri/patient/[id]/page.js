@@ -3,10 +3,12 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Activity, Printer, Calendar, Save, History, Camera, FileText } from 'lucide-react';
+import { useUI } from '@/context/UIContext';
 import { calculateClinicalData } from '@/utils/calculationUtils';
 
 export default function PatientFile() {
   const params = useParams();
+  const { showToast } = useUI();
   const [patient, setPatient] = useState(null);
   const [gender, setGender] = useState('female'); // 'male' or 'female'
   const [currentTag, setCurrentTag] = useState('');
@@ -79,7 +81,7 @@ export default function PatientFile() {
     const updatedHistory = [...(patient.history || []), newEntry];
     const updatedPatient = { ...patient, history: updatedHistory };
     savePatientUpdate(updatedPatient);
-    alert("¡Sesión guardada en el historial!");
+    showToast("¡Sesión guardada en el historial!", "success");
   };
 
   const measurements = [

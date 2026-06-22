@@ -1,10 +1,12 @@
 'use client';
 import { useState } from 'react';
-import { ArrowLeft, UserPlus, Link as LinkIcon, Check } from 'lucide-react';
+import { ArrowLeft, UserPlus, Link as LinkIcon, Check, Copy } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useUI } from '@/context/UIContext';
 
 export default function NewPatient() {
+  const { showToast } = useUI();
   const [formData, setFormData] = useState({
     name: '',
     ci: '',
@@ -73,7 +75,7 @@ export default function NewPatient() {
 
   const copyLink = () => {
     navigator.clipboard.writeText(linkGenerated);
-    alert('Enlace copiado al portapapeles');
+    showToast('Enlace copiado al portapapeles', 'success');
   };
 
   return (

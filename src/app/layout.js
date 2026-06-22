@@ -1,6 +1,7 @@
 import { Outfit } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
+import { UIProvider } from "@/context/UIContext";
 import BottomNav from "@/components/BottomNav";
 
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
@@ -15,10 +16,12 @@ export default function RootLayout({ children }) {
     <html lang="es">
       <body className={outfit.className}>
         <AuthProvider>
-          <div className="pwa-container">
-            {children}
-            <BottomNav />
-          </div>
+          <UIProvider>
+            <div className="pwa-container">
+              {children}
+              <BottomNav />
+            </div>
+          </UIProvider>
         </AuthProvider>
       </body>
     </html>

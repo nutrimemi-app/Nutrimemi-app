@@ -1,12 +1,14 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Printer, MapPin, Phone, User, Activity, FileText, ArrowLeft, Save } from 'lucide-react';
+import { Printer, MapPin, Phone, User, Activity, FileText, ArrowLeft, Save, CheckCircle, Info } from 'lucide-react';
+import { useUI } from '@/context/UIContext';
 import { calculateClinicalData } from '@/utils/calculationUtils';
 
 export default function ClinicalReport() {
   const params = useParams();
   const router = useRouter();
+  const { showToast } = useUI();
   const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
   const [patient, setPatient] = useState(null);
   const [snapshot, setSnapshot] = useState(null);
@@ -73,7 +75,7 @@ export default function ClinicalReport() {
     const savedPatients = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
     localStorage.setItem('nutri_patients', JSON.stringify(savedPatients.map(p => p.id === patient.id ? updatedPatient : p)));
     setPatient(updatedPatient);
-    alert('¡Informe guardado en el Expediente! Puedes verlo desde la ficha del paciente.');
+    showToast('¡Informe guardado en el Expediente!', 'success');
   };
 
   return (

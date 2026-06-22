@@ -1,11 +1,13 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Calendar as CalendarIcon, Clock, User, Trash2, Plus, X, Search, Activity } from 'lucide-react';
+import { ArrowLeft, Calendar as CalendarIcon, Clock, User, Trash2, Plus, X, Search, Activity, CheckCircle, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useUI } from '@/context/UIContext';
 
 export default function NutriAgenda() {
   const router = useRouter();
+  const { showToast } = useUI();
   const [appointments, setAppointments] = useState([]);
   const [patients, setPatients] = useState([]);
   const [viewDate, setViewDate] = useState(new Date());
@@ -82,7 +84,7 @@ export default function NutriAgenda() {
 
   const handleSave = (e) => {
     e.preventDefault();
-    if (!formData.patientId || !formData.date || !formData.time) return alert('Llene todos los campos');
+    if (!formData.patientId || !formData.date || !formData.time) return showToast('Llene todos los campos', 'error');
 
     const patient = patients.find(p => p.id === parseInt(formData.patientId));
     const newAppointment = {

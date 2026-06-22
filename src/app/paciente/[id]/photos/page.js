@@ -2,10 +2,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Camera, Upload, CheckCircle2 } from 'lucide-react';
+import { useUI } from '@/context/UIContext';
 
 export default function PhotosPage() {
   const params = useParams();
   const router = useRouter();
+  const { showToast } = useUI();
   const [photos, setPhotos] = useState({
     front: null,
     back: null,
@@ -41,7 +43,7 @@ export default function PhotosPage() {
       return p;
     });
     localStorage.setItem('nutri_patients', JSON.stringify(updated));
-    alert('¡Proceso completado con éxito! Tu nutricionista revisará tu información pronto. Ya puedes ver tu plan personalizado.');
+    showToast('¡Proceso completado con éxito! Tu nutricionista revisará tu información pronto.', 'success');
     router.push(`/paciente/${params.id}/dashboard`);
   };
 

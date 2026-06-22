@@ -1,11 +1,13 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { ArrowLeft, Search, Plus, Trash2, Edit2, Apple, X } from 'lucide-react';
+import { ArrowLeft, Search, Plus, Trash2, Edit2, Apple, X, CheckCircle, Info } from 'lucide-react';
 import Link from 'next/link';
+import { useUI } from '@/context/UIContext';
 import { loadFoods, saveFoods } from '@/data/defaultFoods';
 
 export default function NutriFoods() {
+  const { showToast } = useUI();
   const [foods, setFoods] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterGroup, setFilterGroup] = useState('all');
@@ -30,7 +32,7 @@ export default function NutriFoods() {
 
   const handleSaveFood = () => {
     if (!currentFood.name || !currentFood.portion) {
-      alert("Por favor llena el nombre y la porción.");
+      showToast("Por favor llena el nombre y la porción.", "error");
       return;
     }
 
@@ -47,7 +49,7 @@ export default function NutriFoods() {
     saveFoods(updatedFoods);
     setIsModalOpen(false);
     setCurrentFood({ id: '', name: '', portion: '', groupKey: 'cereales' });
-    alert("¡Alimento guardado con éxito en tu base de datos!");
+    showToast("¡Alimento guardado con éxito!", "success");
   };
 
   const handleDelete = (id) => {

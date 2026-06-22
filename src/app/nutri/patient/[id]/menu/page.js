@@ -1,7 +1,8 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Save, Activity, Search, Clock, SaveAll, X } from 'lucide-react';
+import { ArrowLeft, Save, Activity, Search, Clock, SaveAll, X, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
+import { useUI } from '@/context/UIContext';
 import { loadFoods } from '@/data/defaultFoods';
 import { calculateClinicalData, DISTRIBUTION_TEMPLATES } from '@/utils/calculationUtils';
 
@@ -17,6 +18,7 @@ const EXCHANGE_VALUES = {
 export default function ManageMenu() {
   const params = useParams();
   const router = useRouter();
+  const { showToast } = useUI();
   const [patient, setPatient] = useState(null);
   const [foodDB, setFoodDB] = useState([]);
   const [step, setStep] = useState(1); // 1: Porciones, 2: Ejemplos de Menú
@@ -110,11 +112,11 @@ export default function ManageMenu() {
   const totals = getPlannedTotals();
 
   const handleSave = () => {
-    if (!patient) return alert('Paciente no cargado correctamente.');
+    if (!patient) return showToast('Paciente no cargado correctamente.', 'error');
     const savedPatients = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
     const updated = savedPatients.map(p => p.id === patient.id ? { ...p, menu, formulas } : p);
     localStorage.setItem('nutri_patients', JSON.stringify(updated));
-    alert('Plan nutricional guardado con éxito');
+    showToast('Plan nutricional guardado con éxito', 'success');
     router.back();
   };
 

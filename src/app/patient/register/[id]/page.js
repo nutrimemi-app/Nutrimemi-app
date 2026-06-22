@@ -1,11 +1,13 @@
 'use client';
 import { useState } from 'react';
-import { ShieldCheck, Mail, Lock, CheckCircle } from 'lucide-react';
+import { ShieldCheck, Mail, Lock, CheckCircle, Info } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
+import { useUI } from '@/context/UIContext';
 
 export default function PatientRegistration() {
   const params = useParams();
   const router = useRouter();
+  const { showToast } = useUI();
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     email: '',
@@ -15,7 +17,7 @@ export default function PatientRegistration() {
   const handleRegister = (e) => {
     e.preventDefault();
     if (formData.pin.length !== 4 || isNaN(formData.pin)) {
-      alert('El PIN debe ser de 4 dígitos numéricos');
+      showToast('El PIN debe ser de 4 dígitos numéricos', 'error');
       return;
     }
     setStep(2);
