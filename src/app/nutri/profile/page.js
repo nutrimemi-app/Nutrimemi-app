@@ -14,7 +14,7 @@ export default function NutriProfile() {
 
   const sendTestToPatient = () => {
     const patientSub = localStorage.getItem('push_sub_role_paciente');
-    if (!patientSub) return alert('El paciente no tiene notificaciones activadas aún.');
+    if (!patientSub) return showToast('El paciente aún no ha activado sus notificaciones.', 'info');
     sendNotification(JSON.parse(patientSub), '🥗 Nutrimemi', 'Tu nutricionista te ha enviado un mensaje', '/patient/profile');
   };
   const [stats, setStats] = useState({ patients: 0, appointments: 0 });

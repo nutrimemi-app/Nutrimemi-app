@@ -53,11 +53,16 @@ export default function NutriFoods() {
   };
 
   const handleDelete = (id) => {
-    if (confirm("¿Estás segura de eliminar este alimento de tu base de datos?")) {
-      const updatedFoods = foods.filter(f => f.id !== id);
-      setFoods(updatedFoods);
-      saveFoods(updatedFoods);
-    }
+    showConfirm(
+      "Eliminar Alimento",
+      "¿Estás segura de eliminar este alimento de tu base de datos? Esta acción no se puede deshacer.",
+      () => {
+        const updatedFoods = foods.filter(f => f.id !== id);
+        setFoods(updatedFoods);
+        saveFoods(updatedFoods);
+        showToast("Alimento eliminado", "success");
+      }
+    );
   };
 
   const startEdit = (food) => {
