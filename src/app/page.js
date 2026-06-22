@@ -21,26 +21,51 @@ export default function LoginPage() {
       alignItems: 'center', 
       justifyContent: 'center', 
       height: '100vh',
-      padding: '20px'
+      padding: '24px',
+      background: 'var(--bg-primary)'
     }}>
-      <div className="fade-in" style={{ width: '100%', maxWidth: '400px', textAlign: 'center' }}>
+      <div className="fade-in" style={{ 
+        width: '100%', 
+        maxWidth: '420px', 
+        textAlign: 'center',
+        padding: '40px 32px',
+        background: 'white',
+        borderRadius: '32px',
+        boxShadow: '0 20px 50px rgba(0,0,0,0.05)'
+      }}>
         {/* Logo Imagen */}
-        <div style={{ marginBottom: '20px' }}>
+        <div style={{ marginBottom: '40px' }}>
           <img 
             src="/logo.png" 
             alt="Nutrimemi Logo" 
-            style={{ width: '100%', maxWidth: '324px', height: 'auto' }}
+            style={{ width: '100%', maxWidth: '280px', height: 'auto' }}
           />
         </div>
 
-        <h1 style={{ marginBottom: '8px', fontSize: '1.5rem' }}>Bienvenido</h1>
-        <p style={{ marginBottom: '32px', opacity: 0.7 }}>Gestiona tu nutrición de forma experta</p>
+        <h1 style={{ 
+          marginBottom: '8px', 
+          fontSize: '1.8rem', 
+          fontWeight: '900',
+          color: 'var(--text-primary)',
+          fontFamily: 'Belinda, sans-serif'
+        }}>
+          Bienvenido
+        </h1>
+        <p style={{ 
+          marginBottom: '40px', 
+          opacity: 0.6, 
+          fontWeight: '600',
+          fontSize: '0.95rem' 
+        }}>
+          Gestiona tu nutrición de forma experta
+        </p>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <input 
             type="text" 
             placeholder="Usuario" 
             className="input-field" 
+            style={{ margin: 0, padding: '18px', borderRadius: '16px', border: '1.5px solid rgba(0,0,0,0.05)', fontSize: '1rem', background: '#f9f9f9' }}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -49,17 +74,33 @@ export default function LoginPage() {
             type="password" 
             placeholder="Contraseña" 
             className="input-field" 
+            style={{ margin: 0, padding: '18px', borderRadius: '16px', border: '1.5px solid rgba(0,0,0,0.05)', fontSize: '1rem', background: '#f9f9f9' }}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
           />
           
-          <button type="submit" className="btn-primary" style={{ width: '100%', marginTop: '10px' }}>
+          <button 
+            type="submit" 
+            className="btn-primary" 
+            style={{ 
+              width: '100%', 
+              marginTop: '12px',
+              padding: '18px',
+              borderRadius: '16px',
+              fontSize: '1rem',
+              fontWeight: '900',
+              background: 'var(--action)',
+              boxShadow: '0 10px 25px rgba(253, 158, 20, 0.3)',
+              border: 'none',
+              color: 'white'
+            }}
+          >
             Iniciar Sesión
           </button>
         </form>
 
-        <div style={{ marginTop: '24px', fontSize: '0.9rem', opacity: 0.6 }}>
+        <div style={{ marginTop: '32px', fontSize: '0.9rem', opacity: 0.5, fontWeight: '700' }}>
           ¿Olvidaste tu contraseña?
         </div>
       </div>
