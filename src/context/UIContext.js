@@ -9,6 +9,7 @@ const UIContext = createContext({
 export function UIProvider({ children }) {
   const [toast, setToast] = useState(null);
   const [pwaPrompt, setPwaPrompt] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [os, setOs] = useState('android');
 
   const showToast = (message, type = 'success') => {
@@ -20,17 +21,36 @@ export function UIProvider({ children }) {
     // Detect OS
     const ua = typeof window !== 'undefined' ? window.navigator.userAgent : '';
     if (/iPhone|iPad|iPod/.test(ua)) setOs('ios');
+
+    // Manejar evento de instalación en Android
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setPwaPrompt(true);
+    });
     
-    // Detect if not standalone
-    if (typeof window !== 'undefined') {
+    // Si es iOS, mostrar el prompt después de unos segundos (ya que no hay evento nativo)
+    if (/iPhone|iPad|iPod/.test(ua)) {
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
         if (!isStandalone) {
-           // Show PWA prompt after 4 seconds
-           const timer = setTimeout(() => setPwaPrompt(true), 4000);
-           return () => clearTimeout(timer);
+           setTimeout(() => setPwaPrompt(true), 4000);
         }
     }
   }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) {
+      setPwaPrompt(false);
+      return;
+    }
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      showToast('¡Bienvenido a la experiencia completa!', 'success');
+    }
+    setDeferredPrompt(null);
+    setPwaPrompt(false);
+  };
 
   return (
     <UIContext.Provider value={{ showToast }}>
@@ -118,7 +138,7 @@ export function UIProvider({ children }) {
                 </div>
              ) : (
                 <div style={{ fontSize: '0.9rem', lineHeight: '1.5', color: '#1d512d', fontWeight: '600', textAlign: 'center' }}>
-                   Toca el menú (3 puntos) y selecciona <br/><strong>"Instalar Aplicación"</strong> <br/>para usarla a pantalla completa.
+                   Instala la App oficial para recibir notificaciones y acceder sin internet.
                 </div>
              )}
           </div>
@@ -131,10 +151,10 @@ export function UIProvider({ children }) {
                Quizás luego
              </button>
              <button 
-               onClick={() => setPwaPrompt(false)} 
+               onClick={os === 'ios' ? () => setPwaPrompt(false) : handleInstallClick} 
                style={{ flex: 2, padding: '16px', borderRadius: '16px', border: 'none', background: '#1d512d', color: 'white', fontWeight: '900', fontSize: '0.9rem', boxShadow: '0 8px 20px rgba(29, 81, 45, 0.3)' }}
              >
-               ¡Entendido!
+               {os === 'ios' ? '¡Entendido!' : 'Instalar Ahora'}
              </button>
           </div>
         </div>
