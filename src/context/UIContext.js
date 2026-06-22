@@ -29,11 +29,11 @@ export function UIProvider({ children }) {
       setPwaPrompt(true);
     });
     
-    // Si es iOS, mostrar el prompt después de unos segundos (ya que no hay evento nativo)
+    // Si es iOS, mostrar el prompt después de unos segundos
     if (/iPhone|iPad|iPod/.test(ua)) {
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
         if (!isStandalone) {
-           setTimeout(() => setPwaPrompt(true), 4000);
+           setTimeout(() => setPwaPrompt(true), 1000); // Super rápido: 1 segundo
         }
     }
   }, []);
@@ -45,9 +45,6 @@ export function UIProvider({ children }) {
     }
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-      showToast('¡Bienvenido a la experiencia completa!', 'success');
-    }
     setDeferredPrompt(null);
     setPwaPrompt(false);
   };
@@ -154,7 +151,7 @@ export function UIProvider({ children }) {
                onClick={os === 'ios' ? () => setPwaPrompt(false) : handleInstallClick} 
                style={{ flex: 2, padding: '16px', borderRadius: '16px', border: 'none', background: '#1d512d', color: 'white', fontWeight: '900', fontSize: '0.9rem', boxShadow: '0 8px 20px rgba(29, 81, 45, 0.3)' }}
              >
-               {os === 'ios' ? '¡Entendido!' : 'Instalar Ahora'}
+               {os === 'ios' ? '¡Entendido!' : 'DESCARGAR'}
              </button>
           </div>
         </div>
