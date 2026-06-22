@@ -4,8 +4,8 @@ const STATIC_ASSETS = [
   '/patient/home',
   '/nutri/dashboard',
   '/logopwa.jpg',
-  '/icon-192.png',
-  '/icon-512.png',
+  '/icon192.png',
+  '/icon512.png',
 ];
 
 self.addEventListener('install', (event) => {
