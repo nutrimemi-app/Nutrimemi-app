@@ -2,7 +2,9 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { CheckCircle, XCircle, Info, AlertTriangle, Share, Download, X } from 'lucide-react';
 
-const UIContext = createContext();
+const UIContext = createContext({
+  showToast: () => {}, // Valor por defecto vacío para evitar errores durante el build
+});
 
 export function UIProvider({ children }) {
   const [toast, setToast] = useState(null);

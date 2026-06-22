@@ -15,14 +15,14 @@ export default function RootLayout({ children }) {
   return (
     <html lang="es">
       <body className={outfit.className}>
-        <AuthProvider>
-          <UIProvider>
+        <UIProvider>
+          <AuthProvider>
             <div className="pwa-container">
               {children}
               <BottomNav />
             </div>
-          </UIProvider>
-        </AuthProvider>
+          </AuthProvider>
+        </UIProvider>
       </body>
     </html>
   );
