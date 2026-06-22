@@ -9,6 +9,13 @@ const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
 export const metadata = {
   title: "Nutrimemi - Gestión de Nutrición",
   description: "App experto en gestión de consultas de nutrición",
+  viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover",
+  themeColor: "#F6F4DF",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Nutrimemi",
+  },
 };
 
 export default function RootLayout({ children }) {

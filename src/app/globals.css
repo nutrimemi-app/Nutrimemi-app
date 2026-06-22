@@ -27,12 +27,17 @@
 }
 
 .pwa-container {
+  width: 100%;
   max-width: 500px;
   margin: 0 auto;
   min-height: 100vh;
   position: relative;
   background-color: var(--bg-primary);
-  padding-bottom: 80px; /* Space for BottomNav */
+  /* Soporte para SafeArea de iOS */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: calc(85px + env(safe-area-inset-bottom));
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
 * {

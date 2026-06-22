@@ -29,7 +29,7 @@ export default function LoginPage() {
           <img 
             src="/logo.png" 
             alt="Nutrimemi Logo" 
-            style={{ width: '324px', height: 'auto' }}
+            style={{ width: '100%', maxWidth: '324px', height: 'auto' }}
           />
         </div>
 

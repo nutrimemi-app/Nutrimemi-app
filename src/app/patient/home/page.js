@@ -39,10 +39,10 @@ export default function PatientHome() {
   };
 
   return (
-    <div style={{ padding: '20px', paddingBottom: '100px', maxWidth: '600px', margin: '0 auto' }}>
+    <div style={{ padding: '20px', width: '100%', maxWidth: '100%' }}>
       <header style={{ marginBottom: '24px' }}>
         <p style={{ opacity: 0.6, fontSize: '0.9rem' }}>Bienvenido de nuevo,</p>
-        <h2 style={{ fontSize: '1.8rem', color: 'var(--primary)' }}>{user?.name || 'Paciente'}</h2>
+        <h2 style={{ fontSize: '1.8rem', color: 'var(--primary)', fontWeight: '900' }}>{user?.name || 'Paciente'}</h2>
       </header>
 
       {/* Tarjeta Resumen Nutricional */}
