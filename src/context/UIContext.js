@@ -136,8 +136,9 @@ export function UIProvider({ children }) {
                    3. ¡Listo! Tendrás acceso directo en tu iPhone.
                 </div>
              ) : (
-                <div style={{ fontSize: '0.9rem', lineHeight: '1.5', color: '#1d512d', fontWeight: '600', textAlign: 'center' }}>
-                   Instala la App oficial para recibir notificaciones y acceder sin internet.
+                <div style={{ fontSize: '1rem', lineHeight: '1.4', color: '#1d512d', fontWeight: '900', textAlign: 'center' }}>
+                   ¡Instala la app!<br/>
+                    <span style={{ fontWeight: '400', opacity: 0.8 }}>y trabajemos juntos en tu versión más saludable!</span>
                 </div>
              )}
           </div>
