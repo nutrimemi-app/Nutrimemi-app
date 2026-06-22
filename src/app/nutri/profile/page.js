@@ -21,6 +21,11 @@ export default function NutriProfile() {
     location: 'Sede Principal, Nutrimemi'
   });
 
+  const handleLogout = () => {
+    logout();
+    showToast('Sesión cerrada correctamente', 'success');
+  };
+
   useEffect(() => {
     const savedProfile = localStorage.getItem('nutri_profile_data');
     if (savedProfile) setProfile(JSON.parse(savedProfile));
