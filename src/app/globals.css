@@ -1,0 +1,125 @@
+@font-face {
+  font-family: 'Belinda';
+  src: url('/fonts/Belinda.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Lokeya';
+  src: url('/fonts/Lokeya.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+:root {
+  --bg-primary: #F6F4DF;
+  --text-primary: #1D512D;
+  --accent: #CBBC1E;
+  --action: #FD9E14;
+  --card-green: #1D512D;
+  --card-yellow: #CBBC1E;
+  --card-red: #FF5E5E;
+  --card-blue: #2D5A82;
+  --white-glass: rgba(255, 255, 255, 0.6);
+  --glass-blur: blur(24px);
+  --shadow-subtle: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.pwa-container {
+  max-width: 500px;
+  margin: 0 auto;
+  min-height: 100vh;
+  position: relative;
+  background-color: var(--bg-primary);
+  padding-bottom: 80px; /* Space for BottomNav */
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+  font-family: 'Belinda', 'Outfit', 'Inter', sans-serif;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+h1, h2, h3 {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* Glassmorphism Classes */
+.glass-panel {
+  background: var(--white-glass);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 20px;
+  box-shadow: var(--shadow-subtle);
+}
+
+.glass-tab-bar {
+  background: var(--white-glass);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Utility Buttons */
+.btn-primary {
+  background-color: var(--action);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, background-color 0.2s;
+  font-size: 1rem;
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+}
+
+.btn-accent {
+  background-color: var(--accent);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Inputs */
+.input-field {
+  width: 100%;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,0.1);
+  background: white;
+  margin-bottom: 16px;
+  font-size: 1rem;
+  outline: none;
+}
+
+.input-field:focus {
+  border-color: var(--text-primary);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
