@@ -26,16 +26,17 @@ export function UIProvider({ children }) {
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      setPwaPrompt(true);
     });
     
-    // Si es iOS, mostrar el prompt después de unos segundos
-    if (/iPhone|iPad|iPod/.test(ua)) {
+    // MOSTRAR AVISO SÍ O SÍ después de 1.5 segundos
+    const checkPWA = () => {
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
         if (!isStandalone) {
-           setTimeout(() => setPwaPrompt(true), 1000); // Super rápido: 1 segundo
+           setTimeout(() => setPwaPrompt(true), 1500); 
         }
-    }
+    };
+
+    checkPWA();
   }, []);
 
   const handleInstallClick = async () => {
