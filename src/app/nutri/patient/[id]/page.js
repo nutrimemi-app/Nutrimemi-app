@@ -8,7 +8,7 @@ import { calculateClinicalData } from '@/utils/calculationUtils';
 
 export default function PatientFile() {
   const params = useParams();
-  const { showToast } = useUI();
+  const { showToast, showConfirm } = useUI();
   const [patient, setPatient] = useState(null);
   const [gender, setGender] = useState('female'); // 'male' or 'female'
   const [currentTag, setCurrentTag] = useState('');
@@ -64,24 +64,27 @@ export default function PatientFile() {
 
   const saveHistory = () => {
     if (!patient) return;
-    const confirmSave = confirm("¿Guardar los datos actuales (Peso, Medidas y Menú) como una nueva sesión en el historial?");
-    if (!confirmSave) return;
+    showConfirm(
+      "Guardar Consulta",
+      "¿Deseas guardar los datos actuales (Peso, Medidas y Menú) como una nueva sesión en el historial?",
+      () => {
+        const newEntry = {
+          id: Date.now(),
+          date: new Date().toISOString().split('T')[0],
+          details: { ...patient.details },
+          measurements: { ...patient.measurements },
+          dietForm: { ...patient.dietForm },
+          imc: clinical.imc,
+          profile: clinical.profile,
+          menus: { ...patient.menu }
+        };
 
-    const newEntry = {
-      id: Date.now(),
-      date: new Date().toISOString().split('T')[0],
-      details: { ...patient.details },
-      measurements: { ...patient.measurements },
-      dietForm: { ...patient.dietForm },
-      imc: clinical.imc,
-      profile: clinical.profile,
-      menus: { ...patient.menu }
-    };
-
-    const updatedHistory = [...(patient.history || []), newEntry];
-    const updatedPatient = { ...patient, history: updatedHistory };
-    savePatientUpdate(updatedPatient);
-    showToast("¡Sesión guardada en el historial!", "success");
+        const updatedHistory = [...(patient.history || []), newEntry];
+        const updatedPatient = { ...patient, history: updatedHistory };
+        savePatientUpdate(updatedPatient);
+        showToast("¡Sesión guardada en el historial!", "success");
+      }
+    );
   };
 
   const measurements = [

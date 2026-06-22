@@ -3,11 +3,13 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import { CheckCircle, XCircle, Info, AlertTriangle, Share, Download, X } from 'lucide-react';
 
 const UIContext = createContext({
-  showToast: () => {}, // Valor por defecto vacío para evitar errores durante el build
+  showToast: () => {},
+  showConfirm: () => {},
 });
 
 export function UIProvider({ children }) {
   const [toast, setToast] = useState(null);
+  const [confirm, setConfirm] = useState(null);
   const [pwaPrompt, setPwaPrompt] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [os, setOs] = useState('android');
@@ -15,6 +17,10 @@ export function UIProvider({ children }) {
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
+  };
+
+  const showConfirm = (title, message, onConfirm) => {
+    setConfirm({ title, message, onConfirm });
   };
 
   useEffect(() => {
@@ -58,8 +64,52 @@ export function UIProvider({ children }) {
   };
 
   return (
-    <UIContext.Provider value={{ showToast }}>
+    <UIContext.Provider value={{ showToast, showConfirm }}>
       {children}
+      
+      {/* Confirm Modal (Native Action Sheet Style) */}
+      {confirm && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.4)',
+          backdropFilter: 'blur(4px)',
+          zIndex: 20000,
+          display: 'flex',
+          alignItems: 'flex-end',
+          justifyContent: 'center'
+        }}>
+          <div className="slide-up" style={{
+            width: '100%',
+            maxWidth: '500px',
+            background: 'white',
+            borderRadius: '32px 32px 0 0',
+            padding: '32px 24px',
+            boxShadow: '0 -20px 60px rgba(0,0,0,0.2)'
+          }}>
+            <h3 style={{ fontSize: '1.4rem', fontWeight: '900', color: '#1d512d', marginBottom: '12px' }}>{confirm.title}</h3>
+            <p style={{ fontSize: '1rem', opacity: 0.6, marginBottom: '32px', lineHeight: '1.5' }}>{confirm.message}</p>
+            
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button 
+                onClick={() => setConfirm(null)}
+                style={{ flex: 1, padding: '18px', borderRadius: '20px', border: 'none', background: 'rgba(0,0,0,0.05)', fontWeight: '900', color: '#666', fontSize: '1rem' }}
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={() => {
+                  confirm.onConfirm();
+                  setConfirm(null);
+                }}
+                style={{ flex: 1, padding: '18px', borderRadius: '20px', border: 'none', background: '#1d512d', color: 'white', fontWeight: '900', fontSize: '1rem' }}
+              >
+                Aceptar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Toast Notification (Glassmorphism Native Style) */}
       {toast && (

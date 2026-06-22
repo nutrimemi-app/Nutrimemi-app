@@ -93,7 +93,7 @@ export default function NewPatient() {
           <label style={{ fontSize: '0.85rem', opacity: 0.6, marginBottom: '8px', display: 'block' }}>Nombre Completo</label>
           <input 
             type="text" 
-            placeholder="Santiago Rios" 
+            placeholder="Nombre y Apellido" 
             className="input-field"
             value={formData.name}
             onChange={(e) => setFormData({...formData, name: e.target.value})}
@@ -105,7 +105,7 @@ export default function NewPatient() {
               <label style={{ fontSize: '0.85rem', opacity: 0.6, marginBottom: '8px', display: 'block' }}>Cédula</label>
               <input 
                 type="text" 
-                placeholder="4.395.964" 
+                placeholder="V-00000000" 
                 className="input-field"
                 value={formData.ci}
                 onChange={(e) => setFormData({...formData, ci: e.target.value})}
@@ -154,7 +154,7 @@ export default function NewPatient() {
               <label style={{ fontSize: '0.85rem', opacity: 0.6, marginBottom: '8px', display: 'block' }}>Altura (cm)</label>
               <input 
                 type="number" 
-                placeholder="163" 
+                placeholder="0" 
                 className="input-field"
                 value={formData.height}
                 onChange={(e) => setFormData({...formData, height: e.target.value})}
@@ -166,7 +166,7 @@ export default function NewPatient() {
               <input 
                 type="number" 
                 step="0.1" 
-                placeholder="90" 
+                placeholder="0.0" 
                 className="input-field"
                 value={formData.weight}
                 onChange={(e) => setFormData({...formData, weight: e.target.value})}
@@ -203,7 +203,7 @@ export default function NewPatient() {
           <label style={{ fontSize: '0.85rem', opacity: 0.6, marginBottom: '8px', display: 'block' }}>Antecedentes Médicos / Enfermedades</label>
           <textarea 
             className="input-field" 
-            placeholder="su mama y toda su familia era hipertensa" 
+            placeholder="Escribe antecedentes aquí..." 
             style={{ minHeight: '80px', paddingTop: '12px' }}
             value={formData.clinicalHistory}
             onChange={(e) => setFormData({...formData, clinicalHistory: e.target.value})}

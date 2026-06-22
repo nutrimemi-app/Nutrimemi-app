@@ -33,6 +33,7 @@
   min-height: 100vh;
   position: relative;
   background-color: var(--bg-primary);
+  overflow-x: hidden;
   /* Soporte para SafeArea de iOS */
   padding-top: env(safe-area-inset-top);
   padding-bottom: calc(85px + env(safe-area-inset-bottom));
@@ -52,6 +53,8 @@ body {
   color: var(--text-primary);
   min-height: 100vh;
   overflow-x: hidden;
+  width: 100vw;
+  touch-action: manipulation;
 }
 
 h1, h2, h3 {
