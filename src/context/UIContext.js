@@ -18,6 +18,11 @@ export function UIProvider({ children }) {
   };
 
   useEffect(() => {
+    // Registrar Service Worker para habilitar instalación
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW error', err));
+    }
+
     // Detect OS
     const ua = typeof window !== 'undefined' ? window.navigator.userAgent : '';
     if (/iPhone|iPad|iPod/.test(ua)) setOs('ios');
