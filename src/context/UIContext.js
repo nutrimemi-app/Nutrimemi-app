@@ -122,7 +122,7 @@ export function UIProvider({ children }) {
 
           <div style={{ display: 'flex', gap: '18px', alignItems: 'center', marginBottom: '20px' }}>
              <img 
-               src="/logo pwa.jpg" 
+               src="/logopwa.jpg" 
                alt="Nutrimemi PWA"
                style={{ width: '64px', height: '64px', borderRadius: '18px', objectFit: 'cover', boxShadow: '0 8px 20px rgba(0,0,0,0.1)' }} 
              />
