@@ -18,38 +18,40 @@ export function UIProvider({ children }) {
   };
 
   useEffect(() => {
-    // Registrar Service Worker para habilitar instalación
+    // Registrar Service Worker
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW error', err));
     }
 
     // Detect OS
-    const ua = typeof window !== 'undefined' ? window.navigator.userAgent : '';
+    const ua = window.navigator.userAgent;
     if (/iPhone|iPad|iPod/.test(ua)) setOs('ios');
 
-    // Manejar evento de instalación en Android
+    // Android: mostrar banner SOLO cuando Chrome confirma que la app es instalable
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
+      setPwaPrompt(true);
     });
-    
-    // MOSTRAR AVISO SÍ O SÍ después de 1.5 segundos
-    const checkPWA = () => {
-        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-        if (!isStandalone) {
-           setTimeout(() => setPwaPrompt(true), 1500); 
-        }
-    };
 
-    checkPWA();
+    // iOS Safari: mostrar instrucciones manuales
+    const isIOS = /iPhone|iPad|iPod/.test(ua);
+    const isSafari = /Safari/.test(ua) && !/CriOS|Chrome|FxiOS/.test(ua);
+    const isStandalone = window.navigator.standalone === true;
+    if (isIOS && isSafari && !isStandalone) {
+      setOs('ios');
+      setTimeout(() => setPwaPrompt(true), 2000);
+    }
+
+    // Detectar si ya está instalada (limpia el prompt si está en modo standalone)
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setPwaPrompt(false);
+    }
   }, []);
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) {
-      setPwaPrompt(false);
-      return;
-    }
-    deferredPrompt.prompt();
+    if (!deferredPrompt) return;
+    await deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
     setDeferredPrompt(null);
     setPwaPrompt(false);
