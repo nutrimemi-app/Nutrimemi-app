@@ -100,7 +100,7 @@ export default function PatientFile() {
   ];
 
   return (
-    <div style={{ padding: '20px', paddingBottom: '120px' }} className="fade-in">
+    <div style={{ padding: '20px', paddingBottom: '160px' }} className="fade-in">
       <header style={{ marginBottom: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
           <Link href="/nutri/dashboard" style={{ color: 'var(--text-primary)' }}>
@@ -580,18 +580,21 @@ export default function PatientFile() {
         boxShadow: '0 -10px 25px rgba(0,0,0,0.05)'
       }}>
         <button 
-          onClick={() => document.getElementById('ev-section').scrollIntoView({ behavior: 'smooth' })}
+          onClick={() => {
+            const el = document.getElementById('ev-section');
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }}
           className="btn-secondary" 
           style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '14px', borderRadius: '16px', fontSize: '0.85rem' }}
         >
-          <History size={18} /> Seguimiento
+          <History size={18} /> <span className="btn-text">Seguimiento</span>
         </button>
         <button 
           onClick={saveHistory}
           className="btn-accent" 
-          style={{ flex: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '14px', borderRadius: '16px', fontSize: '0.85rem' }}
+          style={{ flex: 1.2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '14px', borderRadius: '16px', fontSize: '0.85rem' }}
         >
-          <Save size={18} /> Guardar Consulta
+          <Save size={18} /> <span className="btn-text">Guardar</span>
         </button>
         <Link 
           href={`/nutri/patient/${patient.id}/report`}
@@ -601,11 +604,10 @@ export default function PatientFile() {
             className="btn-primary" 
             style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '14px', borderRadius: '16px', fontSize: '0.85rem' }}
           >
-            <Printer size={18} /> Informe
+            <Printer size={18} /> <span className="btn-text">Informe</span>
           </button>
         </Link>
       </div>
-
     </div>
   );
 }

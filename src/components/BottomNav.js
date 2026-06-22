@@ -5,9 +5,10 @@ import { usePathname } from 'next/navigation';
 
 export default function BottomNav() {
   const pathname = usePathname();
-
-  const isNutri = pathname.includes('/nutri');
+  const isNutri = pathname ? pathname.includes('/nutri') : false;
   
+  if (!pathname) return null;
+
   const nutriLinks = [
     { href: '/nutri/dashboard', icon: <Users size={24} />, label: 'Pacientes' },
     { href: '/nutri/agenda', icon: <ClipboardList size={24} />, label: 'Agenda' },
@@ -22,7 +23,8 @@ export default function BottomNav() {
 
   const links = isNutri ? nutriLinks : patientLinks;
 
-  if (pathname === '/' || pathname.includes('/paciente')) return null; // No nav on login or onboarding
+  // No mostrar nav en login o onboarding
+  if (pathname === '/' || pathname.includes('/paciente')) return null;
 
   return (
     <nav className="glass-tab-bar" style={{

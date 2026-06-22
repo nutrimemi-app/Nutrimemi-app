@@ -8,7 +8,7 @@ import { calculateClinicalData } from '@/utils/calculationUtils';
 export default function ClinicalReport() {
   const params = useParams();
   const router = useRouter();
-  const { showToast } = useUI();
+  const { showToast, showConfirm } = useUI();
   const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
   const [patient, setPatient] = useState(null);
   const [snapshot, setSnapshot] = useState(null);
@@ -83,8 +83,9 @@ export default function ClinicalReport() {
   };
 
   return (
-    <div className="report-container" style={{ background: '#f5f5f5', minHeight: '100vh', padding: '40px 0' }}>
-      <style jsx global>{`
+    <div className="report-container" style={{ background: '#f5f5f5', minHeight: '100vh', padding: '40px 0', paddingBottom: '100px' }}>
+      {/* Estilos para Impresión */}
+      <style dangerouslySetInnerHTML={{ __html: `
         @media print {
           .no-print, nav, footer:not(.report-footer), .tab-bar, #tab-bar { display: none !important; }
           body { background: white !important; margin: 0 !important; padding: 0 !important; }
@@ -101,54 +102,32 @@ export default function ClinicalReport() {
             page-break-after: always;
           }
         }
-        .letter-page {
-          width: 215.9mm;
-          height: 279.4mm;
-          position: relative;
-          background: white;
-          margin: 0 auto;
-          box-shadow: 0 10px 40px rgba(0,0,0,0.05);
-          border-radius: 2px;
-          overflow: hidden;
-        }
-      `}</style>
+      `}} />
 
       {/* Botones de Acción (No imprimibles) */}
-      <div className="no-print" style={{ position: 'fixed', bottom: '30px', right: '30px', display: 'flex', gap: '15px', zIndex: 1000 }}>
+      <div className="no-print action-buttons-container">
         <button 
           onClick={() => router.push(`/nutri/patient/${patient.id}`)}
-          style={{ 
-            background: 'white', color: 'var(--text-primary)', border: '1px solid #ddd', 
-            padding: '16px 24px', borderRadius: '50px', fontWeight: '800', 
-            boxShadow: '0 10px 20px rgba(0,0,0,0.1)', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: '10px'
-          }}
+          className="report-btn"
+          style={{ background: 'white', color: 'var(--text-primary)', border: '1px solid #ddd' }}
         >
-          <ArrowLeft size={20} /> Volver
+          <ArrowLeft size={20} /> <span>Volver</span>
         </button>
         {!snapshot && (
           <button 
             onClick={handleSaveReport}
-            style={{ 
-              background: '#1D512D', color: 'white', border: 'none', 
-              padding: '16px 24px', borderRadius: '50px', fontWeight: '800', 
-              boxShadow: '0 10px 20px rgba(0,0,0,0.2)', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: '10px'
-            }}
+            className="report-btn"
+            style={{ background: '#1D512D', color: 'white' }}
           >
-            <Save size={20} /> Guardar Expediente
+            <Save size={20} /> <span>Guardar</span>
           </button>
         )}
         <button 
           onClick={handlePrint}
-          style={{ 
-            background: 'var(--primary)', color: 'white', border: 'none', 
-            padding: '16px 24px', borderRadius: '50px', fontWeight: '900', 
-            boxShadow: '0 10px 20px rgba(0,0,0,0.2)', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: '10px'
-          }}
+          className="report-btn"
+          style={{ background: 'var(--primary)', color: 'white' }}
         >
-          <Printer size={20} /> Imprimir en Mi Papel Membretado
+          <Printer size={20} /> <span>Imprimir</span>
         </button>
       </div>
 
