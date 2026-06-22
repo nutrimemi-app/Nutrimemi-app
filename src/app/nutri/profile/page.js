@@ -15,7 +15,7 @@ export default function NutriProfile() {
   const [profile, setProfile] = useState({
     name: 'Dra. Salomé',
     specialty: 'NUTRICIONISTA CLÍNICO & DEPORTIVO',
-    photo: null,
+    photo: '/SALOME.png',
     instagram: '@nutrimemi',
     whatsapp: '+58 412 000 0000',
     location: 'Sede Principal, Nutrimemi'
