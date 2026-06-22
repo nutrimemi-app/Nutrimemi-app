@@ -17,7 +17,8 @@ export default function NewPatient() {
     weight: '',
     clinicalHistory: '',
     medications: '',
-    notes: '',
+    notas: '',
+    mealPlan: '3+2 snacks',
     tags: []
   });
   const [currentTag, setCurrentTag] = useState('');
@@ -79,7 +80,7 @@ export default function NewPatient() {
   };
 
   return (
-    <div style={{ padding: '24px', paddingBottom: '120px' }}>
+    <div style={{ padding: '20px 20px 140px' }}>
       <header style={{ marginBottom: '32px', display: 'flex', alignItems: 'center', gap: '16px' }}>
         <Link href="/nutri/dashboard" style={{ color: 'var(--text-primary)' }}>
           <ArrowLeft size={24} />
@@ -88,34 +89,37 @@ export default function NewPatient() {
       </header>
 
       <div className="fade-in">
-        <section className="glass-panel" style={{ padding: '20px', marginBottom: '24px' }}>
+        <section className="glass-panel" style={{ padding: '24px', marginBottom: '24px', borderRadius: '20px' }}>
           <h4 style={{ marginBottom: '16px', opacity: 0.5, fontSize: '0.8rem', fontWeight: '800' }}>DATOS BÁSICOS</h4>
-          <label style={{ fontSize: '0.85rem', opacity: 0.6, marginBottom: '8px', display: 'block' }}>Nombre Completo</label>
+          <label style={{ fontSize: '0.85rem', opacity: 0.6, marginBottom: '8px', display: 'block', marginTop: '12px' }}>Nombre Completo</label>
           <input 
             type="text" 
             placeholder="Nombre y Apellido" 
             className="input-field"
+            style={{ marginBottom: '4px' }}
             value={formData.name}
             onChange={(e) => setFormData({...formData, name: e.target.value})}
             required
           />
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
             <div>
-              <label style={{ fontSize: '0.85rem', opacity: 0.6, marginBottom: '8px', display: 'block' }}>Cédula</label>
+              <label style={{ fontSize: '0.85rem', opacity: 0.6, marginBottom: '8px', display: 'block', marginTop: '12px' }}>Cédula</label>
               <input 
                 type="text" 
                 placeholder="V-00000000" 
                 className="input-field"
+                style={{ marginBottom: '4px' }}
                 value={formData.ci}
                 onChange={(e) => setFormData({...formData, ci: e.target.value})}
                 required
               />
             </div>
             <div>
-              <label style={{ fontSize: '0.85rem', opacity: 0.6, marginBottom: '8px', display: 'block' }}>Género</label>
+              <label style={{ fontSize: '0.85rem', opacity: 0.6, marginBottom: '8px', display: 'block', marginTop: '12px' }}>Género</label>
               <select 
                 className="input-field"
+                style={{ marginBottom: '4px' }}
                 value={formData.gender}
                 onChange={(e) => setFormData({...formData, gender: e.target.value})}
                 required
@@ -126,60 +130,77 @@ export default function NewPatient() {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px', marginBottom: '16px' }}>
             <div>
-              <label style={{ fontSize: '0.85rem', opacity: 0.6, marginBottom: '8px', display: 'block' }}>Fecha de Nacimiento</label>
+              <label style={{ fontSize: '0.85rem', opacity: 0.6, marginBottom: '8px', display: 'block', marginTop: '12px' }}>Fecha de Nacimiento</label>
               <input 
                 type="date" 
                 className="input-field"
+                style={{ marginBottom: '4px' }}
                 value={formData.birthDate}
                 onChange={(e) => setFormData({...formData, birthDate: e.target.value})}
                 required
               />
             </div>
             <div>
-              <label style={{ fontSize: '0.85rem', opacity: 0.6, marginBottom: '8px', display: 'block' }}>Edad</label>
+              <label style={{ fontSize: '0.85rem', opacity: 0.6, marginBottom: '8px', display: 'block', marginTop: '12px' }}>Edad</label>
               <input 
                 type="text" 
                 className="input-field" 
+                style={{ background: '#eee', marginBottom: '4px' }}
                 value={age ? `${age} años` : ''} 
                 readOnly 
-                style={{ background: '#eee' }}
               />
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
             <div>
-              <label style={{ fontSize: '0.85rem', opacity: 0.6, marginBottom: '8px', display: 'block' }}>Altura (cm)</label>
+              <label style={{ fontSize: '0.85rem', opacity: 0.6, marginBottom: '8px', display: 'block', marginTop: '12px' }}>Altura (cm)</label>
               <input 
                 type="number" 
                 placeholder="0" 
                 className="input-field"
+                style={{ marginBottom: '4px' }}
                 value={formData.height}
                 onChange={(e) => setFormData({...formData, height: e.target.value})}
                 required
               />
             </div>
             <div>
-              <label style={{ fontSize: '0.85rem', opacity: 0.6, marginBottom: '8px', display: 'block' }}>Peso Inicial (kg)</label>
+              <label style={{ fontSize: '0.85rem', opacity: 0.6, marginBottom: '8px', display: 'block', marginTop: '12px' }}>Peso Inicial (kg)</label>
               <input 
                 type="number" 
                 step="0.1" 
                 placeholder="0.0" 
                 className="input-field"
+                style={{ marginBottom: '4px' }}
                 value={formData.weight}
                 onChange={(e) => setFormData({...formData, weight: e.target.value})}
                 required
               />
             </div>
           </div>
+
+          <label style={{ fontSize: '0.85rem', opacity: 0.6, marginBottom: '8px', display: 'block', marginTop: '12px' }}>Comidas al día</label>
+          <select
+            className="input-field"
+            style={{ marginBottom: '4px' }}
+            value={formData.mealPlan}
+            onChange={(e) => setFormData({...formData, mealPlan: e.target.value})}
+          >
+            <option value="2 comidas">2 comidas principales</option>
+            <option value="3 comidas">3 comidas principales</option>
+            <option value="3+2 snacks">3 comidas + 2 snacks</option>
+            <option value="3+3 snacks">3 comidas + 3 snacks</option>
+            <option value="2+2 snacks">2 comidas + 2 snacks</option>
+          </select>
         </section>
 
-        <section className="glass-panel" style={{ padding: '20px', marginBottom: '24px' }}>
+        <section className="glass-panel" style={{ padding: '24px', marginBottom: '24px', borderRadius: '20px' }}>
           <h4 style={{ marginBottom: '16px', opacity: 0.5, fontSize: '0.8rem', fontWeight: '800' }}>FICHA CLÍNICA Y ANTECEDENTES</h4>
           
-          <label style={{ fontSize: '0.85rem', opacity: 0.6, marginBottom: '8px', display: 'block' }}>Etiquetas / Patologías</label>
+          <label style={{ fontSize: '0.85rem', opacity: 0.6, marginBottom: '8px', display: 'block', marginTop: '12px' }}>Etiquetas / Patologías</label>
           <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
             {formData.tags.map(tag => (
               <span key={tag} style={{ background: '#1D512D', color: 'white', padding: '6px 14px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -187,60 +208,60 @@ export default function NewPatient() {
               </span>
             ))}
           </div>
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
             <input 
               type="text" 
               placeholder="Ej: Diabetes, Hiperplasia..." 
               className="input-field" 
-              style={{ marginBottom: 0 }}
+              style={{ marginBottom: '4px' }}
               value={currentTag}
               onChange={(e) => setCurrentTag(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
             />
-            <button type="button" onClick={addTag} className="btn-secondary" style={{ padding: '0 20px', borderRadius: '12px', fontWeight: '800' }}>Añadir</button>
+            <button type="button" onClick={addTag} className="btn-secondary" style={{ padding: '0 20px', borderRadius: '12px', fontWeight: '800', height: '54px' }}>Añadir</button>
           </div>
 
-          <label style={{ fontSize: '0.85rem', opacity: 0.6, marginBottom: '8px', display: 'block' }}>Antecedentes Médicos / Enfermedades</label>
+          <label style={{ fontSize: '0.85rem', opacity: 0.6, marginBottom: '8px', display: 'block', marginTop: '12px' }}>Antecedentes Médicos / Enfermedades</label>
           <textarea 
             className="input-field" 
             placeholder="Escribe antecedentes aquí..." 
-            style={{ minHeight: '80px', paddingTop: '12px' }}
+            style={{ minHeight: '80px', paddingTop: '12px', marginBottom: '4px' }}
             value={formData.clinicalHistory}
             onChange={(e) => setFormData({...formData, clinicalHistory: e.target.value})}
           />
 
-          <label style={{ fontSize: '0.85rem', opacity: 0.6, marginBottom: '8px', display: 'block' }}>Medicamentos actuales</label>
+          <label style={{ fontSize: '0.85rem', opacity: 0.6, marginBottom: '8px', display: 'block', marginTop: '12px' }}>Medicamentos actuales</label>
           <textarea 
             className="input-field" 
             placeholder="losartan, lipitor, aspirina" 
-            style={{ minHeight: '60px', paddingTop: '12px' }}
+            style={{ minHeight: '60px', paddingTop: '12px', marginBottom: '4px' }}
             value={formData.medications}
             onChange={(e) => setFormData({...formData, medications: e.target.value})}
           />
 
-          <label style={{ fontSize: '0.85rem', opacity: 0.6, marginBottom: '8px', display: 'block' }}>Notas Adicionales (Exámenes, Recordatorios...)</label>
+          <label style={{ fontSize: '0.85rem', opacity: 0.6, marginBottom: '8px', display: 'block', marginTop: '12px' }}>Notas Adicionales (Exámenes, Recordatorios...)</label>
           <textarea 
             className="input-field" 
             placeholder="Cualquier nota extra para ver si sale todo el contenido" 
-            style={{ minHeight: '60px', paddingTop: '12px' }}
+            style={{ minHeight: '60px', paddingTop: '12px', marginBottom: '4px' }}
             value={formData.notes}
             onChange={(e) => setFormData({...formData, notes: e.target.value})}
           />
         </section>
 
         {!linkGenerated ? (
-          <div style={{ display: 'flex', gap: '15px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
              <button 
               onClick={(e) => savePatient(e, 'presencial')} 
               className="btn-accent" 
-              style={{ flex: 1, padding: '18px', borderRadius: '16px', fontWeight: '900', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}
+              style={{ width: '100%', padding: '18px', borderRadius: '16px', fontWeight: '900', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}
             >
               <UserPlus size={20} /> Crear Perfil (Presencial)
             </button>
             <button 
               onClick={(e) => savePatient(e, 'virtual')} 
               className="btn-primary" 
-              style={{ flex: 1, padding: '18px', borderRadius: '16px', fontWeight: '900', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}
+              style={{ width: '100%', padding: '18px', borderRadius: '16px', fontWeight: '900', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}
             >
               <LinkIcon size={20} /> Generar Link (Virtual)
             </button>

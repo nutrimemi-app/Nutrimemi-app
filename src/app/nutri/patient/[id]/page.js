@@ -12,6 +12,7 @@ export default function PatientFile() {
   const [patient, setPatient] = useState(null);
   const [gender, setGender] = useState('female'); // 'male' or 'female'
   const [currentTag, setCurrentTag] = useState('');
+  const [editingAnswers, setEditingAnswers] = useState(false);
 
   useEffect(() => {
     const savedPatients = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
@@ -448,7 +449,20 @@ export default function PatientFile() {
 
       {/* Sección de Preguntas del Onboarding */}
       <section className="glass-panel" style={{ padding: '24px', marginBottom: '20px' }}>
-        <h4 style={{ color: 'var(--text-primary)', marginBottom: '20px', fontSize: '1.2rem', textAlign: 'center', fontWeight: '900' }}>RESPUESTAS DEL PACIENTE</h4>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <h4 style={{ color: 'var(--text-primary)', fontSize: '1.2rem', fontWeight: '900' }}>RESPUESTAS DEL PACIENTE</h4>
+          <button 
+            onClick={() => {
+              if (editingAnswers) {
+                showToast('Respuestas actualizadas correctamente', 'success');
+              }
+              setEditingAnswers(!editingAnswers);
+            }} 
+            style={{ fontSize: '0.75rem', padding: '6px 14px', borderRadius: '10px', border: editingAnswers ? 'none' : '1px solid var(--primary)', background: editingAnswers ? 'var(--primary)' : 'none', color: editingAnswers ? 'white' : 'var(--primary)', fontWeight: '800', cursor: 'pointer' }}
+          >
+            {editingAnswers ? 'Guardar Cambios' : 'Editar'}
+          </button>
+        </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
           {[
             { q: "1. Comida favorita", key: "favFood" },
@@ -459,9 +473,23 @@ export default function PatientFile() {
           ].map((item) => (
             <div key={item.key} style={{ background: 'rgba(0,0,0,0.02)', padding: '12px', borderRadius: '10px', borderLeft: '4px solid var(--primary)' }}>
               <p style={{ fontWeight: '800', fontSize: '0.8rem', opacity: 0.6, marginBottom: '4px', textTransform: 'uppercase' }}>{item.q}</p>
-              <p style={{ fontSize: '0.95rem', fontWeight: '600', color: '#333', whiteSpace: 'pre-wrap' }}>
-                {patient.onboardingAnswers?.[item.key] || 'Pendiente por llenar por el paciente...'}
-              </p>
+              {editingAnswers ? (
+                <textarea 
+                  className="input-field"
+                  style={{ width: '100%', minHeight: '60px', padding: '10px', fontSize: '0.9rem', borderRadius: '8px', border: '1px solid rgba(0,0,0,0.1)', background: 'white', marginTop: '4px' }}
+                  value={patient.onboardingAnswers?.[item.key] || ''}
+                  placeholder={`Escribe aquí la respuesta para: ${item.q}...`}
+                  onChange={(e) => {
+                    const updatedAnswers = { ...patient.onboardingAnswers, [item.key]: e.target.value };
+                    const updatedPatient = { ...patient, onboardingAnswers: updatedAnswers };
+                    savePatientUpdate(updatedPatient);
+                  }}
+                />
+              ) : (
+                <p style={{ fontSize: '0.95rem', fontWeight: '600', color: '#333', whiteSpace: 'pre-wrap' }}>
+                  {patient.onboardingAnswers?.[item.key] || 'Pendiente por llenar por el paciente...'}
+                </p>
+              )}
             </div>
           ))}
         </div>

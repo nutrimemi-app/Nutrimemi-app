@@ -50,7 +50,7 @@ export default function PatientMenu() {
     <div style={{ padding: '20px', paddingBottom: '100px' }} className="fade-in">
       <header style={{ marginBottom: '32px' }}>
         <h2 style={{ fontSize: '1.8rem', color: 'var(--primary)', marginBottom: '8px' }}>Mi Menú</h2>
-        <p style={{ opacity: 0.6, fontSize: '0.9rem' }}>Plan personalizado por la Dra. Salomé</p>
+        <p style={{ opacity: 0.6, fontSize: '0.9rem' }}>Plan personalizado por la Lic. Salomé</p>
       </header>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '32px', marginBottom: '48px' }}>

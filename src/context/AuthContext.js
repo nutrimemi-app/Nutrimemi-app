@@ -13,7 +13,7 @@ export function AuthProvider({ children }) {
   const login = (email, password) => {
     // Lógica de roles personalizada por el usuario
     if (email === 'meme' && password === '123') {
-      const userData = { email, role: 'Nutricionista', name: 'Dra. Salomé' };
+      const userData = { email, role: 'Nutricionista', name: 'Lic. Salomé' };
       setUser(userData);
       localStorage.setItem('nutri_user', JSON.stringify(userData));
       router.push('/nutri/dashboard');

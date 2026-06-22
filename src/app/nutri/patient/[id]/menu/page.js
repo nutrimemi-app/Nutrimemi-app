@@ -29,7 +29,8 @@ export default function ManageMenu() {
     meriendaAM: { time: '10:30', selectedFoods: [], portions: {} },
     almuerzo: { time: '13:00', selectedFoods: [], portions: {} },
     meriendaPM: { time: '16:30', selectedFoods: [], portions: {} },
-    cena: { time: '19:30', selectedFoods: [], portions: {} }
+    cena: { time: '19:30', selectedFoods: [], portions: {} },
+    snackNoche: { time: '21:00', selectedFoods: [], portions: {} }
   });
   const [searchTerms, setSearchTerms] = useState({});
 
@@ -143,13 +144,41 @@ export default function ManageMenu() {
     return used;
   };
 
-  const mealTypes = [
-    { title: 'Desayuno', key: 'desayuno' },
-    { title: 'Merienda AM', key: 'meriendaAM' },
-    { title: 'Almuerzo', key: 'almuerzo' },
-    { title: 'Merienda PM', key: 'meriendaPM' },
-    { title: 'Cena', key: 'cena' }
-  ];
+  const MEAL_PLANS = {
+    '2 comidas': [
+      { title: 'Almuerzo', key: 'almuerzo' },
+      { title: 'Cena', key: 'cena' },
+    ],
+    '3 comidas': [
+      { title: 'Desayuno', key: 'desayuno' },
+      { title: 'Almuerzo', key: 'almuerzo' },
+      { title: 'Cena', key: 'cena' },
+    ],
+    '3+2 snacks': [
+      { title: 'Desayuno', key: 'desayuno' },
+      { title: 'Merienda AM', key: 'meriendaAM' },
+      { title: 'Almuerzo', key: 'almuerzo' },
+      { title: 'Merienda PM', key: 'meriendaPM' },
+      { title: 'Cena', key: 'cena' },
+    ],
+    '3+3 snacks': [
+      { title: 'Desayuno', key: 'desayuno' },
+      { title: 'Merienda AM', key: 'meriendaAM' },
+      { title: 'Almuerzo', key: 'almuerzo' },
+      { title: 'Merienda PM', key: 'meriendaPM' },
+      { title: 'Cena', key: 'cena' },
+      { title: 'Snack Nocturno', key: 'snackNoche' },
+    ],
+    '2+2 snacks': [
+      { title: 'Desayuno', key: 'desayuno' },
+      { title: 'Merienda AM', key: 'meriendaAM' },
+      { title: 'Almuerzo', key: 'almuerzo' },
+      { title: 'Cena', key: 'cena' },
+    ],
+  };
+
+  const mealPlanKey = patient?.details?.mealPlan || '3+2 snacks';
+  const mealTypes = MEAL_PLANS[mealPlanKey] || MEAL_PLANS['3+2 snacks'];
 
   const foodGroups = [
     { name: 'Cereales', color: '#FFA500', key: 'cereales' },
@@ -164,16 +193,16 @@ export default function ManageMenu() {
 
   return (
     <div style={{ padding: '20px', paddingBottom: '140px' }} className="fade-in">
-      <header style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+      <header style={{ marginBottom: '24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '12px' }}>
           <button onClick={() => step === 2 ? setStep(1) : router.back()} style={{ background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer' }}>
             <ArrowLeft size={24} />
           </button>
           <h2 style={{ fontSize: '1.2rem', fontWeight: '900' }}>{step === 1 ? 'Paso 1: Definir Porciones' : 'Paso 2: Crear Menú Ejemplo'}</h2>
         </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
-           <div style={{ padding: '6px 12px', background: step === 1 ? 'var(--primary)' : '#eee', color: step === 1 ? 'white' : '#888', borderRadius: '20px', fontSize: '0.65rem', fontWeight: '900' }}>1. CALCULO</div>
-           <div style={{ padding: '6px 12px', background: step === 2 ? 'var(--primary)' : '#eee', color: step === 2 ? 'white' : '#888', borderRadius: '20px', fontSize: '0.65rem', fontWeight: '900' }}>2. MENU</div>
+        <div style={{ display: 'flex', gap: '8px', paddingLeft: '40px' }}>
+          <div style={{ padding: '6px 14px', background: step === 1 ? 'var(--primary)' : '#eee', color: step === 1 ? 'white' : '#888', borderRadius: '20px', fontSize: '0.65rem', fontWeight: '900' }}>1. CALCULO</div>
+          <div style={{ padding: '6px 14px', background: step === 2 ? 'var(--primary)' : '#eee', color: step === 2 ? 'white' : '#888', borderRadius: '20px', fontSize: '0.65rem', fontWeight: '900' }}>2. MENU</div>
         </div>
       </header>
 

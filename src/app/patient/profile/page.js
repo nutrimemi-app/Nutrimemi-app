@@ -31,24 +31,23 @@ export default function PatientProfile() {
 
       <section style={{ marginBottom: '32px' }}>
         <h3 style={{ marginBottom: '16px', fontSize: '1.1rem' }}>Soporte Directo</h3>
-        <button className="glass-panel" style={{ 
-          width: '100%', 
-          padding: '20px', 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '16px',
-          border: 'none',
-          textAlign: 'left',
-          cursor: 'pointer'
-        }}>
-          <div style={{ background: 'var(--accent)', padding: '10px', borderRadius: '12px' }}>
+        <button 
+          onClick={() => {
+            const phone = '584141234567'; // número de la nutricionista
+            const msg = encodeURIComponent('Hola, soy tu paciente. Quiero consultar algo sobre mi plan nutricional.');
+            window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
+          }}
+          className="glass-panel" 
+          style={{ width: '100%', padding: '20px', display: 'flex', alignItems: 'center', gap: '16px', border: 'none', textAlign: 'left', cursor: 'pointer' }}
+        >
+          <div style={{ background: '#25D366', padding: '10px', borderRadius: '12px' }}>
             <MessageCircle color="white" size={24} />
           </div>
           <div style={{ flex: 1 }}>
             <h4 style={{ fontWeight: '600' }}>Chat con Nutricionista</h4>
-            <p style={{ fontSize: '0.8rem', opacity: 0.6 }}>Responderá en menos de 2 horas</p>
+            <p style={{ fontSize: '0.8rem', opacity: 0.6 }}>Toca para abrir WhatsApp</p>
           </div>
-          <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--action)' }}></div>
+          <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#25D366' }}></div>
         </button>
       </section>
 

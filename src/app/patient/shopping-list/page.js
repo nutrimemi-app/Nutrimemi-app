@@ -184,11 +184,11 @@ export default function ShoppingList() {
           width: '100%', 
           padding: '18px', 
           background: 'var(--primary)', 
-          color: 'black', 
+          color: 'white', 
           borderRadius: '16px', 
           fontSize: '1.1rem', 
-          fontWeight: '800',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+          fontWeight: '900',
+          boxShadow: '0 4px 14px rgba(29,81,45,0.3)',
           marginBottom: '40px',
           border: 'none',
           cursor: 'pointer'
@@ -229,17 +229,18 @@ export default function ShoppingList() {
 
       <button 
         onClick={() => window.print()}
-        style={{ 
-          width: '100%', 
-          padding: '16px', 
-          background: 'var(--primary)', 
-          color: 'black', 
+        style={{
+          width: '100%',
+          padding: '18px',
+          background: 'var(--primary)',
+          color: 'white',
           border: 'none',
-          borderRadius: '16px', 
-          fontSize: '1rem', 
-          fontWeight: '800',
-          marginBottom: '16px',
-          cursor: 'pointer'
+          borderRadius: '16px',
+          fontSize: '1rem',
+          fontWeight: '900',
+          marginBottom: '12px',
+          cursor: 'pointer',
+          boxShadow: '0 4px 14px rgba(29,81,45,0.3)'
         }}
       >
         Imprimir / Guardar PDF

@@ -13,7 +13,7 @@ export default function NutriProfile() {
   
   // Datos editables de la Nutricionista
   const [profile, setProfile] = useState({
-    name: 'Dra. Salomé',
+    name: 'Lic. Salomé',
     specialty: 'NUTRICIONISTA CLÍNICO & DEPORTIVO',
     photo: '/SALOME.png',
     instagram: '@nutrimemi',
