@@ -27,8 +27,8 @@ export default function BottomNav() {
   const isNutri = pathname.includes('/nutri');
   const links = isNutri ? nutriLinks : patientLinks;
 
-  // No mostrar nav en login o onboarding
-  if (pathname === '/' || pathname.includes('/paciente')) return null;
+  // No mostrar nav en login o onboarding/detalle de paciente
+  if (pathname === '/' || pathname.includes('/paciente') || pathname.includes('/patient')) return null;
 
   return (
     <nav className="glass-tab-bar" style={{

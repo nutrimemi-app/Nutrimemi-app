@@ -576,8 +576,8 @@ export default function PatientFile() {
         borderTop: '1px solid rgba(0,0,0,0.08)',
         display: 'flex',
         gap: '12px',
-        zIndex: 100,
-        boxShadow: '0 -10px 25px rgba(0,0,0,0.05)'
+        zIndex: 10000, 
+        boxShadow: '0 -10px 25px rgba(0,0,0,0.1)'
       }}>
         <button 
           onClick={() => {

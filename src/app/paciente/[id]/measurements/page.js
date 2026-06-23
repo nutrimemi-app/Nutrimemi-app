@@ -29,14 +29,14 @@ export default function MeasurementsPage() {
   }, [params.id]);
 
   const measurementGuides = [
-    { key: 'CUELLO', label: 'CUELLO', desc: 'medir en el punto medio del cuello' },
-    { key: 'BRAZO', label: 'BRAZO', desc: 'mides la distancia entre el hombro y el codo, ese resultado lo divides entre 2, marcas para no perder la guía y ahí mides la circunferencia del brazo' },
+    { key: 'CUELLO', label: 'CUELLO', desc: 'punto medio' },
+    { key: 'BRAZO', label: 'BRAZO', desc: 'circunferencia media' },
     { key: 'TORSO', label: 'TORSO', desc: 'porción más ancha' },
-    { key: 'CINTURA', label: 'CINTURA', desc: 'porción más delgada de la cintura' },
+    { key: 'CINTURA', label: 'CINTURA', desc: 'porción más delgada' },
     { key: 'CADERA', label: 'CADERA', desc: 'porción más ancha' },
-    { key: 'GLÚTEOS', label: 'GLÚTEOS', desc: 'porción más ancha de los glúteos' },
-    { key: 'MUSLO', label: 'MUSLO', desc: 'punto medio entre cadera y rodilla derecha' },
-    { key: 'PANTORRILLA', label: 'PANTORRILLA', desc: 'porción más ancha de la pantorrilla' },
+    { key: 'GLÚTEOS', label: 'GLÚTEOS', desc: 'porción más ancha' },
+    { key: 'MUSLO', label: 'MUSLO', desc: 'punto medio' },
+    { key: 'PANTORRILLA', label: 'PANTORRILLA', desc: 'porción más ancha' },
   ];
 
   const handleSubmit = (e) => {
@@ -52,70 +52,91 @@ export default function MeasurementsPage() {
     router.push(`/paciente/${params.id}/photos`);
   };
 
+  const isFemale = patient?.gender === 'Femenino';
+  const themeColor = isFemale ? '#FF6B6B' : '#4D96FF'; // Rosa o Azul
+
   return (
-    <div style={{ padding: '40px 20px', color: '#1d512d', minHeight: '100vh' }}>
-      <h1 style={{ fontSize: '2.5rem', fontWeight: '900', textAlign: 'center', marginBottom: '30px' }}>ANTROPOMETRÍA</h1>
+    <div style={{ 
+      padding: '20px', 
+      color: '#1d512d', 
+      height: '100dvh', 
+      display: 'flex', 
+      flexDirection: 'column', 
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      overflow: 'hidden'
+    }}>
+      <h1 style={{ fontSize: '2.4rem', fontWeight: '900', margin: '20px 0' }}>ANTROPOMETRÍA</h1>
 
       <div style={{ 
-        background: '#1d512d', 
-        borderRadius: '30px', 
-        padding: '30px 20px', 
+        background: themeColor, 
+        borderRadius: '25px', 
+        padding: '20px', 
         color: 'white',
-        marginBottom: '40px',
-        boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
+        width: '100%',
+        maxWidth: '380px',
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
+        overflowY: 'auto' // Permite mini-scroll interno si hay muchos campos, pero el body no scrollea
       }}>
-        <p style={{ textAlign: 'center', fontSize: '0.8rem', fontWeight: '800', opacity: 0.7, marginBottom: '20px', letterSpacing: '2px' }}>GUÍA DE MEDICIÓN</p>
+        <p style={{ textAlign: 'center', fontSize: '0.7rem', fontWeight: '900', opacity: 0.8, marginBottom: '15px', letterSpacing: '2px' }}>GUÍA DE MEDICIÓN</p>
         
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {measurementGuides.map(guide => (
-            <div key={guide.key} style={{ display: 'grid', gridTemplateColumns: '1fr 80px', gap: '15px', alignItems: 'center' }}>
+            <div key={guide.key} style={{ display: 'grid', gridTemplateColumns: '1fr 70px', gap: '10px', alignItems: 'center' }}>
               <div>
-                <p style={{ fontSize: '0.9rem', fontWeight: '900' }}>{guide.label}</p>
-                <p style={{ fontSize: '0.7rem', opacity: 0.8, lineHeight: '1.2' }}>{guide.desc}</p>
+                <p style={{ fontSize: '0.85rem', fontWeight: '900' }}>{guide.label}</p>
+                <p style={{ fontSize: '0.65rem', opacity: 0.8, lineHeight: '1.2' }}>{guide.desc}</p>
               </div>
-              <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <input 
                   type="number"
                   step="0.1"
                   value={measurements[guide.key]}
                   onChange={(e) => setMeasurements({...measurements, [guide.key]: e.target.value})}
                   style={{ 
-                    width: '60px', 
+                    width: '50px', 
                     background: 'rgba(255,255,255,0.2)', 
                     border: '1px solid rgba(255,255,255,0.3)', 
                     color: 'white',
-                    padding: '8px',
+                    padding: '6px',
                     borderRadius: '8px',
                     textAlign: 'center',
-                    fontWeight: '700'
+                    fontWeight: '700',
+                    fontSize: '0.8rem'
                   }}
                 />
-                <span style={{ fontSize: '0.7rem', fontWeight: '800' }}>cm</span>
+                <span style={{ fontSize: '0.6rem', fontWeight: '800' }}>cm</span>
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      <button 
-        onClick={handleSubmit}
-        style={{
-          width: '100%',
-          background: '#1d512d',
-          color: 'white',
-          padding: '20px',
-          borderRadius: '16px',
-          fontSize: '1.2rem',
-          fontWeight: '900',
-          border: 'none',
-          cursor: 'pointer'
-        }}
-      >
-        SIGUIENTE PASO: FOTOS
-      </button>
+      <div style={{ width: '100%', maxWidth: '380px', padding: '20px 0' }}>
+        <button 
+          onClick={handleSubmit}
+          style={{
+            width: '100%',
+            background: '#1d512d',
+            color: 'white',
+            padding: '18px',
+            borderRadius: '50px',
+            fontSize: '1rem',
+            fontWeight: '900',
+            border: 'none',
+            cursor: 'pointer',
+            boxShadow: '0 4px 15px rgba(29, 81, 45, 0.3)'
+          }}
+        >
+          SIGUIENTE PASO: FOTOS
+        </button>
 
-      <div style={{ textAlign: 'center', marginTop: '30px' }}>
-        <p style={{ fontSize: '1.2rem', fontWeight: '900', color: '#1d512d' }}>nutrimemi</p>
+        <div style={{ textAlign: 'center', marginTop: '15px' }}>
+          <p style={{ fontSize: '1.2rem', fontWeight: '900', color: '#1d512d', margin: 0 }}>nutrimemi</p>
+        </div>
       </div>
     </div>
   );
