@@ -20,19 +20,23 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = (email, password) => {
-    // Lógica de roles personalizada por el usuario
-    if (email === 'meme' && password === '123') {
-      const userData = { email, role: 'Nutricionista', name: 'Lic. Salomé' };
+    const emailClean = email.trim().toLowerCase();
+    const passClean = password.trim();
+
+    // Limpiar sesión anterior
+    try { localStorage.removeItem('nutri_user'); } catch (e) {}
+
+    // Lógica de roles
+    if (emailClean === 'meme' && passClean === '123') {
+      const userData = { email: emailClean, role: 'Nutricionista', name: 'Lic. Salomé' };
       setUser(userData);
       localStorage.setItem('nutri_user', JSON.stringify(userData));
       router.push('/nutri/dashboard');
-    } else if (password === '123') {
-      // Intentar buscar el nombre real si es un paciente registrado
+    } else if (passClean === '123') {
       const savedPatients = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
-      const registeredPatient = savedPatients.find(p => p.email === email);
-      
+      const registeredPatient = savedPatients.find(p => p.email === emailClean);
       const userData = { 
-        email, 
+        email: emailClean, 
         role: 'Paciente', 
         name: registeredPatient ? registeredPatient.name : 'Paciente Premium' 
       };
@@ -40,7 +44,7 @@ export function AuthProvider({ children }) {
       localStorage.setItem('nutri_user', JSON.stringify(userData));
       router.push('/patient/home');
     } else {
-      showToast('Credenciales incorrectas. Usa meme/123 o paciente/123', 'error');
+      showToast('Credenciales incorrectas', 'error');
     }
   };
 
