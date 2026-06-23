@@ -29,14 +29,14 @@ export default function MeasurementsPage() {
   }, [params.id]);
 
   const measurementGuides = [
-    { key: 'CUELLO', label: 'CUELLO', desc: 'punto medio' },
-    { key: 'BRAZO', label: 'BRAZO', desc: 'circunferencia media' },
-    { key: 'TORSO', label: 'TORSO', desc: 'porción más ancha' },
-    { key: 'CINTURA', label: 'CINTURA', desc: 'porción más delgada' },
-    { key: 'CADERA', label: 'CADERA', desc: 'porción más ancha' },
-    { key: 'GLÚTEOS', label: 'GLÚTEOS', desc: 'porción más ancha' },
-    { key: 'MUSLO', label: 'MUSLO', desc: 'punto medio' },
-    { key: 'PANTORRILLA', label: 'PANTORRILLA', desc: 'porción más ancha' },
+    { key: 'CUELLO', label: 'CUELLO', desc: 'medir en el punto medio del cuello' },
+    { key: 'BRAZO', label: 'BRAZO', desc: 'mides la distancia entre el hombro y el codo, divides entre 2 y ahí mides la circunferencia' },
+    { key: 'TORSO', label: 'TORSO', desc: 'porción más ancha del torso' },
+    { key: 'CINTURA', label: 'CINTURA', desc: 'porción más delgada de la cintura' },
+    { key: 'CADERA', label: 'CADERA', desc: 'porción más ancha de la cadera' },
+    { key: 'GLÚTEOS', label: 'GLÚTEOS', desc: 'porción más ancha de los glúteos' },
+    { key: 'MUSLO', label: 'MUSLO', desc: 'punto medio entre cadera y rodilla derecha' },
+    { key: 'PANTORRILLA', label: 'PANTORRILLA', desc: 'porción más ancha de la pantorrilla' },
   ];
 
   const handleSubmit = (e) => {
