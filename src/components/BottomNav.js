@@ -1,13 +1,16 @@
 'use client';
-import { Home, Users, User, ClipboardList, Info } from 'lucide-react';
+import { Home, Users, User, ClipboardList } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 export default function BottomNav() {
   const pathname = usePathname();
-  const isNutri = pathname ? pathname.includes('/nutri') : false;
-  
-  if (!pathname) return null;
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
+
+  if (!mounted || !pathname) return null;
 
   const nutriLinks = [
     { href: '/nutri/dashboard', icon: <Users size={24} />, label: 'Pacientes' },
@@ -21,6 +24,7 @@ export default function BottomNav() {
     { href: '/patient/profile', icon: <User size={24} />, label: 'Perfil' },
   ];
 
+  const isNutri = pathname.includes('/nutri');
   const links = isNutri ? nutriLinks : patientLinks;
 
   // No mostrar nav en login o onboarding

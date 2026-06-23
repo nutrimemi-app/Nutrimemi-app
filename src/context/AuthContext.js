@@ -7,8 +7,17 @@ const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
   const { showToast } = useUI();
+
+  useEffect(() => {
+    setMounted(true);
+    try {
+      const saved = localStorage.getItem('nutri_user');
+      if (saved) setUser(JSON.parse(saved));
+    } catch (e) {}
+  }, []);
 
   const login = (email, password) => {
     // Lógica de roles personalizada por el usuario
@@ -37,17 +46,12 @@ export function AuthProvider({ children }) {
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('nutri_user');
+    try { localStorage.removeItem('nutri_user'); } catch (e) {}
     router.push('/');
   };
 
-  useEffect(() => {
-    const saved = localStorage.getItem('nutri_user');
-    if (saved) setUser(JSON.parse(saved));
-  }, []);
-
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, mounted }}>
       {children}
     </AuthContext.Provider>
   );

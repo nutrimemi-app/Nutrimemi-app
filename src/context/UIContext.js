@@ -219,7 +219,7 @@ export function UIProvider({ children }) {
         </div>
       )}
       
-      <style jsx global>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         .slide-up {
           animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
         }
@@ -227,7 +227,7 @@ export function UIProvider({ children }) {
           from { transform: translateY(110%); }
           to { transform: translateY(0); }
         }
-      `}</style>
+      ` }} />
     </UIContext.Provider>
   );
 }
