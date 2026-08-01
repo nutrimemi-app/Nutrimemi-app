@@ -120,22 +120,33 @@ export default function DailyLog() {
   const [search, setSearch] = useState('');
   const [openCategory, setOpenCategory] = useState(null);
   const [qty, setQty] = useState({});
+  const [foodDB, setFoodDB] = useState([]);
 
   const today = new Date().toISOString().split('T')[0];
   const storageKey = patient ? `daily_log_${patient.id}` : null;
 
+  // Cargar base de datos de alimentos de forma segura en el cliente (evita SSR Crash)
+  useEffect(() => {
+    try {
+      const db = JSON.parse(localStorage.getItem('nutri_foods') || '[]');
+      setFoodDB(db);
+    } catch (e) {}
+  }, []);
+
   useEffect(() => {
     if (!user?.email) return;
-    const patients = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
-    const found = patients.find(p => p.email === user.email);
-    if (found) {
-      setPatient(found);
-      const key = `daily_log_${found.id}`;
-      const logs = JSON.parse(localStorage.getItem(key) || '[]');
-      const todayEntry = logs.find(l => l.date === today);
-      if (todayEntry) setEntries(todayEntry.entries || []);
-    }
-  }, [user]);
+    try {
+      const patients = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
+      const found = patients.find(p => p.email === user.email);
+      if (found) {
+        setPatient(found);
+        const key = `daily_log_${found.id}`;
+        const logs = JSON.parse(localStorage.getItem(key) || '[]');
+        const todayEntry = logs.find(l => l.date === today);
+        if (todayEntry) setEntries(todayEntry.entries || []);
+      }
+    } catch (e) {}
+  }, [user, today]);
 
   const saveEntries = (newEntries) => {
     if (!storageKey) return;
@@ -174,7 +185,6 @@ export default function DailyLog() {
   const totals = calcTotals(entries);
 
   // Alimentos estándares del menú del paciente
-  const foodDB = JSON.parse(localStorage.getItem('nutri_foods') || '[]');
   const filteredFoods = foodDB.filter(f =>
     f.name.toLowerCase().includes(search.toLowerCase())
   );
