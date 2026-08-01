@@ -15,15 +15,19 @@
 :root {
   --bg-primary: #F6F4DF;
   --text-primary: #1D512D;
+  --primary: #1D512D;           /* alias de --text-primary, usado en toda la app */
   --accent: #CBBC1E;
   --action: #FD9E14;
   --card-green: #1D512D;
+  --card-green-light: rgba(29, 81, 45, 0.08);
   --card-yellow: #CBBC1E;
+  --card-yellow-light: rgba(203, 188, 30, 0.12);
   --card-red: #FF5E5E;
   --card-blue: #2D5A82;
   --white-glass: rgba(255, 255, 255, 0.6);
   --glass-blur: blur(24px);
   --shadow-subtle: 0 4px 12px rgba(0, 0, 0, 0.05);
+  --shadow-premium: 0 8px 24px rgba(29, 81, 45, 0.12);
 }
 
 .pwa-container {
@@ -104,6 +108,21 @@ h1, h2, h3 {
   border-radius: 12px;
   font-weight: 600;
   cursor: pointer;
+}
+
+.btn-secondary {
+  background: white;
+  color: var(--primary);
+  border: 1.5px solid var(--primary);
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-secondary:active {
+  background: var(--card-green-light);
 }
 
 /* Inputs */

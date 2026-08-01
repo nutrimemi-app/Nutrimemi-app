@@ -2,9 +2,108 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Activity, Printer, Calendar, Save, History, Camera, FileText } from 'lucide-react';
+import { ArrowLeft, Activity, Printer, Calendar, Save, History, Camera, FileText, BookOpen, BarChart2 } from 'lucide-react';
 import { useUI } from '@/context/UIContext';
-import { calculateClinicalData } from '@/utils/calculationUtils';
+import { calculateClinicalData, getBodyFatProfile } from '@/utils/calculationUtils';
+
+const exchangeMeals = [
+  { key: 'desayuno', name: 'Desayuno' },
+  { key: 'meriendaAM', name: 'Merienda AM' },
+  { key: 'almuerzo', name: 'Almuerzo' },
+  { key: 'meriendaPM', name: 'Merienda PM' },
+  { key: 'cena', name: 'Cena' }
+];
+
+const EXCHANGE_GUIDE_DB = {
+  cereales: {
+    name: 'CEREALES',
+    color: '#FFA500',
+    textColor: 'white',
+    foods: [
+      { name: 'Granos / Batata / Papa / Arroz / Yuca / Puré', base: 0.5, unit: 'taza' },
+      { name: 'Tortilla de yuca / pan integral (tostado)', base: 1, unit: 'unidad' },
+      { name: 'Plátano', base: 0.25, unit: 'plátano' },
+      { name: 'Avena / Harina de maíz / Harina de yuca / Harina de avena', base: 2, unit: 'cucharadas', alt: 15 },
+      { name: 'Miel', base: 1, unit: 'cucharada', alt: 15 }
+    ]
+  },
+  proteinas: {
+    name: 'CARNES / PROTEÍNA',
+    color: '#FF0000',
+    textColor: 'white',
+    foods: [
+      { name: 'Atún en lata / Carne / Pollo / Salmón / Camarones', base: 0.25, unit: 'taza', alt: 120 },
+      { name: 'Queso paisa / Jamón de pavo', base: 2, unit: 'rebanadas finas', alt: 15 },
+      { name: 'Guayanés / Ricotta / Cuajada / Palmita / Palmizulia', base: 0.25, unit: 'taza', alt: 120 },
+      { name: 'Huevo', base: 1, unit: 'unidad' },
+      { name: 'Claras de huevo', base: 2, unit: 'unidades', alt: 30 }
+    ]
+  },
+  vegetales: {
+    name: 'VEGETALES',
+    color: '#228B22',
+    textColor: 'white',
+    foods: [
+      { name: 'Vegetales crudos', base: 1, unit: 'taza' },
+      { name: 'Vegetales cocidos', base: 0.5, unit: 'taza' },
+      { name: 'Los vegetales que desees', base: null, unit: 'Libre' }
+    ]
+  },
+  frutas: {
+    name: 'FRUTAS',
+    color: '#BA55D3',
+    textColor: 'white',
+    foods: [
+      { name: 'Fruta pequeña/mediana o picada', base: 1, unit: 'unidad o 1 taza' },
+      { name: 'Las frutas que desees menos cítricas', base: null, unit: 'Libre' }
+    ]
+  },
+  lacteos: {
+    name: 'LÁCTEOS',
+    color: '#1E90FF',
+    textColor: 'white',
+    foods: [
+      { name: 'Yogurt griego', base: 0.75, unit: 'taza' },
+      { name: 'Requesón', base: 30, unit: 'g' },
+      { name: 'Leche descremada', base: 1, unit: 'taza' }
+    ]
+  },
+  grasas: {
+    name: 'GRASAS',
+    color: '#FFD700',
+    textColor: '#1d512d',
+    foods: [
+      { name: 'Queso mozzarella / Tocineta / Aguacate', base: 2, unit: 'rebanadas', alt: 15 },
+      { name: 'Queso crema / salsas', base: 1, unit: 'cucharada' },
+      { name: 'Mantequilla / aceites / mantequilla de frutos secos', base: 2, unit: 'cucharaditas' },
+      { name: 'Frutos secos', base: 10, unit: 'unidades' },
+      { name: 'Leche vegetal', base: 1, unit: 'taza' },
+      { name: 'Harina de almendra', base: 20, unit: 'g' }
+    ]
+  }
+};
+
+const displayCalculatedPortion = (food, targetVal) => {
+  if (targetVal === 0 || isNaN(targetVal)) {
+    if (food.base === null) return food.unit;
+    return `1 Ración = ${food.base} ${food.unit}${food.alt ? ` (${food.alt * 1}g)` : ''}`;
+  }
+  if (food.base === null) return `${food.unit} (Libre)`;
+  const totalVal = food.base * targetVal;
+  
+  const formatValue = (v) => {
+    if (v % 1 === 0) return v.toString();
+    if (v === 0.25) return '1/4';
+    if (v === 0.5) return '1/2';
+    if (v === 0.75) return '3/4';
+    if (v === 1.25) return '1 y 1/4';
+    if (v === 1.5) return '1 y 1/2';
+    if (v === 1.75) return '1 y 3/4';
+    return v.toFixed(1).replace('.0', '');
+  };
+  
+  return `${targetVal} ración${targetVal > 1 ? 'es' : ''} = ${formatValue(totalVal)} ${food.unit}${food.alt ? ` (${food.alt * targetVal}g)` : ''}`;
+};
 
 export default function PatientFile() {
   const params = useParams();
@@ -13,6 +112,25 @@ export default function PatientFile() {
   const [gender, setGender] = useState('female'); // 'male' or 'female'
   const [currentTag, setCurrentTag] = useState('');
   const [editingAnswers, setEditingAnswers] = useState(false);
+  const [showControlModal, setShowControlModal] = useState(false);
+  const [focusedMeasurement, setFocusedMeasurement] = useState(null);
+  const [selectedExchangeMeal, setSelectedExchangeMeal] = useState('desayuno');
+  const [previewDashboardOpen, setPreviewDashboardOpen] = useState(true);
+  const [controlData, setControlData] = useState({
+    weight: '',
+    rct: '',
+    notes: '',
+    CINTURA: '',
+    CADERA: '',
+    CUELLO: '',
+    BRAZO: '',
+    TORSO: '',
+    GLÚTEOS: '',
+    MUSLO: '',
+    PANTORRILLA: '',
+    manualPi: '',
+    manualPc: ''
+  });
 
   useEffect(() => {
     const savedPatients = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
@@ -31,9 +149,11 @@ export default function PatientFile() {
   const patientDataForCalc = {
     weight: patient.details?.weight,
     height: patient.details?.height,
-    sex: gender
+    sex: gender,
+    manualPi: patient.details?.manualPi,
+    manualPc: patient.details?.manualPc
   };
-  const clinical = calculateClinicalData(patientDataForCalc);
+  const clinical = calculateClinicalData(patientDataForCalc, patient.measurements || {});
 
   const addTag = () => {
     if (currentTag && !patient.details.tags?.includes(currentTag)) {
@@ -88,15 +208,94 @@ export default function PatientFile() {
     );
   };
 
+  const startFollowUp = () => {
+    if (!patient) return;
+    setControlData({
+      weight: patient.details?.weight || '',
+      rct: patient.dietForm?.rct || '',
+      notes: '',
+      CINTURA: patient.measurements?.CINTURA || '',
+      CADERA: patient.measurements?.CADERA || '',
+      CUELLO: patient.measurements?.CUELLO || '',
+      BRAZO: patient.measurements?.BRAZO || '',
+      TORSO: patient.measurements?.TORSO || '',
+      GLÚTEOS: patient.measurements?.GLÚTEOS || '',
+      MUSLO: patient.measurements?.MUSLO || '',
+      PANTORRILLA: patient.measurements?.PANTORRILLA || '',
+      manualPi: patient.details?.manualPi || '',
+      manualPc: patient.details?.manualPc || ''
+    });
+    setShowControlModal(true);
+  };
+
+  const handleSaveFollowUp = (e) => {
+    e.preventDefault();
+    if (!patient) return;
+
+    // 1. Archivar estado actual en historial
+    const pastEntry = {
+      id: Date.now(),
+      date: new Date().toISOString().split('T')[0],
+      details: { ...patient.details },
+      measurements: { ...patient.measurements },
+      dietForm: { ...patient.dietForm },
+      imc: clinical.imc,
+      profile: clinical.profile,
+      menus: patient.menu || null
+    };
+
+    // 2. Definir nuevos valores activos
+    const updatedDetails = {
+      ...patient.details,
+      weight: parseFloat(controlData.weight) || patient.details?.weight,
+      manualPi: controlData.manualPi ? parseFloat(controlData.manualPi) : patient.details?.manualPi,
+      manualPc: controlData.manualPc ? parseFloat(controlData.manualPc) : patient.details?.manualPc,
+      notes: controlData.notes || patient.details?.notes
+    };
+
+    const updatedMeasurements = {
+      CUELLO: controlData.CUELLO !== '' ? parseFloat(controlData.CUELLO) : patient.measurements?.CUELLO,
+      BRAZO: controlData.BRAZO !== '' ? parseFloat(controlData.BRAZO) : patient.measurements?.BRAZO,
+      TORSO: controlData.TORSO !== '' ? parseFloat(controlData.TORSO) : patient.measurements?.TORSO,
+      CINTURA: controlData.CINTURA !== '' ? parseFloat(controlData.CINTURA) : patient.measurements?.CINTURA,
+      CADERA: controlData.CADERA !== '' ? parseFloat(controlData.CADERA) : patient.measurements?.CADERA,
+      GLÚTEOS: controlData.GLÚTEOS !== '' ? parseFloat(controlData.GLÚTEOS) : patient.measurements?.GLÚTEOS,
+      MUSLO: controlData.MUSLO !== '' ? parseFloat(controlData.MUSLO) : patient.measurements?.MUSLO,
+      PANTORRILLA: controlData.PANTORRILLA !== '' ? parseFloat(controlData.PANTORRILLA) : patient.measurements?.PANTORRILLA
+    };
+
+    const updatedDietForm = {
+      ...patient.dietForm,
+      rct: controlData.rct !== '' ? controlData.rct : patient.dietForm?.rct
+    };
+
+    // 3. Compilar paciente actualizado
+    const updatedPatient = {
+      ...patient,
+      details: updatedDetails,
+      measurements: updatedMeasurements,
+      dietForm: updatedDietForm,
+      history: [...(patient.history || []), pastEntry]
+    };
+
+    // 4. Guardar y redirigir
+    savePatientUpdate(updatedPatient);
+    setShowControlModal(false);
+    showToast("¡Consulta de control guardada con éxito!", "success");
+
+    // Redirección directa al planificador con flag de control
+    window.location.href = `/nutri/patient/${patient.id}/menu?control=true`;
+  };
+
   const measurements = [
-    { label: 'CUELLO', desc: 'Base del cuello' },
-    { label: 'BRAZO', desc: 'Punto medio (Relajado)' },
-    { label: 'TORSO', desc: 'Línea mamaria' },
-    { label: 'CINTURA', desc: 'Punto más estrecho' },
-    { label: 'CADERA', desc: 'Punto más ancho' },
-    { label: 'GLÚTEOS', desc: 'Prominencia máxima' },
-    { label: 'MUSLO', desc: 'Punto medio del muslo' },
-    { label: 'PANTORRILLA', desc: 'Perímetro máximo' },
+    { label: 'CUELLO', desc: 'Base del cuello', guide: 'Pasa la cinta métrica horizontalmente por debajo de la laringe (nuez de Adán).' },
+    { label: 'BRAZO', desc: 'Punto medio (Relajado)', guide: 'Brazo extendido y relajado. Mide en el punto medio entre el hombro (acromion) y el codo.' },
+    { label: 'TORSO', desc: 'Línea mamaria', guide: 'Mide horizontalmente alrededor del torso, pasando directamente por encima de los pezones.' },
+    { label: 'CINTURA', desc: 'Punto más estrecho', guide: 'Con el torso erguido y abdomen relajado, mide en el punto medio entre la última costilla y la cadera.' },
+    { label: 'CADERA', desc: 'Punto más ancho', guide: 'Con los pies juntos, pasa la cinta de forma horizontal rodeando el punto de máximo volumen glúteo.' },
+    { label: 'GLÚTEOS', desc: 'Prominencia máxima', guide: 'Rodea la parte más sobresaliente de los glúteos de forma paralela al suelo.' },
+    { label: 'MUSLO', desc: 'Punto medio del muslo', guide: 'Estando de pie, mide horizontalmente el punto medio de la distancia entre la ingle y la rodilla.' },
+    { label: 'PANTORRILLA', desc: 'Perímetro máximo', guide: 'Mide horizontalmente el contorno abultado de la pantorrilla con la pierna relajada.' },
   ];
 
   return (
@@ -107,8 +306,21 @@ export default function PatientFile() {
             <ArrowLeft size={24} />
           </Link>
           <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
-            <h2 style={{ fontSize: '1.8rem', fontWeight: '900', color: 'var(--text-primary)', marginBottom: '4px' }}>{patient.name}</h2>
-            <p style={{ fontSize: '0.85rem', opacity: 0.6, fontWeight: '700' }}>DNI: {patient.details?.ci} | Tel: {patient.details?.phone}</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h2 style={{ fontSize: '1.8rem', fontWeight: '900', color: 'var(--text-primary)', marginBottom: '4px' }}>{patient.name}</h2>
+              {patient.details?.isPediatric && (
+                <span style={{ background: '#E3F2FD', color: '#0D47A1', fontSize: '0.65rem', fontWeight: '900', padding: '2px 10px', borderRadius: '20px', textTransform: 'uppercase' }}>
+                  PEDIÁTRICO
+                </span>
+              )}
+            </div>
+            {patient.details?.isPediatric ? (
+              <p style={{ fontSize: '0.85rem', opacity: 0.8, fontWeight: '700', color: 'var(--primary)' }}>
+                Tutor: {patient.details?.tutorName || 'N/A'} | Tlf: {patient.details?.tutorPhone || 'N/A'} | Edad: {patient.details?.age || '--'} años
+              </p>
+            ) : (
+              <p style={{ fontSize: '0.85rem', opacity: 0.6, fontWeight: '700' }}>DNI: {patient.details?.ci} | Tel: {patient.details?.phone} | Edad: {patient.details?.age || '--'} años</p>
+            )}
           </div>
         </div>
         
@@ -132,9 +344,17 @@ export default function PatientFile() {
               <Printer size={18} /> Informe Imprimible
             </Link>
           </div>
-          <Link href={`/nutri/patient/${patient.id}/menu`} className="btn-primary" style={{ textDecoration: 'none', padding: '16px', borderRadius: '16px', fontWeight: '900', fontSize: '1rem', textAlign: 'center', display: 'block', boxShadow: '0 8px 20px rgba(29, 81, 45, 0.2)' }}>
-            Planificador de Menú
-          </Link>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <Link href={`/nutri/patient/${patient.id}/menu`} className="btn-primary" style={{ textDecoration: 'none', padding: '16px', borderRadius: '16px', fontWeight: '900', fontSize: '0.85rem', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', flex: 2, boxShadow: '0 8px 20px rgba(29, 81, 45, 0.2)' }}>
+              Menú y Dietética
+            </Link>
+            <Link href={`/nutri/patient/${patient.id}/reminder`} style={{ textDecoration: 'none', flex: 1.5, background: 'var(--card-yellow-light)', border: '1.5px solid var(--accent)', color: 'var(--text-primary)', padding: '16px', borderRadius: '16px', fontWeight: '900', fontSize: '0.8rem', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+              <History size={16} /> R24H
+            </Link>
+            <Link href={`/nutri/patient/${patient.id}/food-log`} style={{ textDecoration: 'none', flex: 1.2, background: '#FFEBEE', border: '1.5px solid #EF5350', color: '#B71C1C', padding: '16px', borderRadius: '16px', fontWeight: '900', fontSize: '0.8rem', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+              <BookOpen size={16} /> Bitácora
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -172,18 +392,93 @@ export default function PatientFile() {
              <h3 style={{ fontSize: '1.4rem', fontWeight: '900', color: getProfileColor(clinical.profile) }}>{clinical.profile}</h3>
              <Activity size={24} color={getProfileColor(clinical.profile)} />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', textAlign: 'center' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px', textAlign: 'center', alignItems: 'center' }}>
             <div>
-              <p style={{ fontSize: '0.65rem', fontWeight: '800', opacity: 0.5, marginBottom: '4px' }}>IMC REAL</p>
-              <p style={{ fontSize: '1.4rem', fontWeight: '900' }}>{clinical.imc}</p>
+              <p style={{ fontSize: '0.6rem', fontWeight: '800', opacity: 0.5, marginBottom: '4px' }}>IMC REAL</p>
+              <p style={{ fontSize: '1.1rem', fontWeight: '900', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{clinical.imc}</p>
             </div>
             <div>
-              <p style={{ fontSize: '0.65rem', fontWeight: '800', opacity: 0.5, marginBottom: '4px' }}>P. REF (PC)</p>
-              <p style={{ fontSize: '1.4rem', fontWeight: '900' }}>{clinical.pc}kg</p>
+              <p style={{ fontSize: '0.6rem', fontWeight: '800', opacity: 0.5, marginBottom: '4px' }}>P. REF (PC)</p>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px', height: '36px' }}>
+                <input
+                  type="number"
+                  step="0.1"
+                  key={patient.details?.manualPc || 'autoPc'}
+                  defaultValue={patient.details?.manualPc || ''}
+                  placeholder={clinical.pc}
+                  onBlur={(e) => {
+                    const val = e.target.value;
+                    const updatedDetails = { ...patient.details, manualPc: val };
+                    const updatedPatient = { ...patient, details: updatedDetails };
+                    savePatientUpdate(updatedPatient);
+                    showToast('Peso de cálculo actualizado', 'success');
+                  }}
+                  style={{
+                    width: '50px',
+                    background: 'rgba(0,0,0,0.05)',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontSize: '1.1rem',
+                    fontWeight: '900',
+                    textAlign: 'center',
+                    padding: '2px',
+                    color: 'var(--text-primary)',
+                    outline: 'none'
+                  }}
+                />
+                <span style={{ fontSize: '0.7rem', fontWeight: '850' }}>kg</span>
+              </div>
             </div>
             <div>
-              <p style={{ fontSize: '0.65rem', fontWeight: '800', opacity: 0.5, marginBottom: '4px' }}>P. IDEAL</p>
-              <p style={{ fontSize: '1.4rem', fontWeight: '900' }}>{clinical.pi}kg</p>
+              <p style={{ fontSize: '0.6rem', fontWeight: '800', opacity: 0.5, marginBottom: '4px' }}>P. IDEAL</p>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px', height: '36px' }}>
+                <input
+                  type="number"
+                  step="0.1"
+                  key={patient.details?.manualPi || 'autoPi'}
+                  defaultValue={patient.details?.manualPi || ''}
+                  placeholder={clinical.pi}
+                  onBlur={(e) => {
+                    const val = e.target.value;
+                    const updatedDetails = { ...patient.details, manualPi: val };
+                    const updatedPatient = { ...patient, details: updatedDetails };
+                    savePatientUpdate(updatedPatient);
+                    showToast('Peso ideal actualizado', 'success');
+                  }}
+                  style={{
+                    width: '50px',
+                    background: 'rgba(0,0,0,0.05)',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontSize: '1.1rem',
+                    fontWeight: '900',
+                    textAlign: 'center',
+                    padding: '2px',
+                    color: 'var(--text-primary)',
+                    outline: 'none'
+                  }}
+                />
+                <span style={{ fontSize: '0.7rem', fontWeight: '850' }}>kg</span>
+              </div>
+            </div>
+            <div>
+              <p style={{ fontSize: '0.6rem', fontWeight: '800', opacity: 0.5, marginBottom: '4px' }}>% GRASA (GC)</p>
+              <div style={{ height: '36px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                <p style={{ fontSize: '1rem', fontWeight: '900', color: '#EF5350', margin: 0 }}>
+                  {clinical.gc !== '—' ? `${clinical.gc}%` : '—'}
+                </p>
+                {clinical.gc !== '—' && (
+                  <span style={{ fontSize: '0.5rem', fontWeight: '900', color: '#B71C1C', opacity: 0.8, textTransform: 'uppercase', lineHeight: 1, marginTop: '2px' }}>
+                    {getBodyFatProfile(patient.gender || patient.details?.sex || 'female', patient.details?.age || 30, clinical.gc)}
+                  </span>
+                )}
+              </div>
+            </div>
+            <div>
+              <p style={{ fontSize: '0.6rem', fontWeight: '800', opacity: 0.5, marginBottom: '4px' }}>G. MAGRA</p>
+              <p style={{ fontSize: '1.1rem', fontWeight: '900', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#66BB6A' }}>
+                {clinical.grasaMagra !== '—' ? `${clinical.grasaMagra}kg` : '—'}
+              </p>
             </div>
           </div>
           
@@ -353,9 +648,33 @@ export default function PatientFile() {
         </div>
 
         <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
-          <div style={{ flex: 1, position: 'relative', minHeight: '320px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.05)', borderRadius: '20px' }}>
-            {gender === 'female' ? (
-              <svg viewBox="0 0 100 220" style={{ height: '300px', width: 'auto' }}>
+          <div style={{ flex: 1, position: 'relative', minHeight: '370px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.05)', borderRadius: '20px', paddingBottom: '70px' }}>
+            {patient.details?.isPediatric ? (
+              <svg viewBox="0 0 100 220" style={{ height: '280px', width: 'auto' }}>
+                <g stroke="white" strokeWidth="1.5" fill="none" opacity="0.7">
+                  {/* Cabeza */}
+                  <circle cx="50" cy="25" r="14" />
+                  {/* Torso Infantil (más pequeño, cabeza proporcionalmente más grande) */}
+                  <path d="M42 39 Q50 37 58 39 L60 75 Q50 82 40 75 Z" />
+                  <path d="M44 75 Q50 78 56 75 L57 110 Q50 115 43 110 Z" />
+                  {/* Brazos */}
+                  <path d="M42 39 L28 80 M58 39 L72 80" />
+                  {/* Piernas */}
+                  <path d="M43 110 L38 200 M57 110 L62 200" />
+                </g>
+                <g style={{ cursor: 'pointer' }}>
+                  <circle cx="50" cy="35" r="6" fill="var(--accent)" onClick={() => document.getElementById('input-CUELLO')?.focus()} onMouseEnter={() => setFocusedMeasurement('CUELLO')} onMouseLeave={() => setFocusedMeasurement(null)} />
+                  <circle cx="28" cy="80" r="6" fill="white" onClick={() => document.getElementById('input-BRAZO')?.focus()} onMouseEnter={() => setFocusedMeasurement('BRAZO')} onMouseLeave={() => setFocusedMeasurement(null)} />
+                  <circle cx="50" cy="57" r="6" fill="white" onClick={() => document.getElementById('input-TORSO')?.focus()} onMouseEnter={() => setFocusedMeasurement('TORSO')} onMouseLeave={() => setFocusedMeasurement(null)} />
+                  <circle cx="50" cy="92" r="6" fill="white" onClick={() => document.getElementById('input-CINTURA')?.focus()} onMouseEnter={() => setFocusedMeasurement('CINTURA')} onMouseLeave={() => setFocusedMeasurement(null)} />
+                  <circle cx="50" cy="118" r="6" fill="white" onClick={() => document.getElementById('input-CADERA')?.focus()} onMouseEnter={() => setFocusedMeasurement('CADERA')} onMouseLeave={() => setFocusedMeasurement(null)} />
+                  <circle cx="50" cy="135" r="6" fill="white" onClick={() => document.getElementById('input-GLÚTEOS')?.focus()} onMouseEnter={() => setFocusedMeasurement('GLÚTEOS')} onMouseLeave={() => setFocusedMeasurement(null)} />
+                  <circle cx="41" cy="160" r="6" fill="white" onClick={() => document.getElementById('input-MUSLO')?.focus()} onMouseEnter={() => setFocusedMeasurement('MUSLO')} onMouseLeave={() => setFocusedMeasurement(null)} />
+                  <circle cx="59" cy="160" r="6" fill="white" onClick={() => document.getElementById('input-PANTORRILLA')?.focus()} onMouseEnter={() => setFocusedMeasurement('PANTORRILLA')} onMouseLeave={() => setFocusedMeasurement(null)} />
+                </g>
+              </svg>
+            ) : gender === 'female' ? (
+              <svg viewBox="0 0 100 220" style={{ height: '280px', width: 'auto' }}>
                 <g stroke="white" strokeWidth="1.5" fill="none" opacity="0.7">
                   {/* Cabeza */}
                   <circle cx="50" cy="20" r="10" />
@@ -369,18 +688,18 @@ export default function PatientFile() {
                 </g>
                 {/* Puntos Interactivos */}
                 <g style={{ cursor: 'pointer' }}>
-                  <circle cx="50" cy="30" r="6" fill="var(--accent)" onClick={() => document.getElementById('input-CUELLO')?.focus()} />
-                  <circle cx="25" cy="80" r="6" fill="white" onClick={() => document.getElementById('input-BRAZO')?.focus()} />
-                  <circle cx="50" cy="55" r="6" fill="white" onClick={() => document.getElementById('input-TORSO')?.focus()} />
-                  <circle cx="50" cy="85" r="6" fill="white" onClick={() => document.getElementById('input-CINTURA')?.focus()} />
-                  <circle cx="50" cy="115" r="6" fill="white" onClick={() => document.getElementById('input-CADERA')?.focus()} />
-                  <circle cx="50" cy="140" r="6" fill="white" onClick={() => document.getElementById('input-GLÚTEOS')?.focus()} />
-                  <circle cx="36" cy="180" r="6" fill="white" onClick={() => document.getElementById('input-MUSLO')?.focus()} />
-                  <circle cx="64" cy="180" r="6" fill="white" onClick={() => document.getElementById('input-PANTORRILLA')?.focus()} />
+                  <circle cx="50" cy="30" r="6" fill="var(--accent)" onClick={() => document.getElementById('input-CUELLO')?.focus()} onMouseEnter={() => setFocusedMeasurement('CUELLO')} onMouseLeave={() => setFocusedMeasurement(null)} />
+                  <circle cx="25" cy="80" r="6" fill="white" onClick={() => document.getElementById('input-BRAZO')?.focus()} onMouseEnter={() => setFocusedMeasurement('BRAZO')} onMouseLeave={() => setFocusedMeasurement(null)} />
+                  <circle cx="50" cy="55" r="6" fill="white" onClick={() => document.getElementById('input-TORSO')?.focus()} onMouseEnter={() => setFocusedMeasurement('TORSO')} onMouseLeave={() => setFocusedMeasurement(null)} />
+                  <circle cx="50" cy="85" r="6" fill="white" onClick={() => document.getElementById('input-CINTURA')?.focus()} onMouseEnter={() => setFocusedMeasurement('CINTURA')} onMouseLeave={() => setFocusedMeasurement(null)} />
+                  <circle cx="50" cy="115" r="6" fill="white" onClick={() => document.getElementById('input-CADERA')?.focus()} onMouseEnter={() => setFocusedMeasurement('CADERA')} onMouseLeave={() => setFocusedMeasurement(null)} />
+                  <circle cx="50" cy="140" r="6" fill="white" onClick={() => document.getElementById('input-GLÚTEOS')?.focus()} onMouseEnter={() => setFocusedMeasurement('GLÚTEOS')} onMouseLeave={() => setFocusedMeasurement(null)} />
+                  <circle cx="36" cy="180" r="6" fill="white" onClick={() => document.getElementById('input-MUSLO')?.focus()} onMouseEnter={() => setFocusedMeasurement('MUSLO')} onMouseLeave={() => setFocusedMeasurement(null)} />
+                  <circle cx="64" cy="180" r="6" fill="white" onClick={() => document.getElementById('input-PANTORRILLA')?.focus()} onMouseEnter={() => setFocusedMeasurement('PANTORRILLA')} onMouseLeave={() => setFocusedMeasurement(null)} />
                 </g>
               </svg>
             ) : (
-              <svg viewBox="0 0 100 220" style={{ height: '300px', width: 'auto' }}>
+              <svg viewBox="0 0 100 220" style={{ height: '280px', width: 'auto' }}>
                 <g stroke="white" strokeWidth="1.8" fill="none" opacity="0.7">
                   {/* Cabeza */}
                   <circle cx="50" cy="20" r="11" />
@@ -392,19 +711,44 @@ export default function PatientFile() {
                   <path d="M35 110 L30 210 M65 110 L70 210" />
                 </g>
                 <g style={{ cursor: 'pointer' }}>
-                  <circle cx="50" cy="35" r="6" fill="var(--accent)" onClick={() => document.getElementById('input-CUELLO')?.focus()} />
-                  <circle cx="15" cy="90" r="6" fill="white" onClick={() => document.getElementById('input-BRAZO')?.focus()} />
-                  <circle cx="50" cy="65" r="6" fill="white" onClick={() => document.getElementById('input-TORSO')?.focus()} />
-                  <circle cx="50" cy="115" r="6" fill="white" onClick={() => document.getElementById('input-CINTURA')?.focus()} />
-                  <circle cx="50" cy="135" r="6" fill="white" onClick={() => document.getElementById('input-CADERA')?.focus()} />
-                  <circle cx="50" cy="155" r="6" fill="white" onClick={() => document.getElementById('input-GLÚTEOS')?.focus()} />
-                  <circle cx="32" cy="180" r="6" fill="white" onClick={() => document.getElementById('input-MUSLO')?.focus()} />
-                  <circle cx="68" cy="180" r="6" fill="white" onClick={() => document.getElementById('input-PANTORRILLA')?.focus()} />
+                  <circle cx="50" cy="35" r="6" fill="var(--accent)" onClick={() => document.getElementById('input-CUELLO')?.focus()} onMouseEnter={() => setFocusedMeasurement('CUELLO')} onMouseLeave={() => setFocusedMeasurement(null)} />
+                  <circle cx="15" cy="90" r="6" fill="white" onClick={() => document.getElementById('input-BRAZO')?.focus()} onMouseEnter={() => setFocusedMeasurement('BRAZO')} onMouseLeave={() => setFocusedMeasurement(null)} />
+                  <circle cx="50" cy="65" r="6" fill="white" onClick={() => document.getElementById('input-TORSO')?.focus()} onMouseEnter={() => setFocusedMeasurement('TORSO')} onMouseLeave={() => setFocusedMeasurement(null)} />
+                  <circle cx="50" cy="115" r="6" fill="white" onClick={() => document.getElementById('input-CINTURA')?.focus()} onMouseEnter={() => setFocusedMeasurement('CINTURA')} onMouseLeave={() => setFocusedMeasurement(null)} />
+                  <circle cx="50" cy="135" r="6" fill="white" onClick={() => document.getElementById('input-CADERA')?.focus()} onMouseEnter={() => setFocusedMeasurement('CADERA')} onMouseLeave={() => setFocusedMeasurement(null)} />
+                  <circle cx="50" cy="155" r="6" fill="white" onClick={() => document.getElementById('input-GLÚTEOS')?.focus()} onMouseEnter={() => setFocusedMeasurement('GLÚTEOS')} onMouseLeave={() => setFocusedMeasurement(null)} />
+                  <circle cx="32" cy="180" r="6" fill="white" onClick={() => document.getElementById('input-MUSLO')?.focus()} onMouseEnter={() => setFocusedMeasurement('MUSLO')} onMouseLeave={() => setFocusedMeasurement(null)} />
+                  <circle cx="68" cy="180" r="6" fill="white" onClick={() => document.getElementById('input-PANTORRILLA')?.focus()} onMouseEnter={() => setFocusedMeasurement('PANTORRILLA')} onMouseLeave={() => setFocusedMeasurement(null)} />
                 </g>
               </svg>
             )}
-            <div style={{ position: 'absolute', bottom: '5px', left: '0', right: '0', fontSize: '0.65rem', opacity: 0.6, textAlign: 'center', color: 'white' }}>
-              Modelo {gender === 'female' ? 'Femenino' : 'Masculino'}
+            
+            {/* Guía Explicativa Detallada de Cinta Métrica */}
+            <div style={{ 
+              position: 'absolute', 
+              bottom: '10px', 
+              left: '10px', 
+              right: '10px', 
+              fontSize: '0.65rem', 
+              background: 'rgba(0,0,0,0.85)', 
+              color: 'white', 
+              padding: '10px 12px', 
+              borderRadius: '12px',
+              minHeight: '52px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textAlign: 'center',
+              lineHeight: '1.35',
+              border: '1px solid rgba(255,255,255,0.1)'
+            }}>
+              {focusedMeasurement ? (
+                <span>
+                  <strong style={{ color: 'var(--accent)', textTransform: 'uppercase' }}>{focusedMeasurement}:</strong> {measurements.find(m => m.label === focusedMeasurement)?.guide}
+                </span>
+              ) : (
+                <span style={{ opacity: 0.8 }}>📍 Posiciona el cursor o toca los puntos del avatar para ver la guía de medición de cinta.</span>
+              )}
             </div>
           </div>
           <div style={{ flex: 1.2, display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -428,10 +772,12 @@ export default function PatientFile() {
                         fontSize: '0.8rem',
                         textAlign: 'right'
                       }}
+                      onFocus={() => setFocusedMeasurement(m.label)}
                       onBlur={(e) => {
                         const updated = { ...patient, measurements: { ...patient.measurements, [m.label]: e.target.value } };
                         const saved = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
                         localStorage.setItem('nutri_patients', JSON.stringify(saved.map(p => p.id === patient.id ? updated : p)));
+                        setFocusedMeasurement(null);
                       }}
                     />
                     <span style={{ fontSize: '0.6rem' }}>cm</span>
@@ -524,6 +870,143 @@ export default function PatientFile() {
            </div>
          )}
       </section>
+      {/* PREVISUALIZACIÓN DEL DASHBOARD INTERACTIVO DEL PACIENTE */}
+      <section className="glass-panel" style={{ padding: '24px', marginBottom: '20px', background: 'white' }}>
+        <div 
+          onClick={() => setPreviewDashboardOpen(!previewDashboardOpen)}
+          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '1.4rem' }}>👁️</span>
+            <h4 style={{ color: 'var(--text-primary)', fontSize: '1.2rem', fontWeight: '900', margin: 0 }}>
+              PREVISUALIZACIÓN DE PLAN E INTERCAMBIOS
+            </h4>
+          </div>
+          <span style={{ fontWeight: 'bold', fontSize: '1rem', color: 'var(--primary)' }}>{previewDashboardOpen ? '▲ Ocultar' : '▼ Expandir'}</span>
+        </div>
+
+        {previewDashboardOpen && (
+          <div className="fade-in" style={{ marginTop: '24px', borderTop: '1.5px solid rgba(0,0,0,0.08)', paddingTop: '20px' }}>
+            <p style={{ fontSize: '0.8rem', opacity: 0.7, marginBottom: '20px', fontStyle: 'italic' }}>
+              Así es como el paciente visualiza su distribución e intercambios auto-calculada en tiempo real:
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+              {/* LADO IZQUIERDO: MENÚ (Amarillo-Mostaza estilo la guía) */}
+              <div style={{ 
+                background: '#F9FBE7', 
+                border: '2.5px solid #AFB42B', 
+                borderRadius: '20px', 
+                padding: '20px', 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: '16px',
+                alignSelf: 'start'
+              }}>
+                <h4 style={{ fontSize: '1.1rem', fontWeight: '950', margin: '0 0 10px 0', color: '#1d512d', textAlign: 'center', borderBottom: '2.5px solid #AFB42B', paddingBottom: '8px' }}>
+                  DISTRIBUCIÓN
+                </h4>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {exchangeMeals.map(m => {
+                    const isActive = selectedExchangeMeal === m.key;
+                    const mealPortions = patient.menu?.[m.key]?.portions || {};
+                    const hasPortions = Object.values(mealPortions).some(val => parseFloat(val) > 0);
+                    
+                    return (
+                      <div 
+                        key={m.key} 
+                        onClick={() => setSelectedExchangeMeal(m.key)}
+                        style={{ 
+                          padding: '12px 14px', 
+                          borderRadius: '12px',
+                          background: isActive ? 'white' : 'rgba(255,255,255,0.4)',
+                          border: isActive ? '2px solid #AFB42B' : '2px solid transparent',
+                          boxShadow: isActive ? '0 8px 20px rgba(0,0,0,0.06)' : 'none',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        <p style={{ margin: '0 0 6px 0', fontWeight: '950', fontSize: '0.85rem', textTransform: 'uppercase', color: isActive ? '#1d512d' : '#555' }}>
+                          {m.name}
+                        </p>
+                        
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                          {Object.keys(EXCHANGE_GUIDE_DB).map(groupKey => {
+                            const target = parseFloat(mealPortions[groupKey]) || 0;
+                            if (target === 0) return null;
+                            const groupMeta = EXCHANGE_GUIDE_DB[groupKey];
+                            return (
+                              <div key={groupKey} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', fontWeight: '800', color: '#1d512d' }}>
+                                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: groupMeta.color, display: 'inline-block' }}></span>
+                                <span>{groupMeta.name.split('/')[0].split(' ')[0]}: {target}</span>
+                              </div>
+                            );
+                          })}
+                          {!hasPortions && (
+                            <span style={{ fontSize: '0.65rem', opacity: 0.5, fontStyle: 'italic', color: '#555' }}>Sin porciones objetivo</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* LADO DERECHO: INTERCAMBIOS AUTO-RELLENADOS */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <h4 style={{ fontSize: '0.95rem', fontWeight: '900', margin: '0 0 4px 0', color: '#1d512d' }}>
+                  📋 TABLA DE INTERCAMBIOS PARA: <span style={{ textTransform: 'uppercase', color: '#1d512d', fontWeight: '950' }}>{exchangeMeals.find(em => em.key === selectedExchangeMeal)?.name}</span>
+                </h4>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {Object.entries(EXCHANGE_GUIDE_DB).map(([groupKey, groupMeta]) => {
+                    const targetVal = parseFloat(patient.menu?.[selectedExchangeMeal]?.portions?.[groupKey]) || 0;
+                    
+                    return (
+                      <div key={groupKey} style={{ border: `1.5px solid ${groupMeta.color}`, borderRadius: '16px', overflow: 'hidden' }}>
+                        {/* Header del Grupo */}
+                        <div style={{ 
+                          background: groupMeta.color, 
+                          color: groupMeta.textColor, 
+                          padding: '10px 14px', 
+                          display: 'flex', 
+                          justifyContent: 'space-between', 
+                          alignItems: 'center',
+                          fontWeight: '950',
+                          fontSize: '0.85rem'
+                        }}>
+                          <span>{groupMeta.name}</span>
+                          <span style={{ background: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: '6px', fontSize: '0.65rem' }}>
+                            Meta: {targetVal} ración{targetVal !== 1 ? 'es' : ''}
+                          </span>
+                        </div>
+                        
+                        {/* Lista de Alimentos con Cálculo de Porciones */}
+                        <div style={{ background: '#fafafa', padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          {groupMeta.foods.map((food, idx) => (
+                            <div key={idx} style={{ 
+                              borderBottom: idx < groupMeta.foods.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none',
+                              paddingBottom: idx < groupMeta.foods.length - 1 ? '6px' : 0,
+                              fontSize: '0.8rem',
+                              fontWeight: '700'
+                            }}>
+                              <p style={{ margin: '0 0 3px 0', color: '#333' }}>{food.name}</p>
+                              <p style={{ margin: 0, color: groupMeta.color === '#FFD700' ? '#b59c00' : groupMeta.color, fontSize: '0.75rem', fontWeight: '900' }}>
+                                👉 {displayCalculatedPortion(food, targetVal)}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </section>
 
       {/* Historial y Evolución */}
       <section id="ev-section" className="glass-panel" style={{ padding: '20px', marginBottom: '40px' }}>
@@ -580,14 +1063,11 @@ export default function PatientFile() {
         boxShadow: '0 -10px 25px rgba(0,0,0,0.1)'
       }}>
         <button 
-          onClick={() => {
-            const el = document.getElementById('ev-section');
-            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }}
+          onClick={startFollowUp}
           className="btn-secondary" 
           style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '14px', borderRadius: '16px', fontSize: '0.85rem' }}
         >
-          <History size={18} /> <span className="btn-text">Seguimiento</span>
+          <History size={18} /> <span className="btn-text">Nuevo Control</span>
         </button>
         <button 
           onClick={saveHistory}
@@ -608,6 +1088,172 @@ export default function PatientFile() {
           </button>
         </Link>
       </div>
+
+      {/* MODAL DE NUEVA CONSULTA DE CONTROL Y EVOLUCIÓN */}
+      {showControlModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.4)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 99999,
+          padding: '20px'
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '28px',
+            maxWidth: '700px',
+            width: '100%',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            padding: '28px',
+            boxShadow: '0 24px 50px rgba(0,0,0,0.15)',
+            border: '1px solid rgba(0,0,0,0.05)',
+            position: 'relative'
+          }} className="scale-in">
+            
+            <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
+              <div>
+                <h3 style={{ fontSize: '1.4rem', fontWeight: '900', color: 'var(--text-primary)' }}>Nueva Consulta de Control</h3>
+                <p style={{ fontSize: '0.8rem', opacity: 0.6 }}>Registra el progreso del paciente y compara con la última sesión</p>
+              </div>
+              <button 
+                onClick={() => setShowControlModal(false)}
+                style={{ background: 'none', border: 'none', fontSize: '1.5rem', fontWeight: 'bold', cursor: 'pointer', opacity: 0.5 }}
+              >
+                ×
+              </button>
+            </header>
+
+            <form onSubmit={handleSaveFollowUp}>
+              {/* Comparación de peso y calorías principales */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', background: 'rgba(29, 81, 45, 0.05)', padding: '20px', borderRadius: '20px', marginBottom: '20px' }}>
+                <div>
+                  <p style={{ fontSize: '0.65rem', fontWeight: '900', opacity: 0.6 }}>1. PESO DE CONTROL (kg)</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
+                    <span style={{ fontSize: '0.75rem', opacity: 0.5 }}>Previo: {patient.details?.weight}kg</span>
+                    <input 
+                      type="number"
+                      step="0.1"
+                      required
+                      placeholder="Nuevo Peso"
+                      className="input-field"
+                      style={{ marginBottom: 0, padding: '8px 12px', fontSize: '0.9rem', width: '100%' }}
+                      value={controlData.weight}
+                      onChange={(e) => setControlData({...controlData, weight: e.target.value})}
+                    />
+                  </div>
+                  {controlData.weight && (
+                    <p style={{ fontSize: '0.7rem', fontWeight: '900', marginTop: '4px', color: parseFloat(controlData.weight) - parseFloat(patient.details?.weight) <= 0 ? 'var(--primary)' : '#EF5350' }}>
+                      Diferencia: {(parseFloat(controlData.weight) - parseFloat(patient.details?.weight)).toFixed(1)} kg
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <p style={{ fontSize: '0.65rem', fontWeight: '900', opacity: 0.6 }}>2. RCT DIETA PRESCRITA (kcal)</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
+                    <span style={{ fontSize: '0.75rem', opacity: 0.5 }}>Previo: {patient.dietForm?.rct || 1700} Kcal</span>
+                    <input 
+                      type="text"
+                      placeholder="Eej: 1600 Kcal"
+                      className="input-field"
+                      style={{ marginBottom: 0, padding: '8px 12px', fontSize: '0.9rem', width: '100%' }}
+                      value={controlData.rct}
+                      onChange={(e) => setControlData({...controlData, rct: e.target.value})}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Ajustes Manuales de Pesos clínicos en este control */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: '700', opacity: 0.6, display: 'block', marginBottom: '6px' }}>Ajustar Peso Ideal Clínico (PI)</label>
+                  <input 
+                    type="number" 
+                    step="0.1"
+                    placeholder={`Calculado: ${clinical.pi} kg`}
+                    className="input-field"
+                    style={{ margin: 0 }}
+                    value={controlData.manualPi}
+                    onChange={(e) => setControlData({...controlData, manualPi: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: '700', opacity: 0.6, display: 'block', marginBottom: '6px' }}>Ajustar Peso de Cálculo (PC)</label>
+                  <input 
+                    type="number" 
+                    step="0.1"
+                    placeholder={`Calculado: ${clinical.pc} kg`}
+                    className="input-field"
+                    style={{ margin: 0 }}
+                    value={controlData.manualPc}
+                    onChange={(e) => setControlData({...controlData, manualPc: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              {/* Grid 2 Columnas de Medidas Corporales */}
+              <h4 style={{ fontSize: '0.75rem', fontWeight: '900', opacity: 0.5, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '10px' }}>Medidas Antropométricas</h4>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 16px', background: 'rgba(0,0,0,0.01)', padding: '14px', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.03)', marginBottom: '20px' }}>
+                {measurements.map(m => (
+                  <div key={m.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'between', gap: '8px' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: '800', width: '90px' }}>{m.label}</span>
+                    <span style={{ fontSize: '0.7rem', opacity: 0.4 }}>({patient.measurements?.[m.label] || '--'}cm)</span>
+                    <input 
+                      type="number"
+                      step="0.1"
+                      placeholder="Nuevo"
+                      className="input-field"
+                      style={{ marginBottom: 0, padding: '4px 8px', fontSize: '0.8rem', width: '70px', textAlign: 'center' }}
+                      value={controlData[m.label] || ''}
+                      onChange={(e) => setControlData({...controlData, [m.label]: e.target.value})}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {/* Notas de evolución en este control */}
+              <div style={{ marginBottom: '24px' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: '900', opacity: 0.6, display: 'block', marginBottom: '8px' }}>NOTAS DE CONTROL Y EVOLUCIÓN</label>
+                <textarea 
+                  placeholder="Ej: El paciente refiere adherencia al menú del 80%. Reporta mejoría en su digestión y energía. Aumentó su consumo hídrico a 8 vasos diarios..."
+                  className="input-field"
+                  style={{ height: '80px', padding: '12px', fontSize: '0.85rem' }}
+                  value={controlData.notes}
+                  onChange={(e) => setControlData({...controlData, notes: e.target.value})}
+                />
+              </div>
+
+              {/* Botón enviar */}
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button 
+                  type="button" 
+                  onClick={() => setShowControlModal(false)}
+                  className="btn-secondary" 
+                  style={{ flex: 1, padding: '14px', borderRadius: '16px', fontWeight: '900' }}
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn-primary" 
+                  style={{ flex: 1.5, padding: '14px', borderRadius: '16px', fontWeight: '900' }}
+                >
+                  Guardar y Ajustar Menú →
+                </button>
+              </div>
+            </form>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 }

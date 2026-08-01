@@ -2,203 +2,266 @@
 import { useAuth } from '@/context/AuthContext';
 import { useState, useEffect } from 'react';
 import TabBar from '@/components/patient/TabBar';
-import { Ruler, Activity, Coffee, ShoppingBag, Calendar } from 'lucide-react';
+import { Activity, Calendar, ChefHat, Droplets, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
+
+function PieChart({ cho, prot, fat, total }) {
+  const size = 140;
+  const r = 52;
+  const cx = size / 2;
+  const cy = size / 2;
+
+  const segments = [
+    { value: cho * 4,  color: '#FFA500', label: 'CHO' },
+    { value: prot * 4, color: '#EF5350', label: 'PROT' },
+    { value: fat * 9,  color: '#CBBC1E', label: 'LÍP' },
+  ];
+
+  const sum = segments.reduce((a, s) => a + s.value, 0) || 1;
+  let cumulative = 0;
+
+  const paths = segments.map(seg => {
+    const pct = seg.value / sum;
+    const start = cumulative;
+    cumulative += pct;
+    const startAngle = start * 2 * Math.PI - Math.PI / 2;
+    const endAngle   = cumulative * 2 * Math.PI - Math.PI / 2;
+    const x1 = cx + r * Math.cos(startAngle);
+    const y1 = cy + r * Math.sin(startAngle);
+    const x2 = cx + r * Math.cos(endAngle);
+    const y2 = cy + r * Math.sin(endAngle);
+    const large = pct > 0.5 ? 1 : 0;
+    return { ...seg, d: `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z` };
+  });
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+      <svg width={size} height={size}>
+        {paths.map((p, i) => <path key={i} d={p.d} fill={p.color} />)}
+        <circle cx={cx} cy={cy} r={r * 0.5} fill="var(--card-green)" />
+        <text x={cx} y={cy - 6} textAnchor="middle" fill="white" fontSize="10" fontWeight="900">
+          {total.toFixed(0)}
+        </text>
+        <text x={cx} y={cy + 8} textAnchor="middle" fill="white" fontSize="8" opacity="0.8">kcal</text>
+      </svg>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        {[
+          { label: 'CHO',  val: cho,  unit: 'g', color: '#FFA500', kcal: cho * 4 },
+          { label: 'PROT', val: prot, unit: 'g', color: '#EF5350', kcal: prot * 4 },
+          { label: 'LÍP',  val: fat,  unit: 'g', color: '#CBBC1E', kcal: fat * 9 },
+        ].map(m => (
+          <div key={m.label} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: m.color }} />
+            <span style={{ fontSize: '0.75rem', fontWeight: '900', color: 'white' }}>{m.label}</span>
+            <span style={{ fontSize: '0.85rem', fontWeight: '700', color: 'white' }}>{m.val.toFixed(0)}{m.unit}</span>
+            <span style={{ fontSize: '0.65rem', opacity: 0.6, color: 'white' }}>{m.kcal.toFixed(0)} kcal</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function PatientHome() {
   const { user } = useAuth();
-  const [patientData, setPatientData] = useState(null);
-
-  const [nextAppointment, setNextAppointment] = useState(null);
+  const [data, setData] = useState(null);
+  const [nextApp, setNextApp] = useState(null);
+  const [todayLog, setTodayLog] = useState(null);
 
   useEffect(() => {
-    if (user?.email) {
-      const savedPatients = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
-      const found = savedPatients.find(p => p.email === user.email);
-      if (found) {
-        setPatientData(found);
-        
-        // Buscar próxima cita
-        const appointments = JSON.parse(localStorage.getItem('nutri_appointments') || '[]');
-        const today = new Date();
-        const myNext = appointments
-          .filter(a => a.patientId == found.id && new Date(a.date) >= today)
-          .sort((a, b) => new Date(a.date) - new Date(b.date))[0];
-        
-        setNextAppointment(myNext);
-      }
+    if (!user?.email) return;
+    const patients = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
+    const found = patients.find(p => p.email === user.email);
+    if (found) {
+      setData(found);
+      // Próxima cita
+      const apps = JSON.parse(localStorage.getItem('nutri_appointments') || '[]');
+      const next = apps
+        .filter(a => a.patientId == found.id && new Date(a.date) >= new Date())
+        .sort((a, b) => new Date(a.date) - new Date(b.date))[0];
+      setNextApp(next || null);
+      // Log de hoy
+      const today = new Date().toISOString().split('T')[0];
+      const logs = JSON.parse(localStorage.getItem(`daily_log_${found.id}`) || '[]');
+      const todayEntry = logs.find(l => l.date === today);
+      setTodayLog(todayEntry || null);
     }
   }, [user]);
 
-  const calculateIMC = () => {
-    if (!patientData?.details) return null;
-    const weight = parseFloat(patientData.details.weight);
-    const heightM = parseFloat(patientData.details.height) / 100;
-    if (!weight || !heightM) return null;
-    return (weight / (heightM * heightM)).toFixed(1);
+  // Macros del plan
+  const rct  = parseFloat(data?.formulas?.kcal || data?.dietForm?.rct || 1700);
+  const protG = parseFloat(data?.formulas?.prot || 0);
+  const choG  = parseFloat(data?.formulas?.cho  || 0);
+  const fatG  = parseFloat(data?.formulas?.fat  || 0);
+
+  // Macros consumidos hoy
+  const todayCho  = todayLog?.totalCho  || 0;
+  const todayProt = todayLog?.totalProt || 0;
+  const todayFat  = todayLog?.totalFat  || 0;
+  const todayKcal = todayLog?.totalKcal || 0;
+
+  const pct = rct > 0 ? Math.min(100, (todayKcal / rct) * 100) : 0;
+
+  const imc = (() => {
+    if (!data?.details) return null;
+    const w = parseFloat(data.details.weight);
+    const h = parseFloat(data.details.height) / 100;
+    if (!w || !h) return null;
+    return (w / (h * h)).toFixed(1);
+  })();
+
+  // Consumo hídrico hoy
+  const hydrKey = `hydration_${data?.id}_${new Date().toISOString().split('T')[0]}`;
+  const [glasses, setGlasses] = useState(0);
+  useEffect(() => {
+    if (data?.id) {
+      const g = parseInt(localStorage.getItem(hydrKey) || '0');
+      setGlasses(g);
+    }
+  }, [data]);
+
+  const addGlass = () => {
+    const next = glasses + 1;
+    setGlasses(next);
+    localStorage.setItem(hydrKey, next.toString());
   };
 
   return (
-    <div style={{ padding: '20px', width: '100%', maxWidth: '100%' }}>
-      <header style={{ marginBottom: '24px' }}>
-        <p style={{ opacity: 0.6, fontSize: '0.9rem' }}>Bienvenido de nuevo,</p>
-        <h2 style={{ fontSize: '1.8rem', color: 'var(--primary)', fontWeight: '900' }}>{user?.name || 'Paciente'}</h2>
+    <div style={{ padding: '20px', paddingBottom: '100px' }} className="fade-in">
+      {/* HEADER */}
+      <header style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <p style={{ opacity: 0.55, fontSize: '0.85rem', fontWeight: '700' }}>Bienvenido de nuevo,</p>
+          <h2 style={{ fontSize: '1.6rem', color: 'var(--text-primary)', fontWeight: '900' }}>
+            {user?.name?.split(' ')[0] || 'Paciente'}
+          </h2>
+          {data?.details?.isPediatric && (
+            <span style={{ background: '#E3F2FD', color: '#0D47A1', fontSize: '0.65rem', fontWeight: '900', padding: '2px 10px', borderRadius: '20px' }}>
+              Paciente Pediátrico
+            </span>
+          )}
+        </div>
+        <img src="/logo.png" alt="Logo" style={{ height: '36px', opacity: 0.8 }} />
       </header>
 
-      {/* Tarjeta Resumen Nutricional */}
-      <section className="glass-panel fade-in" style={{ 
-        background: 'var(--card-green)', 
-        color: 'white', 
-        padding: '24px', 
-        marginBottom: '20px'
+      {/* META DIARIA + GRÁFICA TORTA */}
+      <section className="glass-panel" style={{
+        background: 'var(--card-green)', color: 'white',
+        padding: '24px', marginBottom: '16px', borderRadius: '24px',
+        boxShadow: '0 8px 24px rgba(29,81,45,0.25)'
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <div>
-            <h3 style={{ fontSize: '1.1rem', marginBottom: '4px' }}>Tu Meta Diaria</h3>
-            <p style={{ fontSize: '1.8rem', fontWeight: '800' }}>
-              {patientData?.dietForm?.rct || '1700 Kcal'}
-            </p>
+            <p style={{ fontSize: '0.7rem', opacity: 0.7, fontWeight: '800', letterSpacing: '1px' }}>TU META DIARIA</p>
+            <p style={{ fontSize: '2.2rem', fontWeight: '900', lineHeight: 1 }}>{rct.toFixed(0)} <span style={{ fontSize: '1rem' }}>Kcal</span></p>
           </div>
-          <Activity size={40} opacity={0.3} />
+          <Activity size={32} opacity={0.3} />
+        </div>
+
+        {/* Gráfica de torta de macros del plan */}
+        {(protG > 0 || choG > 0 || fatG > 0) ? (
+          <PieChart cho={choG} prot={protG} fat={fatG} total={rct} />
+        ) : (
+          <p style={{ fontSize: '0.8rem', opacity: 0.6, textAlign: 'center', padding: '10px' }}>
+            Tu nutricionista aún no ha cargado tu fórmula dietética.
+          </p>
+        )}
+
+        {/* Barra de progreso de kcal consumidas hoy */}
+        {todayKcal > 0 && (
+          <div style={{ marginTop: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+              <span style={{ fontSize: '0.7rem', opacity: 0.8, fontWeight: '700' }}>Consumido hoy</span>
+              <span style={{ fontSize: '0.7rem', opacity: 0.8, fontWeight: '700' }}>{todayKcal.toFixed(0)} / {rct.toFixed(0)} kcal</span>
+            </div>
+            <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: '10px', height: '8px', overflow: 'hidden' }}>
+              <div style={{ width: `${pct}%`, height: '100%', background: pct > 90 ? '#EF5350' : 'var(--accent)', borderRadius: '10px', transition: 'width 0.5s' }} />
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* ESTADO FÍSICO */}
+      <section className="glass-panel" style={{ padding: '18px', marginBottom: '16px', background: 'white' }}>
+        <p style={{ fontSize: '0.65rem', fontWeight: '900', opacity: 0.5, letterSpacing: '1px', marginBottom: '12px' }}>MI ESTADO FÍSICO</p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', textAlign: 'center', gap: '8px' }}>
+          {[
+            { label: 'Peso', value: data?.details?.weight ? `${data.details.weight} kg` : '--' },
+            { label: 'Talla', value: data?.details?.height ? `${data.details.height} cm` : '--' },
+            { label: 'IMC', value: imc || '--' },
+          ].map(m => (
+            <div key={m.label} style={{ background: 'var(--bg-primary)', borderRadius: '12px', padding: '10px 6px' }}>
+              <p style={{ fontSize: '0.6rem', opacity: 0.5, fontWeight: '800', marginBottom: '4px' }}>{m.label}</p>
+              <p style={{ fontWeight: '900', fontSize: '1.1rem' }}>{m.value}</p>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* Grid de Macronutrientes */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
-        <div className="glass-panel" style={{ background: 'var(--card-yellow)', color: 'white', padding: '16px' }}>
-          <p style={{ fontSize: '0.7rem', textTransform: 'uppercase', opacity: 0.8 }}>Proteínas</p>
-          <p style={{ fontSize: '1.1rem', fontWeight: '700' }}>{patientData?.dietForm?.prot?.split('/')[1] || '75g'}</p>
+      {/* CONSUMO HÍDRICO RÁPIDO */}
+      <section className="glass-panel" style={{ padding: '18px', marginBottom: '16px', background: 'white' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Droplets size={20} color="#1E90FF" />
+            <div>
+              <p style={{ fontWeight: '900', fontSize: '0.9rem' }}>Consumo Hídrico</p>
+              <p style={{ fontSize: '0.75rem', opacity: 0.6 }}>{glasses} vasos · {(glasses * 0.24).toFixed(2)} L hoy</p>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            {[...Array(8)].map((_, i) => (
+              <div key={i} style={{ width: '8px', height: '8px', borderRadius: '50%', background: i < glasses ? '#1E90FF' : 'rgba(0,0,0,0.1)' }} />
+            ))}
+            <button onClick={addGlass} style={{
+              marginLeft: '6px', background: '#E3F2FD', border: 'none', borderRadius: '50%',
+              width: '32px', height: '32px', cursor: 'pointer', fontWeight: '900', color: '#0D47A1', fontSize: '1.2rem'
+            }}>+</button>
+          </div>
         </div>
-        <div className="glass-panel" style={{ background: 'var(--card-red)', color: 'white', padding: '16px' }}>
-          <p style={{ fontSize: '0.7rem', textTransform: 'uppercase', opacity: 0.8 }}>Grasas</p>
-          <p style={{ fontSize: '1.1rem', fontWeight: '700' }}>{patientData?.dietForm?.lip?.split('/')[1] || '60g'}</p>
-        </div>
+      </section>
+
+      {/* ATAJOS */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        {[
+          { href: '/patient/menu',      icon: ChefHat,    title: 'Ver mi plan nutricional', sub: 'Menú ejemplo y seguimiento', color: 'var(--card-green)', textColor: 'white' },
+          { href: '/patient/daily-log', icon: Activity,   title: 'Registrar lo que comí',   sub: 'Comidas del día de hoy',     color: 'var(--action)',    textColor: 'white' },
+          { href: '/patient/evolution', icon: TrendingUp, title: 'Mi Evolución',            sub: 'Pesos, tallas e historial',  color: 'white',            textColor: 'var(--text-primary)' },
+        ].map(item => {
+          const Icon = item.icon;
+          return (
+            <Link key={item.href} href={item.href} style={{ textDecoration: 'none' }}>
+              <div className="glass-panel" style={{
+                padding: '16px 20px', background: item.color, borderRadius: '20px',
+                display: 'flex', alignItems: 'center', gap: '16px',
+                boxShadow: '0 4px 14px rgba(0,0,0,0.08)'
+              }}>
+                <div style={{ width: '44px', height: '44px', borderRadius: '14px', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon size={22} color={item.textColor} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontWeight: '900', color: item.textColor, fontSize: '0.95rem' }}>{item.title}</p>
+                  <p style={{ fontSize: '0.75rem', opacity: 0.7, color: item.textColor }}>{item.sub}</p>
+                </div>
+                <span style={{ color: item.textColor, opacity: 0.4, fontSize: '1.2rem' }}>›</span>
+              </div>
+            </Link>
+          );
+        })}
       </div>
 
-      {/* Estado Físico */}
-      <section className="glass-panel shadow-premium" style={{ padding: '20px', marginBottom: '24px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-          <Ruler size={20} color="var(--primary)" />
-          <h3 style={{ fontSize: '1rem' }}>Mi Estado Físico</h3>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', textAlign: 'center' }}>
+      {/* PRÓXIMA CITA */}
+      {nextApp && (
+        <div className="glass-panel" style={{ marginTop: '16px', padding: '16px', background: 'rgba(203,188,30,0.08)', border: '1px solid var(--accent)', borderRadius: '20px', display: 'flex', gap: '16px', alignItems: 'center' }}>
+          <Calendar size={24} color="var(--accent)" />
           <div>
-            <p style={{ fontSize: '0.7rem', opacity: 0.6 }}>Peso</p>
-            <p style={{ fontWeight: '700' }}>{patientData?.details?.weight}kg</p>
-          </div>
-          <div>
-            <p style={{ fontSize: '0.7rem', opacity: 0.6 }}>Talla</p>
-            <p style={{ fontWeight: '700' }}>{patientData?.details?.height}cm</p>
-          </div>
-          <div>
-            <p style={{ fontSize: '0.7rem', opacity: 0.6 }}>IMC</p>
-            <p style={{ fontWeight: '700' }}>{calculateIMC() || '--'}</p>
+            <p style={{ fontWeight: '900', fontSize: '0.9rem' }}>Próxima cita</p>
+            <p style={{ fontSize: '0.8rem', color: 'var(--accent)', fontWeight: '700' }}>
+              {nextApp.date.split('-').reverse().join('/')} a las {nextApp.time}
+            </p>
+            <p style={{ fontSize: '0.75rem', opacity: 0.6 }}>{nextApp.type}</p>
           </div>
         </div>
-      </section>
-
-      {/* Próxima Cita */}
-      <section className="fade-in" style={{ animationDelay: '0.05s', marginBottom: '24px' }}>
-        <div style={{ 
-          background: 'white', 
-          padding: '24px', 
-          borderRadius: '24px', 
-          boxShadow: 'var(--shadow-subtle)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '20px',
-          border: '1px solid var(--card-yellow-light)'
-        }}>
-          <div style={{ 
-            width: '60px', 
-            height: '60px', 
-            background: 'var(--card-yellow-light)', 
-            borderRadius: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <Calendar color="var(--accent)" />
-          </div>
-          <div style={{ flex: 1 }}>
-            <h4 style={{ fontWeight: '700' }}>{nextAppointment ? 'Próxima Cita' : 'Sin citas pendientes'}</h4>
-            {nextAppointment ? (
-              <p style={{ fontSize: '0.8rem', color: 'var(--primary)', fontWeight: '700' }}>
-                {nextAppointment.date.split('-').reverse().join('/')} a las {nextAppointment.time}
-                <span style={{ display: 'block', opacity: 0.5, fontWeight: 'normal' }}>Motivo: {nextAppointment.type}</span>
-              </p>
-            ) : (
-              <p style={{ fontSize: '0.8rem', opacity: 0.6 }}>Tu nutricionista te informará pronto.</p>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* Atajo al Menú */}
-      <section className="fade-in" style={{ animationDelay: '0.1s', marginBottom: '20px' }}>
-        <Link href="/patient/menu" style={{ textDecoration: 'none', color: 'inherit' }}>
-          <div style={{ 
-            background: 'white', 
-            padding: '24px', 
-            borderRadius: '24px', 
-            boxShadow: 'var(--shadow-subtle)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '20px',
-            cursor: 'pointer'
-          }}>
-            <div style={{ 
-              width: '60px', 
-              height: '60px', 
-              background: 'var(--card-green-light)', 
-              borderRadius: '16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <Coffee color="var(--primary)" />
-            </div>
-            <div style={{ flex: 1 }}>
-              <h4 style={{ fontWeight: '700' }}>Seguir mi Plan</h4>
-              <p style={{ fontSize: '0.8rem', opacity: 0.6 }}>Ver mi menú personalizado del día</p>
-            </div>
-            <div style={{ fontSize: '1.5rem', opacity: 0.3 }}>→</div>
-          </div>
-        </Link>
-      </section>
-
-      {/* Atajo a Lista de Mercado */}
-      <section className="fade-in" style={{ animationDelay: '0.2s' }}>
-        <Link href="/patient/shopping-list" style={{ textDecoration: 'none', color: 'inherit' }}>
-          <div style={{ 
-            background: 'white', 
-            padding: '24px', 
-            borderRadius: '24px', 
-            boxShadow: 'var(--shadow-subtle)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '20px',
-            cursor: 'pointer'
-          }}>
-            <div style={{ 
-              width: '60px', 
-              height: '60px', 
-              background: 'var(--card-yellow-light)', 
-              borderRadius: '16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <ShoppingBag color="var(--accent)" />
-            </div>
-            <div style={{ flex: 1 }}>
-              <h4 style={{ fontWeight: '700' }}>Lista de Mercado</h4>
-              <p style={{ fontSize: '0.8rem', opacity: 0.6 }}>Organiza tus compras por semana</p>
-            </div>
-            <div style={{ fontSize: '1.5rem', opacity: 0.3 }}>→</div>
-          </div>
-        </Link>
-      </section>
+      )}
 
       <TabBar />
     </div>

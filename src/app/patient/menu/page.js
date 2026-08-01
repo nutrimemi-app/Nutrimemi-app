@@ -2,144 +2,224 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import TabBar from '@/components/patient/TabBar';
-import { Clock, ChefHat, Info } from 'lucide-react';
+import { ChefHat, BookOpen, CheckCircle, Info } from 'lucide-react';
+
+const FOOD_GROUPS = [
+  { key: 'cereales',  name: 'Cereales',  color: '#E07B00', bg: '#FFF3E0', dot: '#FFA500' },
+  { key: 'proteinas', name: 'Proteínas', color: '#B71C1C', bg: '#FFEBEE', dot: '#EF5350' },
+  { key: 'vegetales', name: 'Vegetales', color: '#1B5E20', bg: '#E8F5E9', dot: '#43A047' },
+  { key: 'frutas',    name: 'Frutas',    color: '#6A1B9A', bg: '#F3E5F5', dot: '#AB47BC' },
+  { key: 'lacteos',   name: 'Lácteos',   color: '#0D47A1', bg: '#E3F2FD', dot: '#42A5F5' },
+  { key: 'grasas',    name: 'Grasas',    color: '#827717', bg: '#FFFDE7', dot: '#D4AC0D' },
+];
+
+const EXCHANGE_EXAMPLES = {
+  cereales:  '1 RACIÓN = 1/3 taza arroz / pasta; ½ taza papa; 1 rebanada pan; ½ arepa.',
+  proteinas: '1 RACIÓN = 30 g pollo / carne / pescado / atún; 1 huevo; 1 rebanada queso.',
+  vegetales: '1 RACIÓN = 1 taza crudo o ½ taza cocido.',
+  frutas:    '1 RACIÓN = 1 unidad pequeña; 1 taza picada; ½ cambur grande.',
+  lacteos:   '1 RACIÓN = 1 taza leche; ¾ taza yogurt; ½ taza yogurt griego.',
+  grasas:    '1 RACIÓN = 1 cdta aceite; 30 g aguacate; 6 almendras; 1 cda maní.',
+};
+
+const MEAL_ORDER = [
+  { key: 'desayuno',    label: 'Desayuno' },
+  { key: 'meriendaAM', label: 'Merienda AM' },
+  { key: 'almuerzo',   label: 'Almuerzo' },
+  { key: 'meriendaPM', label: 'Merienda PM' },
+  { key: 'cena',       label: 'Cena' },
+  { key: 'snackNoche', label: 'Snack Noche' },
+];
 
 export default function PatientMenu() {
   const { user } = useAuth();
-  const [menu, setMenu] = useState(null);
+  const [patient, setPatient] = useState(null);
+  const [tab, setTab] = useState('plan'); // 'plan' | 'menu'
 
   useEffect(() => {
-    if (user?.email) {
-      const savedPatients = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
-      const found = savedPatients.find(p => p.email === user.email);
-      if (found && found.menu) {
-        setMenu(found.menu);
-      }
-    }
+    if (!user?.email) return;
+    const patients = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
+    const found = patients.find(p => p.email === user.email);
+    if (found) setPatient(found);
   }, [user]);
 
-  const mealTypes = [
-    { title: 'Desayuno', key: 'desayuno' },
-    { title: 'Merienda AM', key: 'meriendaAM' },
-    { title: 'Almuerzo', key: 'almuerzo' },
-    { title: 'Merienda PM', key: 'meriendaPM' },
-    { title: 'Cena', key: 'cena' }
-  ];
+  const menu = patient?.menu || {};
 
-  const foodGroups = [
-    { name: 'Cereales', color: '#FFA500', key: 'cereales' },
-    { name: 'Proteínas', color: '#FF0000', key: 'proteinas' },
-    { name: 'Vegetales', color: '#228B22', key: 'vegetales' },
-    { name: 'Frutas', color: '#BA55D3', key: 'frutas' },
-    { name: 'Lácteos', color: '#1E90FF', key: 'lacteos' },
-    { name: 'Grasas', color: '#FFD700', key: 'grasas' }
-  ];
+  const mealsWithData = MEAL_ORDER.filter(m => {
+    const d = menu[m.key];
+    if (!d) return false;
+    return d.selectedFoods?.length > 0 || Object.values(d.portions || {}).some(v => parseFloat(v) > 0);
+  });
 
-  if (!menu) {
-    return (
-      <div style={{ padding: '24px', textAlign: 'center' }}>
-        <ChefHat size={48} opacity={0.2} style={{ marginBottom: '16px' }} />
-        <h3>Tu nutricionista aún no ha cargado tu menú.</h3>
-        <p style={{ opacity: 0.6, fontSize: '0.9rem' }}>Vuelve pronto para ver tu plan personalizado.</p>
-        <TabBar />
-      </div>
-    );
-  }
+  if (!patient) return (
+    <div style={{ padding: '40px', textAlign: 'center', opacity: 0.5 }}>
+      <ChefHat size={48} style={{ marginBottom: '16px' }} />
+      <p style={{ fontWeight: '700' }}>Cargando tu plan…</p>
+      <TabBar />
+    </div>
+  );
 
   return (
     <div style={{ padding: '20px', paddingBottom: '100px' }} className="fade-in">
-      <header style={{ marginBottom: '32px' }}>
-        <h2 style={{ fontSize: '1.8rem', color: 'var(--primary)', marginBottom: '8px' }}>Mi Menú</h2>
-        <p style={{ opacity: 0.6, fontSize: '0.9rem' }}>Plan personalizado por la Lic. Salomé</p>
+      {/* HEADER */}
+      <header style={{ marginBottom: '24px' }}>
+        <h2 style={{ fontSize: '1.6rem', fontWeight: '900', color: 'var(--text-primary)' }}>Ver mi plan nutricional</h2>
+        <p style={{ opacity: 0.55, fontSize: '0.85rem' }}>Plan elaborado por tu nutricionista</p>
       </header>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '32px', marginBottom: '48px' }}>
-        {mealTypes.map((meal) => {
-          const mealData = menu[meal.key];
-          if (!mealData) return null;
+      {/* TABS */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', background: 'rgba(0,0,0,0.04)', borderRadius: '14px', padding: '4px' }}>
+        {[
+          { id: 'plan',  label: '📋 Seguir tu plan' },
+          { id: 'menu',  label: '🍽️ Menú ejemplo' },
+        ].map(t => (
+          <button key={t.id} onClick={() => setTab(t.id)} style={{
+            flex: 1, padding: '10px', border: 'none', borderRadius: '10px', cursor: 'pointer',
+            background: tab === t.id ? 'var(--text-primary)' : 'transparent',
+            color: tab === t.id ? 'white' : 'var(--text-primary)',
+            fontWeight: '800', fontSize: '0.8rem', transition: 'all 0.2s'
+          }}>
+            {t.label}
+          </button>
+        ))}
+      </div>
 
-          return (
-            <div key={meal.key} style={{ position: 'relative' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                <Clock size={16} opacity={0.4} />
-                <span style={{ fontSize: '0.9rem', fontWeight: '800', color: mealData.isFreeTime ? '#888' : 'var(--primary)' }}>
-                  {mealData.isFreeTime ? 'Horario Libre' : (mealData.time || '--:--')}
-                </span>
-                <h3 style={{ fontSize: '1.4rem', fontWeight: '900', marginLeft: '12px', letterSpacing: '-0.5px' }}>{meal.title}</h3>
+      {/* ═══════ TAB: SEGUIR TU PLAN ═══════ */}
+      {tab === 'plan' && (
+        <div className="fade-in">
+          {/* Guía de intercambio */}
+          <div className="glass-panel" style={{ padding: '20px', background: 'white', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+              <BookOpen size={20} color="var(--text-primary)" />
+              <h3 style={{ fontWeight: '900', fontSize: '1rem' }}>Guía de Raciones</h3>
+            </div>
+            <p style={{ fontSize: '0.8rem', opacity: 0.6, marginBottom: '14px', lineHeight: '1.4' }}>
+              Cada ración equivale a la porción de referencia indicada. Puedes combinar alimentos del mismo grupo libremente.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {FOOD_GROUPS.map(g => (
+                <div key={g.key} style={{
+                  display: 'flex', gap: '10px', padding: '10px', borderRadius: '12px',
+                  background: g.bg, borderLeft: `4px solid ${g.dot}`
+                }}>
+                  <div style={{ minWidth: '70px', fontWeight: '900', color: g.color, fontSize: '0.8rem' }}>{g.name}</div>
+                  <div style={{ fontSize: '0.78rem', color: '#555', lineHeight: '1.3' }}>{EXCHANGE_EXAMPLES[g.key]}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ marginTop: '14px', padding: '12px', background: 'rgba(29,81,45,0.05)', borderRadius: '10px', fontSize: '0.75rem', color: 'var(--text-primary)' }}>
+              <strong>💡 Recuerda:</strong> Todos los cereales aportan <strong>15 g de carbohidratos</strong> por ración. Coordina con tu nutricionista cualquier ajuste.
+            </div>
+          </div>
+
+          {/* Porciones del plan por tiempo de comida */}
+          {mealsWithData.length > 0 ? mealsWithData.map(meal => {
+            const d = menu[meal.key];
+            const portions = d?.portions || {};
+            return (
+              <div key={meal.key} className="glass-panel" style={{ marginBottom: '12px', overflow: 'hidden', background: 'white' }}>
+                <div style={{ background: 'var(--card-green)', color: 'white', padding: '10px 16px', display: 'flex', justifyContent: 'space-between' }}>
+                  <h3 style={{ fontWeight: '900', fontSize: '0.95rem', margin: 0 }}>{meal.label}</h3>
+                  <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>{d?.time || ''}</span>
+                </div>
+                <div style={{ padding: '12px 16px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {FOOD_GROUPS.map(g => {
+                    const val = parseFloat(portions[g.key] || 0);
+                    if (!val) return null;
+                    return (
+                      <div key={g.key} style={{
+                        display: 'flex', alignItems: 'center', gap: '6px',
+                        background: g.bg, borderRadius: '20px', padding: '5px 12px',
+                        border: `1px solid ${g.dot}30`
+                      }}>
+                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: g.dot }} />
+                        <span style={{ fontWeight: '900', color: g.color, fontSize: '0.85rem' }}>{val}</span>
+                        <span style={{ fontSize: '0.75rem', color: g.color }}>{g.name}</span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
+            );
+          }) : (
+            <div style={{ textAlign: 'center', padding: '40px', opacity: 0.4 }}>
+              <ChefHat size={40} style={{ marginBottom: '12px' }} />
+              <p style={{ fontWeight: '700' }}>Tu nutricionista aún no ha cargado tu plan.</p>
+            </div>
+          )}
+        </div>
+      )}
 
-              <div className="glass-panel shadow-premium" style={{ padding: '24px', display: 'flex', gap: '20px', alignItems: 'flex-start', background: 'white', borderRadius: '24px' }}>
-                
-                {/* Cuadro de Porciones Recomendadas (Pequeño, a un lado) */}
-                {!mealData.isFreeFill && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', borderRight: '2px solid #f0f0f0', paddingRight: '20px', minWidth: '100px' }}>
-                    <p style={{ fontSize: '0.6rem', fontWeight: '800', opacity: 0.4, marginBottom: '4px' }}>RACIONES</p>
-                    {foodGroups.map(group => {
-                      const val = mealData.portions?.[group.key];
-                      if (!val || val === '0') return null;
+      {/* ═══════ TAB: MENÚ EJEMPLO ═══════ */}
+      {tab === 'menu' && (
+        <div className="fade-in">
+          {mealsWithData.length > 0 ? mealsWithData.map(meal => {
+            const d = menu[meal.key];
+            const foods = d?.selectedFoods || [];
+            const portions = d?.portions || {};
+            return (
+              <div key={meal.key} className="glass-panel" style={{ marginBottom: '12px', overflow: 'hidden', background: 'white' }}>
+                <div style={{ background: 'var(--card-green)', color: 'white', padding: '10px 16px', display: 'flex', justifyContent: 'space-between' }}>
+                  <h3 style={{ fontWeight: '900', fontSize: '0.95rem', margin: 0 }}>{meal.label}</h3>
+                  <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>{d?.time || ''}</span>
+                </div>
+
+                {/* Badges de porciones */}
+                {Object.values(portions).some(v => parseFloat(v) > 0) && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', padding: '8px 14px', background: 'rgba(29,81,45,0.04)', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
+                    {FOOD_GROUPS.map(g => {
+                      const val = parseFloat(portions[g.key] || 0);
+                      if (!val) return null;
                       return (
-                        <div key={group.key} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: group.color }}></div>
-                          <span style={{ fontSize: '0.85rem', fontWeight: '900', color: 'black' }}>{val}</span>
-                          <span style={{ fontSize: '0.65rem', fontWeight: '700', opacity: 0.5 }}>{group.name.charAt(0)}</span>
-                        </div>
+                        <span key={g.key} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: g.bg, color: g.color, fontSize: '0.72rem', fontWeight: '900', padding: '2px 8px', borderRadius: '20px' }}>
+                          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: g.dot, display: 'inline-block' }}></span>
+                          {val} {g.name}
+                        </span>
                       );
                     })}
                   </div>
                 )}
 
-                {/* El Menú Visual (Los alimentos con colores) */}
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {mealData.selectedFoods && mealData.selectedFoods.length > 0 ? (
-                    mealData.selectedFoods.map((item, idx) => {
-                      const color = foodGroups.find(g => g.key === item.groupKey)?.color || 'black';
-                      return (
-                        <div key={idx} style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
-                          <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: color, flexShrink: 0, alignSelf: 'center' }}></div>
-                          <p style={{ fontSize: '1rem', fontWeight: '800', color: color, lineHeight: '1.3' }}>
-                            {item.portion} <span style={{ fontWeight: '600', opacity: 0.9 }}>de {item.name}</span>
-                          </p>
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <p style={{ fontSize: '0.95rem', opacity: 0.8, whiteSpace: 'pre-wrap', lineHeight: '1.5', fontStyle: mealData.food ? 'normal' : 'italic' }}>
-                      {mealData.food || "Sigue tus raciones recomendadas para este tiempo de comida."}
+                {/* Alimentos */}
+                <div style={{ padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {foods.length > 0 ? foods.map(item => {
+                    const g = FOOD_GROUPS.find(g => g.key === item.groupKey) || FOOD_GROUPS[0];
+                    return (
+                      <div key={item.instanceId || item.id} style={{
+                        display: 'flex', alignItems: 'center', gap: '10px',
+                        padding: '6px 10px', borderRadius: '10px',
+                        background: g.bg, borderLeft: `3px solid ${g.dot}`
+                      }}>
+                        <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: g.dot }} />
+                        <span style={{ fontWeight: '900', color: g.color, fontSize: '0.82rem' }}>{item.portion}</span>
+                        <span style={{ fontWeight: '700', fontSize: '0.85rem', color: '#333' }}>{item.name}</span>
+                        {item.qty > 1 && <span style={{ fontSize: '0.65rem', opacity: 0.5 }}>×{item.qty}</span>}
+                      </div>
+                    );
+                  }) : (
+                    <p style={{ fontSize: '0.8rem', opacity: 0.5, fontStyle: 'italic', padding: '4px' }}>
+                      Sigue las raciones recomendadas para este tiempo de comida.
                     </p>
                   )}
                 </div>
               </div>
+            );
+          }) : (
+            <div style={{ textAlign: 'center', padding: '40px', opacity: 0.4 }}>
+              <ChefHat size={40} style={{ marginBottom: '12px' }} />
+              <p style={{ fontWeight: '700' }}>Tu nutricionista aún no ha creado tu menú ejemplo.</p>
             </div>
-          );
-        })}
-      </div>
+          )}
 
-      {/* Guía de Intercambio (Equivalencias) */}
-      <section className="glass-panel" style={{ padding: '24px', background: '#fcfcfc' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-          <Info size={20} color="var(--primary)" />
-          <h3 style={{ fontSize: '1.1rem', fontWeight: '800' }}>Guía de Equivalencias</h3>
-        </div>
-        
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {[
-            { group: 'Cereales', color: '#FFA500', eq: '1 Ración = 1/2 taza arroz/pasta u 1 unidad de pan/tortilla.' },
-            { group: 'Proteínas', color: '#FF0000', eq: '1 Ración = 30g de pollo, carne o pescado o 1 huevo.' },
-            { group: 'Vegetales', color: '#228B22', eq: '1 Ración = 1 taza crudos o 1/2 taza cocidos.' },
-            { group: 'Frutas', color: '#BA55D3', eq: '1 Ración = 1 unidad pequeña o 1 taza picada.' },
-            { group: 'Lácteos', color: '#1E90FF', eq: '1 Ración = 1 taza de leche o 3/4 taza de yogurt.' },
-            { group: 'Grasas', color: '#FFD700', eq: '1 Ración = 1 cdta de aceite o 2 cdas de frutos secos.' },
-          ].map(item => (
-            <div key={item.group} style={{ display: 'flex', gap: '12px' }}>
-              <div style={{ width: '4px', background: item.color, borderRadius: '2px', flexShrink: 0 }}></div>
-              <div>
-                <p style={{ fontWeight: '700', fontSize: '0.85rem', color: item.color }}>{item.group}</p>
-                <p style={{ fontSize: '0.85rem', opacity: 0.7 }}>{item.eq}</p>
-              </div>
+          {/* Nota del especialista */}
+          {patient.details?.notes && (
+            <div style={{ padding: '16px', background: 'rgba(203,188,30,0.08)', border: '1px dashed var(--accent)', borderRadius: '16px', marginTop: '4px' }}>
+              <p style={{ fontSize: '0.65rem', fontWeight: '900', color: 'var(--accent)', marginBottom: '6px', letterSpacing: '1px' }}>INDICACIONES</p>
+              <p style={{ fontSize: '0.85rem', color: '#444', lineHeight: '1.5' }}>{patient.details.notes}</p>
             </div>
-          ))}
+          )}
         </div>
-      </section>
+      )}
 
       <TabBar />
     </div>

@@ -7,7 +7,7 @@ import { useUI } from '@/context/UIContext';
 import { loadFoods, saveFoods } from '@/data/defaultFoods';
 
 export default function NutriFoods() {
-  const { showToast } = useUI();
+  const { showToast, showConfirm } = useUI();
   const [foods, setFoods] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterGroup, setFilterGroup] = useState('all');

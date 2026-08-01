@@ -7,7 +7,7 @@ import { useUI } from '@/context/UIContext';
 
 export default function NutriAgenda() {
   const router = useRouter();
-  const { showToast } = useUI();
+  const { showToast, showConfirm } = useUI();
   const [appointments, setAppointments] = useState([]);
   const [patients, setPatients] = useState([]);
   const [viewDate, setViewDate] = useState(new Date());
@@ -197,7 +197,13 @@ export default function NutriAgenda() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {displayAppointments.map(app => {
+            const patientObj = patients.find(p => p.id == app.patientId);
+            const phone = patientObj?.details?.phone || patientObj?.details?.tutorPhone || '';
+            const dateFormatted = new Date(app.date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+            const msgPrefix = `Hola ${app.patientName}, te escribo de Nutrimemi para recordarte tu cita de ${app.type} programada para el día ${dateFormatted} a las ${app.time}. Por favor recuerda no consumir alimentos no habituales 12 horas antes y completar tu bitácora de alimentación. ¡Nos vemos! 🍎`;
+            const whatsappUrl = `https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msgPrefix)}`;
             const isToday = new Date(app.date).toDateString() === new Date().toDateString();
+
             return (
               <div key={app.id} className="glass-panel fade-in" style={{ 
                 padding: '16px', 
@@ -219,7 +225,31 @@ export default function NutriAgenda() {
                     </div>
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <button 
+                    onClick={() => {
+                      if (!phone) {
+                        showToast("Registra el teléfono del paciente en su expediente primero", "error");
+                        return;
+                      }
+                      window.open(whatsappUrl, '_blank');
+                    }}
+                    style={{ 
+                      background: '#e8f5e9', 
+                      color: '#2e7d32', 
+                      border: '1px solid #a5d6a7',
+                      padding: '8px 12px', 
+                      borderRadius: '8px', 
+                      fontSize: '0.75rem', 
+                      fontWeight: '900',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    📲 Recordar
+                  </button>
                   <button onClick={() => openEdit(app)} className="btn-secondary" style={{ padding: '8px', borderRadius: '8px' }}>Editar</button>
                   <button onClick={() => deleteAppointment(app.id)} style={{ background: '#fff0f0', color: '#cc0000', border: 'none', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}>
                     <Trash2 size={18} />

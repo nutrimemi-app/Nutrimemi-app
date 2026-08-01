@@ -36,7 +36,9 @@ export default function ClinicalReport() {
   const clinical = snapshot ? snapshot.clinical : calculateClinicalData({
     weight: targetDetails?.weight,
     height: targetDetails?.height,
-    sex: targetDetails?.gender || 'female'
+    sex: targetDetails?.gender || 'female',
+    manualPi: targetDetails?.manualPi,
+    manualPc: targetDetails?.manualPc
   });
 
   const foodGroups = {

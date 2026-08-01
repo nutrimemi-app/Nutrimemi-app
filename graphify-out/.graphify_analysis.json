@@ -1,0 +1,296 @@
+{
+  "communities": {
+    "0": [
+      "src_app_nutri_agenda_page",
+      "src_app_nutri_agenda_page_nutriagenda",
+      "src_app_nutri_new_patient_page",
+      "src_app_nutri_new_patient_page_newpatient",
+      "src_app_nutri_patient_id_menu_page",
+      "src_app_nutri_patient_id_menu_page_exchange_values",
+      "src_app_nutri_patient_id_menu_page_managemenu",
+      "src_app_nutri_patient_id_page",
+      "src_app_nutri_patient_id_page_patientfile",
+      "src_app_nutri_patient_id_report_page",
+      "src_app_nutri_patient_id_report_page_clinicalreport",
+      "src_app_paciente_id_photos_page",
+      "src_app_paciente_id_photos_page_photospage",
+      "src_app_patient_register_id_page",
+      "src_app_patient_register_id_page_patientregistration",
+      "src_context_uicontext",
+      "src_context_uicontext_uicontext",
+      "src_context_uicontext_uiprovider",
+      "src_context_uicontext_useui",
+      "src_utils_calculationutils",
+      "src_utils_calculationutils_calculateclinicaldata",
+      "src_utils_calculationutils_distribution_templates"
+    ],
+    "1": [
+      "src_app_nutri_dashboard_page",
+      "src_app_nutri_dashboard_page_nutridashboard",
+      "src_app_nutri_profile_page",
+      "src_app_nutri_profile_page_nutriprofile",
+      "src_app_page",
+      "src_app_page_loginpage",
+      "src_app_patient_home_page",
+      "src_app_patient_home_page_patienthome",
+      "src_app_patient_menu_page",
+      "src_app_patient_menu_page_patientmenu",
+      "src_app_patient_profile_page",
+      "src_app_patient_profile_page_patientprofile",
+      "src_app_patient_shopping_list_page",
+      "src_app_patient_shopping_list_page_shoppinglist",
+      "src_components_patient_tabbar",
+      "src_components_patient_tabbar_tabbar",
+      "src_context_authcontext_useauth",
+      "src_hooks_usepushnotifications",
+      "src_hooks_usepushnotifications_urlbase64touint8array",
+      "src_hooks_usepushnotifications_usepushnotifications"
+    ],
+    "2": [
+      "lucide_react",
+      "next",
+      "package_dependencies",
+      "package_dependencies_lucide_react",
+      "package_dependencies_next",
+      "package_dependencies_react",
+      "package_dependencies_react_dom",
+      "package_dependencies_supabase_supabase_js",
+      "package_dependencies_web_push",
+      "react",
+      "react_dom",
+      "supabase_supabase_js",
+      "web_push"
+    ],
+    "3": [
+      "scripts_seed_alimentos",
+      "scripts_seed_alimentos_createclient",
+      "scripts_seed_alimentos_lista1",
+      "scripts_seed_alimentos_lista2",
+      "scripts_seed_alimentos_lista3",
+      "scripts_seed_alimentos_lista4",
+      "scripts_seed_alimentos_lista5",
+      "scripts_seed_alimentos_lista6",
+      "scripts_seed_alimentos_seed",
+      "scripts_seed_alimentos_supabase",
+      "scripts_seed_alimentos_vegetales"
+    ],
+    "4": [
+      "src_app_layout",
+      "src_app_layout_metadata",
+      "src_app_layout_outfit",
+      "src_app_layout_rootlayout",
+      "src_app_layout_viewport",
+      "src_components_bottomnav",
+      "src_components_bottomnav_bottomnav",
+      "src_context_authcontext",
+      "src_context_authcontext_authcontext",
+      "src_context_authcontext_authprovider"
+    ],
+    "5": [
+      "package",
+      "package_name",
+      "package_private",
+      "package_scripts",
+      "package_scripts_build",
+      "package_scripts_dev",
+      "package_scripts_lint",
+      "package_scripts_start",
+      "package_version"
+    ],
+    "6": [
+      "src_app_nutri_foods_page",
+      "src_app_nutri_foods_page_nutrifoods",
+      "src_data_defaultfoods",
+      "src_data_defaultfoods_default_foods",
+      "src_data_defaultfoods_loadfoods",
+      "src_data_defaultfoods_savefoods"
+    ],
+    "7": [
+      "jsconfig",
+      "jsconfig_compileroptions",
+      "jsconfig_compileroptions_baseurl",
+      "jsconfig_compileroptions_paths"
+    ],
+    "8": [
+      "public_sw",
+      "public_sw_static_assets"
+    ],
+    "9": [
+      "src_app_api_send_push_route",
+      "src_app_api_send_push_route_post"
+    ],
+    "10": [
+      "src_app_manifest",
+      "src_app_manifest_manifest"
+    ],
+    "11": [
+      "src_app_paciente_id_dashboard_page",
+      "src_app_paciente_id_dashboard_page_patientdashboard"
+    ],
+    "12": [
+      "src_app_paciente_id_layout",
+      "src_app_paciente_id_layout_patientlayout"
+    ],
+    "13": [
+      "src_app_paciente_id_measurements_page",
+      "src_app_paciente_id_measurements_page_measurementspage"
+    ],
+    "14": [
+      "src_app_paciente_id_page",
+      "src_app_paciente_id_page_welcomepage"
+    ],
+    "15": [
+      "src_app_paciente_id_questions_page",
+      "src_app_paciente_id_questions_page_questionspage"
+    ]
+  },
+  "cohesion": {
+    "0": 0.19047619047619047,
+    "1": 0.19473684210526315,
+    "2": 0.15384615384615385,
+    "3": 0.18181818181818182,
+    "4": 0.24444444444444444,
+    "5": 0.2222222222222222,
+    "6": 0.6,
+    "7": 0.5,
+    "8": 1.0,
+    "9": 1.0,
+    "10": 1.0,
+    "11": 1.0,
+    "12": 1.0,
+    "13": 1.0,
+    "14": 1.0,
+    "15": 1.0
+  },
+  "gods": [
+    {
+      "id": "src_context_uicontext_useui",
+      "label": "useUI()",
+      "degree": 21
+    },
+    {
+      "id": "src_context_authcontext_useauth",
+      "label": "useAuth()",
+      "degree": 14
+    },
+    {
+      "id": "src_utils_calculationutils_calculateclinicaldata",
+      "label": "calculateClinicalData()",
+      "degree": 7
+    },
+    {
+      "id": "src_hooks_usepushnotifications_usepushnotifications",
+      "label": "usePushNotifications()",
+      "degree": 6
+    },
+    {
+      "id": "package_scripts",
+      "label": "scripts",
+      "degree": 5
+    },
+    {
+      "id": "src_components_patient_tabbar_tabbar",
+      "label": "TabBar()",
+      "degree": 5
+    },
+    {
+      "id": "src_data_defaultfoods_loadfoods",
+      "label": "loadFoods()",
+      "degree": 5
+    },
+    {
+      "id": "src_app_nutri_foods_page_nutrifoods",
+      "label": "NutriFoods()",
+      "degree": 4
+    },
+    {
+      "id": "src_app_nutri_patient_id_menu_page_managemenu",
+      "label": "ManageMenu()",
+      "degree": 4
+    },
+    {
+      "id": "src_app_nutri_profile_page_nutriprofile",
+      "label": "NutriProfile()",
+      "degree": 4
+    }
+  ],
+  "surprises": [
+    {
+      "source": "NutriAgenda()",
+      "target": "useUI()",
+      "source_files": [
+        "src/app/nutri/agenda/page.js",
+        "src/context/UIContext.js"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "peripheral node `NutriAgenda()` unexpectedly reaches hub `useUI()`"
+    },
+    {
+      "source": "NutriDashboard()",
+      "target": "useAuth()",
+      "source_files": [
+        "src/app/nutri/dashboard/page.js",
+        "src/context/AuthContext.js"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "peripheral node `NutriDashboard()` unexpectedly reaches hub `useAuth()`"
+    },
+    {
+      "source": "NutriFoods()",
+      "target": "useUI()",
+      "source_files": [
+        "src/app/nutri/foods/page.js",
+        "src/context/UIContext.js"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "bridges separate communities"
+    },
+    {
+      "source": "NewPatient()",
+      "target": "useUI()",
+      "source_files": [
+        "src/app/nutri/new-patient/page.js",
+        "src/context/UIContext.js"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "peripheral node `NewPatient()` unexpectedly reaches hub `useUI()`"
+    },
+    {
+      "source": "ManageMenu()",
+      "target": "loadFoods()",
+      "source_files": [
+        "src/app/nutri/patient/[id]/menu/page.js",
+        "src/data/defaultFoods.js"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "bridges separate communities"
+    }
+  ],
+  "questions": [
+    {
+      "type": "bridge_node",
+      "question": "Why does `useUI()` connect `useUI` to `useAuth`, `AuthContext.js`, `foods/page.js`?",
+      "why": "High betweenness centrality (0.091) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `useAuth()` connect `useAuth` to `AuthContext.js`, `foods/page.js`?",
+      "why": "High betweenness centrality (0.043) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `dependencies` connect `dependencies` to `package.json`?",
+      "why": "High betweenness centrality (0.028) - this node is a cross-community bridge."
+    },
+    {
+      "type": "isolated_nodes",
+      "question": "What connects `baseUrl`, `paths`, `name` to the rest of the system?",
+      "why": "32 weakly-connected nodes found - possible documentation gaps or missing edges."
+    }
+  ]
+}

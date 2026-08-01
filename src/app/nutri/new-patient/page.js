@@ -18,6 +18,9 @@ export default function NewPatient() {
     clinicalHistory: '',
     medications: '',
     notas: '',
+    isPediatric: false,
+    tutorName: '',
+    tutorPhone: '',
     mealPlan: '3+2 snacks',
     tags: []
   });
@@ -129,6 +132,62 @@ export default function NewPatient() {
               </select>
             </div>
           </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+            <div>
+              <label style={{ fontSize: '0.85rem', opacity: 0.6, marginBottom: '8px', display: 'block', marginTop: '12px' }}>Tipo de Paciente</label>
+              <select 
+                className="input-field"
+                style={{ marginBottom: '4px' }}
+                value={formData.isPediatric ? 'si' : 'no'}
+                onChange={(e) => setFormData({...formData, isPediatric: e.target.value === 'si'})}
+                required
+              >
+                <option value="no">Adulto</option>
+                <option value="si">Pediátrico</option>
+              </select>
+            </div>
+            <div>
+              <label style={{ fontSize: '0.85rem', opacity: 0.6, marginBottom: '8px', display: 'block', marginTop: '12px' }}>Teléfono de Contacto</label>
+              <input 
+                type="text" 
+                placeholder="Teléfono del paciente" 
+                className="input-field"
+                style={{ marginBottom: '4px' }}
+                value={formData.phone}
+                onChange={(e) => setFormData({...formData, phone: e.target.value})}
+              />
+            </div>
+          </div>
+
+          {formData.isPediatric && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px', background: 'rgba(29, 81, 45, 0.05)', padding: '16px', borderRadius: '16px', border: '1px dashed var(--primary)' }}>
+              <div>
+                <label style={{ fontSize: '0.85rem', opacity: 0.6, marginBottom: '8px', display: 'block' }}>Nombre Representante / Tutor</label>
+                <input 
+                  type="text" 
+                  placeholder="Madre, Padre, Representante" 
+                  className="input-field"
+                  style={{ marginBottom: 0 }}
+                  value={formData.tutorName}
+                  onChange={(e) => setFormData({...formData, tutorName: e.target.value})}
+                  required
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.85rem', opacity: 0.6, marginBottom: '8px', display: 'block' }}>Tlf. Representante / Tutor</label>
+                <input 
+                  type="text" 
+                  placeholder="Ej: +58 412..." 
+                  className="input-field"
+                  style={{ marginBottom: 0 }}
+                  value={formData.tutorPhone}
+                  onChange={(e) => setFormData({...formData, tutorPhone: e.target.value})}
+                  required
+                />
+              </div>
+            </div>
+          )}
 
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px', marginBottom: '16px' }}>
             <div>

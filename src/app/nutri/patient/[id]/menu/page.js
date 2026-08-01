@@ -15,6 +15,50 @@ const EXCHANGE_VALUES = {
   grasas: { prot: 0, fat: 5, cho: 0, kcal: 45 }
 };
 
+const suggestRecipesForPortions = (portions) => {
+  const c = parseFloat(portions?.cereales) || 0;
+  const p = parseFloat(portions?.proteinas) || 0;
+  const v = parseFloat(portions?.vegetales) || 0;
+  const f = parseFloat(portions?.frutas) || 0;
+  const l = parseFloat(portions?.lacteos) || 0;
+  const g = parseFloat(portions?.grasas) || 0;
+
+  if (c === 0 && p === 0 && v === 0 && f === 0 && l === 0 && g === 0) {
+    return "Establece las porciones objetivo en el Paso 1 para ver sugerencias de recetas.";
+  }
+
+  // Pre-defined matches
+  if (c === 1 && p === 1 && g === 1 && l === 0 && f === 0) {
+    return "🍳 Huevo revuelto (1 porción de Proteína) con 1 rebanada de pan tostado (1 Cereal) preparado con 1 cdta. de aceite de oliva (1 Grasa).";
+  }
+  if (c === 2 && p === 2 && g === 1 && l === 0) {
+    return "🥪 Sándwich de pavo y queso: 2 rebanadas de pan integral (2 Cereales), 60g de jamón de pavo / queso paisa (2 Proteínas) y 1 cdta. de mayonesa u oliva (1 Grasa). Agrega vegetales libres (ensalada, tomate) al gusto.";
+  }
+  if (c === 2 && p === 2 && v === 1 && g === 1) {
+    return "🌮 Tacos de Pollo: 2 tortillas de maíz (2 Cereales), 60g de pechuga de pollo deshebrada (2 Proteínas), 1/2 taza de pico de gallo o ensalada (1 Vegetal) y 30g de aguacate (1 Grasa).";
+  }
+  if (c === 3 && p === 4 && v === 2 && g === 1) {
+    return "🍽️ Almuerzo Clásico: 1 taza de arroz cocido (2 Cereales) + 1/2 taza de caraotas/lentejas (1 Cereal), 120g de filete de pollo a la plancha (4 Proteínas), ensalada mixta de lechuga, cebolla y pepino (2 Vegetales), aderezada con 1 cdta. de aceite de oliva (1 Grasa).";
+  }
+  if (f === 1 && l === 1 && c === 0) {
+    return "🥣 Copa de yogurt griego descremado (1 Lácteo) con 1 taza de fresas o durazno picado (1 Fruta).";
+  }
+  if (f === 1 && l === 1 && c === 1 && g === 1) {
+    return "🍧 Bowl de Avena con Frutas: 1/2 taza de yogurt griego (1 Lácteo), 1/3 taza de avena (1 Cereal), con 1/2 banana picada (1 Fruta) y 10 unidades de frutos secos (1 Grasa).";
+  }
+
+  // Generative recommendation if not matched exactly
+  const parts = [];
+  if (c > 0) parts.push(`${c === 1 ? '1 porción' : `${c} porciones`} de Cereales (ej. ${c * 0.5 === 0.5 ? '1/2 taza' : `${c * 0.5} tazas`} de arroz, avena, pasta o tortillas)`);
+  if (p > 0) parts.push(`${p === 1 ? '1 porción' : `${p} porciones`} de Proteínas (ej. ${p * 30}g de pollo, carne, pescado, o claras de huevo)`);
+  if (v > 0) parts.push(`${v === 1 ? '1 porción' : `${v} porciones`} de Vegetales (ej. ${v} taza de ensalada fresca o de verdura)`);
+  if (f > 0) parts.push(`${f === 1 ? '1 porción' : `${f} porciones`} de Frutas (ej. ${f} unidad o ${f} taza de frutas)`);
+  if (l > 0) parts.push(`${l === 1 ? '1 porción' : `${l} porciones`} de Lácteos (ej. ${l} taza de leche o yogurt)`);
+  if (g > 0) parts.push(`${g === 1 ? '1 porción' : `${g} porciones`} de Grasas (ej. ${g * 15 === 15 ? '30g de aguacate' : `${g * 2} cucharaditas de aceite`} o semillas)`);
+
+  return `🍽️ Idea de plato sugerido: Arma el plato combinando: ${parts.join(', ')}.`;
+};
+
 export default function ManageMenu() {
   const params = useParams();
   const router = useRouter();
@@ -33,6 +77,7 @@ export default function ManageMenu() {
     snackNoche: { time: '21:00', selectedFoods: [], portions: {} }
   });
   const [searchTerms, setSearchTerms] = useState({});
+  const [expandedSuggestions, setExpandedSuggestions] = useState({});
 
   useEffect(() => {
     setFoodDB(loadFoods());
@@ -45,10 +90,16 @@ export default function ManageMenu() {
     }
   }, [params.id]);
 
+  const previousControl = patient?.history && patient.history.length > 0
+    ? patient.history[patient.history.length - 1]
+    : null;
+
   const clinical = patient ? calculateClinicalData({
     weight: patient.details?.weight,
     height: patient.details?.height,
-    sex: patient.details?.gender || 'female'
+    sex: patient.details?.gender || 'female',
+    manualPi: patient.details?.manualPi,
+    manualPc: patient.details?.manualPc
   }) : null;
 
   const evalFormula = (str) => {
@@ -207,6 +258,30 @@ export default function ManageMenu() {
 
       {step === 1 && (
         <div className="fade-in">
+          {/* Banner Informativo de Control / Comparativa */}
+          {previousControl && (
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(29, 81, 45, 0.08), rgba(255, 235, 59, 0.1))',
+              border: '1px solid rgba(29, 81, 45, 0.2)',
+              borderRadius: '16px',
+              padding: '12px 16px',
+              marginBottom: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px'
+            }}>
+              <Info size={20} color="var(--primary)" />
+              <div>
+                <p style={{ fontSize: '0.75rem', fontWeight: '900', color: 'var(--primary)' }}>
+                  CONSULTA DE CONTROL EN CURSO
+                </p>
+                <p style={{ fontSize: '0.7rem', opacity: 0.7, marginTop: '2px' }}>
+                  Ajusta la fórmula y raciones basándote en la comparativa con el plan anterior del <strong>{previousControl.date}</strong> (en verde).
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Molécula Calórica Paso 1 */}
           <section className="glass-panel" style={{ padding: '24px', background: 'white', marginBottom: '24px', border: '1px solid rgba(0,0,0,0.1)' }}>
             <div style={{ marginBottom: '20px' }}>
@@ -236,19 +311,27 @@ export default function ManageMenu() {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
               {[
-                { label: 'CALORÍAS', key: 'kcal' },
-                { label: 'PROT (g)', key: 'prot' },
-                { label: 'CHO (g)', key: 'cho' },
-                { label: 'GRASA (g)', key: 'fat' }
-              ].map(m => (
-                <div key={m.key} style={{ textAlign: 'center' }}>
-                  <p style={{ fontSize: '0.55rem', fontWeight: '900', opacity: 0.5, marginBottom: '4px' }}>{m.label}</p>
-                  <input type="text" value={formulas[m.key]} onChange={e => setFormulas({...formulas, [m.key]: e.target.value})} style={{ width: '100%', padding: '6px', borderRadius: '8px', border: '1px solid #ddd', textAlign: 'center', fontSize: '0.8rem', fontWeight: '900' }} />
-                  <p style={{ fontSize: '1rem', fontWeight: '900', marginTop: '6px' }}>
-                    {totals[m.key].toFixed(0)} <span style={{ opacity: 0.3, fontSize: '0.6rem' }}>/ {evalFormula(formulas[m.key]).toFixed(0)}</span>
-                  </p>
-                </div>
-              ))}
+                { label: 'CALORÍAS', key: 'kcal', prevKey: 'rct' },
+                { label: 'PROT (g)', key: 'prot', prevKey: 'prot' },
+                { label: 'CHO (g)', key: 'cho', prevKey: 'cho' },
+                { label: 'GRASA (g)', key: 'fat', prevKey: 'lip' }
+              ].map(m => {
+                const prevVal = previousControl?.formulas?.[m.key] || previousControl?.dietForm?.[m.prevKey];
+                return (
+                  <div key={m.key} style={{ textAlign: 'center' }}>
+                    <p style={{ fontSize: '0.55rem', fontWeight: '900', opacity: 0.5, marginBottom: '4px' }}>{m.label}</p>
+                    <input type="text" value={formulas[m.key]} onChange={e => setFormulas({...formulas, [m.key]: e.target.value})} style={{ width: '100%', padding: '6px', borderRadius: '8px', border: '1px solid #ddd', textAlign: 'center', fontSize: '0.8rem', fontWeight: '900' }} />
+                    <p style={{ fontSize: '0.9rem', fontWeight: '900', marginTop: '6px', marginBottom: '2px' }}>
+                      {totals[m.key].toFixed(0)} <span style={{ opacity: 0.3, fontSize: '0.6rem' }}>/ {evalFormula(formulas[m.key]).toFixed(0)}</span>
+                    </p>
+                    {previousControl && (
+                      <p style={{ fontSize: '0.65rem', color: 'var(--primary)', fontWeight: 'bold' }}>
+                        Ant: {prevVal ? parseFloat(prevVal).toFixed(0) : '0'}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </section>
 
@@ -271,12 +354,20 @@ export default function ManageMenu() {
                 )}
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '6px' }}>
-                  {foodGroups.map(group => (
-                    <div key={group.key} style={{ textAlign: 'center' }}>
-                      <p style={{ fontSize: '0.5rem', fontWeight: '900', opacity: 0.4, marginBottom: '2px' }}>{group.name.substring(0,3).toUpperCase()}</p>
-                      <input type="number" step="0.5" value={menu[meal.key].portions?.[group.key] || ''} onChange={e => updatePortion(meal.key, group.key, e.target.value)} style={{ width: '100%', textAlign: 'center', fontSize: '0.9rem', fontWeight: '900', border: '1px solid #eee', borderRadius: '6px', padding: '4px' }} placeholder="0" />
-                    </div>
-                  ))}
+                  {foodGroups.map(group => {
+                    const prevPortion = previousControl?.menus?.[meal.key]?.portions?.[group.key] || previousControl?.menu?.[meal.key]?.portions?.[group.key];
+                    return (
+                      <div key={group.key} style={{ textAlign: 'center' }}>
+                        <p style={{ fontSize: '0.5rem', fontWeight: '900', opacity: 0.4, marginBottom: '2px' }}>{group.name.substring(0,3).toUpperCase()}</p>
+                        <input type="number" step="0.5" value={menu[meal.key].portions?.[group.key] || ''} onChange={e => updatePortion(meal.key, group.key, e.target.value)} style={{ width: '100%', textAlign: 'center', fontSize: '0.9rem', fontWeight: '900', border: '1px solid #eee', borderRadius: '6px', padding: '4px' }} placeholder="0" />
+                        {previousControl && prevPortion && parseFloat(prevPortion) > 0 && (
+                          <p style={{ fontSize: '0.6rem', color: 'var(--primary)', fontWeight: '800', marginTop: '2.5px' }}>
+                            Ant: {prevPortion}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             ))}
@@ -337,6 +428,45 @@ export default function ManageMenu() {
                     </div>
                   </div>
 
+                  {/* Sugerir Receta según porciones distribuidas */}
+                  <div style={{ marginBottom: '14px' }}>
+                    <button 
+                      onClick={() => setExpandedSuggestions(prev => ({ ...prev, [meal.key]: !prev[meal.key] }))}
+                      style={{
+                        background: 'rgba(29, 81, 45, 0.08)',
+                        color: 'var(--primary)',
+                        border: 'none',
+                        padding: '6px 12px',
+                        borderRadius: '8px',
+                        fontSize: '0.7rem',
+                        fontWeight: '900',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        outline: 'none'
+                      }}
+                    >
+                      <span>✨ {expandedSuggestions[meal.key] ? 'Ocultar sugerencia' : 'Sugerir combinación de plato'}</span>
+                    </button>
+
+                    {expandedSuggestions[meal.key] && (
+                      <div className="fade-in" style={{
+                        marginTop: '8px',
+                        background: '#f9f8ee',
+                        borderLeft: '4px solid var(--primary)',
+                        padding: '12px 14px',
+                        borderRadius: '0 8px 8px 0',
+                        fontSize: '0.75rem',
+                        color: 'var(--text-primary)',
+                        lineHeight: '1.4',
+                        fontWeight: '700'
+                      }}>
+                        {suggestRecipesForPortions(mealData.portions)}
+                      </div>
+                    )}
+                  </div>
+
                   {/* Buscador de Alimentos para el Menú */}
                   <div style={{ position: 'relative', marginBottom: '16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', background: '#f9f9f9', borderRadius: '12px', padding: '0 12px', border: '1px solid #eee' }}>
@@ -355,8 +485,9 @@ export default function ManageMenu() {
                                 updatedFoods = [...mealData.selectedFoods];
                                 updatedFoods[existingIdx] = { ...updatedFoods[existingIdx], qty: (updatedFoods[existingIdx].qty || 1) + 1 };
                               } else {
-                                // Agregar nuevo
-                                updatedFoods = [...(mealData.selectedFoods || []), { ...food, instanceId: Date.now(), qty: 1 }];
+                                // Agregar nuevo autorellenando la porción en base a las raciones objetivo
+                                const targetQty = parseFloat(mealData.portions?.[food.groupKey]) || 1;
+                                updatedFoods = [...(mealData.selectedFoods || []), { ...food, instanceId: Date.now(), qty: targetQty }];
                               }
                               setMenu({...menu, [meal.key]: { ...mealData, selectedFoods: updatedFoods }});
                               setSearchTerms({...searchTerms, [meal.key]: ''});

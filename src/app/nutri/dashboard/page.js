@@ -23,6 +23,28 @@ export default function NutriDashboard() {
     }
   }, []);
 
+  const getDietaryAnomalyCount = (patientId) => {
+    try {
+      const logs = JSON.parse(localStorage.getItem(`daily_log_${patientId}`) || '[]');
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      
+      let unusualCount = 0;
+      logs.forEach(log => {
+        const logDate = new Date(log.date + 'T00:00:00');
+        if (logDate >= sevenDaysAgo) {
+          const unusualInLog = (log.entries || []).filter(e => e.groupKey === 'no_habitual');
+          unusualInLog.forEach(e => {
+            unusualCount += (e.qty || 1);
+          });
+        }
+      });
+      return unusualCount;
+    } catch (e) {
+      return 0;
+    }
+  };
+
   const filteredPatients = patients.filter(p => {
     const term = searchTerm.toLowerCase();
     const nameMatch = p.name.toLowerCase().includes(term);
@@ -151,6 +173,26 @@ export default function NutriDashboard() {
                 <div>
                   <h4 style={{ fontWeight: '600' }}>{p.name}</h4>
                   <p style={{ fontSize: '0.75rem', opacity: 0.6 }}>CI: {p.details?.ci || 'N/A'}</p>
+                  {(() => {
+                    const anomalyCount = getDietaryAnomalyCount(p.id);
+                    return anomalyCount > 5 ? (
+                      <div style={{ 
+                        marginTop: '6px', 
+                        background: '#FFF8E1', 
+                        color: '#FF6F00', 
+                        border: '1px solid #FFE082',
+                        borderRadius: '8px', 
+                        fontSize: '0.65rem', 
+                        fontWeight: '900', 
+                        padding: '4px 8px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}>
+                        ⚠️ Desviación del plan ({anomalyCount} comidas no hab. en 7d)
+                      </div>
+                    ) : null;
+                  })()}
                 </div>
               </Link>
 
