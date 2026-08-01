@@ -137,7 +137,7 @@ export default function PatientDashboard() {
       <section style={{ background: 'white', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 15px 35px rgba(0,0,0,0.1)', border: '2px solid #1d512d', marginBottom: '40px' }}>
          <h3 style={{ background: '#1d512d', color: 'white', padding: '15px', textAlign: 'center', fontSize: '1.2rem', fontWeight: '900', margin: 0 }}>MI MENÚ SEMANAL</h3>
          
-         <div style={{ overflowX: 'auto' }}>
+         <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px' }}>
                 <thead>
                    <tr style={{ background: '#f5f5f5' }}>
@@ -198,7 +198,7 @@ export default function PatientDashboard() {
           Selecciona un plato para ver las porciones asignadas y se auto-rellenarán las cantidades de intercambio automáticamente.
         </p>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '20px' }}>
           {/* LADO IZQUIERDO: MENÚ (Amarillo-Mostaza estilo la guía) */}
           <div style={{ 
             background: '#F9FBE7', 

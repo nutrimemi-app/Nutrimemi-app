@@ -891,7 +891,7 @@ export default function PatientFile() {
               Así es como el paciente visualiza su distribución e intercambios auto-calculada en tiempo real:
             </p>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '20px' }}>
               {/* LADO IZQUIERDO: MENÚ (Amarillo-Mostaza estilo la guía) */}
               <div style={{ 
                 background: '#F9FBE7', 

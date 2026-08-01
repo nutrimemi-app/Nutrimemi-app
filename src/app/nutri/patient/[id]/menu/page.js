@@ -309,7 +309,7 @@ export default function ManageMenu() {
                 ))}
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 80px), 1fr))', gap: '12px' }}>
               {[
                 { label: 'CALORÍAS', key: 'kcal', prevKey: 'rct' },
                 { label: 'PROT (g)', key: 'prot', prevKey: 'prot' },
@@ -353,7 +353,7 @@ export default function ManageMenu() {
                   </div>
                 )}
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '6px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 65px), 1fr))', gap: '6px' }}>
                   {foodGroups.map(group => {
                     const prevPortion = previousControl?.menus?.[meal.key]?.portions?.[group.key] || previousControl?.menu?.[meal.key]?.portions?.[group.key];
                     return (
