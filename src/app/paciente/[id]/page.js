@@ -12,7 +12,7 @@ export default function WelcomePage() {
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      height: '100dvh',
+      minHeight: '100vh',
       padding: '20px',
       textAlign: 'center',
       color: '#1d512d',
