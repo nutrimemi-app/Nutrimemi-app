@@ -3,21 +3,17 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import TabBar from '@/components/patient/TabBar';
 import { TrendingUp, TrendingDown, Scale, Ruler } from 'lucide-react';
-import { getPatientByEmail } from '@/lib/patients';
+import { usePatientByEmail } from '@/hooks/usePatient';
 
 export default function PatientEvolution() {
   const { user } = useAuth();
-  const [patient, setPatient] = useState(null);
+  const { patient, status } = usePatientByEmail(user?.email);
   const [metric, setMetric] = useState('weight'); // 'weight' o 'height' para percentiles, u otras medidas
 
-  useEffect(() => {
-    async function load() {
-      if (!user?.email) return;
-      const found = await getPatientByEmail(user.email);
-      if (found) setPatient(found);
-    }
-    load();
-  }, [user]);
+  if (status === 'loading') return <div style={{ padding: '40px', textAlign: 'center', color: 'white' }}>Cargando datos de evolución...</div>;
+  if (status === 'not-found') return <div style={{ padding: '40px', textAlign: 'center', color: 'white' }}>No se encontraron tus datos.</div>;
+  if (status === 'error') return <div style={{ padding: '40px', textAlign: 'center', color: 'white' }}>Hubo un error cargando tus datos.</div>;
+  if (!patient) return null;
 
   const history = patient?.history || [];
   const current = patient?.details || {};

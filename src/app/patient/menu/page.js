@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import TabBar from '@/components/patient/TabBar';
 import { ChefHat, BookOpen, CheckCircle, Info } from 'lucide-react';
-import { getPatientByEmail } from '@/lib/patients';
+import { usePatientByEmail } from '@/hooks/usePatient';
 
 const FOOD_GROUPS = [
   { key: 'cereales',  name: 'Cereales',  color: '#E07B00', bg: '#FFF3E0', dot: '#FFA500' },
@@ -25,17 +25,8 @@ const EXCHANGE_EXAMPLES = {
 
 export default function PatientMenu() {
   const { user } = useAuth();
-  const [patient, setPatient] = useState(null);
+  const { patient, status } = usePatientByEmail(user?.email);
   const [tab, setTab] = useState('plan'); // 'plan' | 'menu'
-
-  useEffect(() => {
-    async function load() {
-      if (!user?.email) return;
-      const found = await getPatientByEmail(user.email);
-      if (found) setPatient(found);
-    }
-    load();
-  }, [user]);
 
   const menu = patient?.menu || {};
   const mealPlanKey = patient?.details?.mealPlan || '3+2 snacks';
@@ -81,13 +72,10 @@ export default function PatientMenu() {
     return d.selectedFoods?.length > 0 || Object.values(d.portions || {}).some(v => parseFloat(v) > 0);
   });
 
-  if (!patient) return (
-    <div style={{ padding: '40px', textAlign: 'center', opacity: 0.5 }}>
-      <ChefHat size={48} style={{ marginBottom: '16px' }} />
-      <p style={{ fontWeight: '700' }}>Cargando tu plan…</p>
-      <TabBar />
-    </div>
-  );
+  if (status === 'loading') return <div style={{ padding: '40px', textAlign: 'center', color: 'white' }}>Cargando menú...</div>;
+  if (status === 'not-found') return <div style={{ padding: '40px', textAlign: 'center', color: 'white' }}>No se encontraron tus datos.</div>;
+  if (status === 'error') return <div style={{ padding: '40px', textAlign: 'center', color: 'white' }}>Hubo un error cargando tu menú.</div>;
+  if (!patient) return null;
 
   return (
     <div style={{ padding: '20px', paddingBottom: '100px' }} className="fade-in">

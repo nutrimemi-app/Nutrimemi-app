@@ -4,7 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Printer, MapPin, Phone, User, Activity, FileText, ArrowLeft, Save, CheckCircle, Info, Bell } from 'lucide-react';
 import { useUI } from '@/context/UIContext';
 import { calculateClinicalData } from '@/utils/calculationUtils';
-import { getPatientById } from '@/lib/patients';
+import { usePatient } from '@/hooks/usePatient';
 
 const MEAL_PLANS = {
   '2 comidas': [
@@ -45,25 +45,21 @@ export default function ClinicalReport() {
   const router = useRouter();
   const { showToast, showConfirm } = useUI();
   const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
-  const [patient, setPatient] = useState(null);
+  const { patient, status } = usePatient(params.id);
   const [snapshot, setSnapshot] = useState(null);
   const reportId = searchParams?.get('reportId');
 
   useEffect(() => {
-    const loadPatient = async () => {
-      const found = await getPatientById(params.id);
-      if (found) {
-        setPatient(found);
-        if (reportId && found.reports) {
-          const foundSnapshot = found.reports.find(r => r.id == reportId);
-          if (foundSnapshot) setSnapshot(foundSnapshot);
-        }
-      }
-    };
-    loadPatient();
-  }, [params.id, reportId]);
+    if (patient && reportId && patient.reports) {
+      const foundSnapshot = patient.reports.find(r => r.id == reportId);
+      if (foundSnapshot) setSnapshot(foundSnapshot);
+    }
+  }, [patient, reportId]);
 
-  if (!patient) return <div style={{ padding: '40px' }}>Generando informe...</div>;
+  if (status === 'loading') return <div style={{ padding: '40px', textAlign: 'center', fontWeight: 'bold' }}>Generando informe...</div>;
+  if (status === 'not-found') return <div style={{ padding: '40px', textAlign: 'center' }}>No encontramos este informe.</div>;
+  if (status === 'error') return <div style={{ padding: '40px', textAlign: 'center' }}>Hubo un error cargando el informe.</div>;
+  if (!patient) return null;
 
   // Render logic targets either the live data or the snapshot data
   const targetDetails = snapshot ? snapshot.details : patient.details;

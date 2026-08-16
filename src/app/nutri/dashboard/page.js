@@ -1,12 +1,14 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { Users, Plus, Search, ChevronRight, Activity, Calendar } from 'lucide-react';
+import { Users, Plus, Search, ChevronRight, Activity, Calendar, MessageCircle, Trash2 } from 'lucide-react';
 import Link from 'next/link';
-import { getPatients } from '@/lib/patients';
+import { getPatients, deletePatient } from '@/lib/patients';
+import { useUI } from '@/context/UIContext';
 
 export default function NutriDashboard() {
   const { user, logout } = useAuth();
+  const { showConfirm, showToast } = useUI();
   const [searchTerm, setSearchTerm] = useState('');
 
   const [patients, setPatients] = useState([]);
@@ -194,19 +196,34 @@ export default function NutriDashboard() {
 
               {/* Botones Aciones Rápidas */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {p.details?.phone && (
+                  <a href={`https://wa.me/${p.details.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+                    <div style={{ background: '#E8F5E9', color: '#2E7D32', padding: '8px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <MessageCircle size={20} />
+                    </div>
+                  </a>
+                )}
                 <Link href={`/nutri/patient/${p.id}/menu`} style={{ textDecoration: 'none' }}>
-                  <div style={{ 
-                    background: 'rgba(29, 81, 45, 0.1)', 
-                    color: 'var(--primary)', 
-                    padding: '8px', 
-                    borderRadius: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
+                  <div style={{ background: 'rgba(29, 81, 45, 0.1)', color: 'var(--primary)', padding: '8px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Activity size={20} />
                   </div>
                 </Link>
+                <button 
+                  onClick={() => {
+                    showConfirm('¿Eliminar paciente?', `¿Seguro que deseas eliminar a ${p.name}? Esta acción no se puede deshacer.`, async () => {
+                      const success = await deletePatient(p.id);
+                      if (success) {
+                        setPatients(patients.filter(pat => pat.id !== p.id));
+                        showToast('Paciente eliminado');
+                      } else {
+                        showToast('Error al eliminar');
+                      }
+                    });
+                  }}
+                  style={{ background: '#FFEBEE', color: '#C62828', padding: '8px', borderRadius: '8px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <Trash2 size={20} />
+                </button>
                 <Link href={`/nutri/patient/${p.id}`} style={{ textDecoration: 'none', color: 'inherit', opacity: 0.3, padding: '8px' }}>
                   <ChevronRight size={20} />
                 </Link>

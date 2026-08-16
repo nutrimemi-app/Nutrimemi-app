@@ -62,11 +62,15 @@ export const getPatients = async () => {
 };
 
 export const getPatientById = async (id) => {
-  const { data: patient, error: patientError } = await supabase
-    .from('patients')
-    .select('*')
-    .eq('id', id)
-    .single();
+  const [
+    { data: patient, error: patientError },
+    { data: history },
+    { data: reports }
+  ] = await Promise.all([
+    supabase.from('patients').select('*').eq('id', id).single(),
+    supabase.from('patient_history_entries').select('entry').eq('patient_id', id).order('created_at', { ascending: false }),
+    supabase.from('patient_reports').select('snapshot').eq('patient_id', id).order('created_at', { ascending: false })
+  ]);
 
   if (patientError || !patient) {
     console.error('Error fetching patient:', patientError);
@@ -74,21 +78,7 @@ export const getPatientById = async (id) => {
   }
 
   const mapped = mapDbToUI(patient);
-
-  const { data: history } = await supabase
-    .from('patient_history_entries')
-    .select('entry')
-    .eq('patient_id', id)
-    .order('created_at', { ascending: false });
-    
   if (history) mapped.history = history.map(h => h.entry);
-
-  const { data: reports } = await supabase
-    .from('patient_reports')
-    .select('snapshot')
-    .eq('patient_id', id)
-    .order('created_at', { ascending: false });
-
   if (reports) mapped.reports = reports.map(r => r.snapshot);
 
   return mapped;
@@ -106,22 +96,16 @@ export const getPatientByEmail = async (email) => {
     return null;
   }
 
+  const [
+    { data: history },
+    { data: reports }
+  ] = await Promise.all([
+    supabase.from('patient_history_entries').select('entry').eq('patient_id', patient.id).order('created_at', { ascending: false }),
+    supabase.from('patient_reports').select('snapshot').eq('patient_id', patient.id).order('created_at', { ascending: false })
+  ]);
+
   const mapped = mapDbToUI(patient);
-
-  const { data: history } = await supabase
-    .from('patient_history_entries')
-    .select('entry')
-    .eq('patient_id', patient.id)
-    .order('created_at', { ascending: false });
-    
   if (history) mapped.history = history.map(h => h.entry);
-
-  const { data: reports } = await supabase
-    .from('patient_reports')
-    .select('snapshot')
-    .eq('patient_id', patient.id)
-    .order('created_at', { ascending: false });
-
   if (reports) mapped.reports = reports.map(r => r.snapshot);
 
   return mapped;
@@ -229,4 +213,13 @@ export const addReport = async (patientId, snapshot) => {
     console.error('Error adding report:', error);
     throw error;
   }
+};
+
+export const deletePatient = async (id) => {
+  const { error } = await supabase.from('patients').delete().eq('id', id);
+  if (error) {
+    console.error('Error deleting patient:', error);
+    return false;
+  }
+  return true;
 };

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import TabBar from '@/components/patient/TabBar';
 import { Activity, Calendar, ChefHat, Droplets, TrendingUp, Clock } from 'lucide-react';
 import Link from 'next/link';
-import { getPatientByEmail } from '@/lib/patients';
+import { usePatientByEmail } from '@/hooks/usePatient';
 import { calculateClinicalData } from '@/utils/calculationUtils';
 import { getAnthropometricIconSrc } from '@/utils/anthropometricIcon';
 
@@ -67,31 +67,28 @@ function PieChart({ cho, prot, fat, total }) {
 
 export default function PatientHome() {
   const { user } = useAuth();
-  const [data, setData] = useState(null);
-  const [nextApp, setNextApp] = useState(null);
-  const [todayLog, setTodayLog] = useState(null);
+  const { patient: data, status } = usePatientByEmail(user?.email);
 
   useEffect(() => {
-    async function loadPatient() {
-      if (!user?.email) return;
-      const found = await getPatientByEmail(user.email);
-      if (found) {
-        setData(found);
-        // Próxima cita
-        const apps = JSON.parse(localStorage.getItem('nutri_appointments') || '[]');
-        const next = apps
-          .filter(a => a.patientId == found.id && new Date(a.date) >= new Date(new Date().setHours(0,0,0,0)))
-          .sort((a, b) => new Date(a.date) - new Date(b.date))[0];
-        setNextApp(next || null);
-        // Log de hoy
-        const today = new Date().toISOString().split('T')[0];
-        const logs = JSON.parse(localStorage.getItem(`daily_log_${found.id}`) || '[]');
-        const todayEntry = logs.find(l => l.date === today);
-        setTodayLog(todayEntry || null);
-      }
+    if (data) {
+      // Próxima cita
+      const apps = JSON.parse(localStorage.getItem('nutri_appointments') || '[]');
+      const next = apps
+        .filter(a => a.patientId == data.id && new Date(a.date) >= new Date(new Date().setHours(0,0,0,0)))
+        .sort((a, b) => new Date(a.date) - new Date(b.date))[0];
+      setNextApp(next || null);
+      // Log de hoy
+      const today = new Date().toISOString().split('T')[0];
+      const logs = JSON.parse(localStorage.getItem(`daily_log_${data.id}`) || '[]');
+      const todayEntry = logs.find(l => l.date === today);
+      setTodayLog(todayEntry || null);
     }
-    loadPatient();
-  }, [user]);
+  }, [data]);
+
+  if (status === 'loading') return <div style={{ padding: '20px', textAlign: 'center', color: 'white' }}>Cargando tus datos...</div>;
+  if (status === 'not-found') return <div style={{ padding: '20px', textAlign: 'center', color: 'white' }}>No se encontró tu perfil.</div>;
+  if (status === 'error') return <div style={{ padding: '20px', textAlign: 'center', color: 'white' }}>Error cargando tus datos.</div>;
+  if (!data) return null;
 
   // Macros del plan
   const rct  = parseFloat(data?.formulas?.kcal || data?.dietForm?.rct || 1700);

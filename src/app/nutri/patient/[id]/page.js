@@ -6,7 +6,8 @@ import { ArrowLeft, Activity, Printer, Calendar, Save, History, Camera, FileText
 import { useUI } from '@/context/UIContext';
 import { calculateClinicalData, getBodyFatProfile, suggestPortionsFromMacros } from '@/utils/calculationUtils';
 import { getAnthropometricIconSrc } from '@/utils/anthropometricIcon';
-import { getPatientById } from '@/lib/patients';
+import { updatePatient } from '@/lib/patients';
+import { usePatient } from '@/hooks/usePatient';
 
 const MEAL_PLANS = {
   '2 comidas': [
@@ -135,115 +136,75 @@ const displayCalculatedPortion = (food, targetVal) => {
 export default function PatientFile() {
   const params = useParams();
   const { showToast, showConfirm } = useUI();
-  const [patient, setPatient] = useState(null);
-  const [gender, setGender] = useState('female'); // 'male' or 'female'
-  const [currentTag, setCurrentTag] = useState('');
-  const [editingAnswers, setEditingAnswers] = useState(false);
-  const [showControlModal, setShowControlModal] = useState(false);
-  const [focusedMeasurement, setFocusedMeasurement] = useState(null);
-  const [selectedExchangeMeal, setSelectedExchangeMeal] = useState('');
-  const [previewDashboardOpen, setPreviewDashboardOpen] = useState(true);
-  const [previewDay, setPreviewDay] = useState('day1');
-  const [savedR24h, setSavedR24h] = useState(null);
-  const [savedR24hNotes, setSavedR24hNotes] = useState('');
-  const [localPctProt, setLocalPctProt] = useState('');
-  const [localPctCho, setLocalPctCho] = useState('');
-  const [localPctLip, setLocalPctLip] = useState('');
-  
-  // Estados para la galería de fotos corporales
-  const [photoSessionFilter, setPhotoSessionFilter] = useState('All');
-  const [newPhotoFile, setNewPhotoFile] = useState(null);
-  const [newPhotoLabel, setNewPhotoLabel] = useState('Frente');
-  const [newPhotoDate, setNewPhotoDate] = useState(new Date().toISOString().split('T')[0]);
-  const [selectedPhotosForComp, setSelectedPhotosForComp] = useState([]);
-  const [showComparisonModal, setShowComparisonModal] = useState(false);
-
-  const [controlData, setControlData] = useState({
-    weight: '',
-    rct: '',
-    notes: '',
-    CINTURA: '',
-    CADERA: '',
-    CUELLO: '',
-    BRAZO: '',
-    TORSO: '',
-    GLÚTEOS: '',
-    MUSLO: '',
-    PANTORRILLA: '',
-    manualPi: '',
-    manualPa: '',
-    manualPc: ''
-  });
+  const { patient, setPatient, status } = usePatient(params.id);
 
   useEffect(() => {
-    const loadPatient = async () => {
-      const found = await getPatientById(params.id);
-      if (found) {
-      if (found.details?.gender) {
-        setGender(found.details.gender);
+    if (patient) {
+      if (patient.details?.gender) {
+        setGender(patient.details.gender);
       }
       
       // Auto-migración de onboardingPhotos fijas a la nueva photosGallery dinámica
-      if (found.onboardingPhotos && (!found.photosGallery || found.photosGallery.length === 0)) {
+      if (patient.onboardingPhotos && (!patient.photosGallery || patient.photosGallery.length === 0)) {
         const initialPhotos = [];
-        const dateStr = found.onboardingDate || new Date().toISOString().split('T')[0];
+        const dateStr = patient.onboardingDate || new Date().toISOString().split('T')[0];
         
-        if (found.onboardingPhotos.front) {
+        if (patient.onboardingPhotos.front) {
           initialPhotos.push({
             id: `front-${Date.now()}`,
             date: dateStr,
             uploadedBy: 'Paciente',
             label: 'Frente',
-            url: found.onboardingPhotos.front,
+            url: patient.onboardingPhotos.front,
             folder: `Sesión ${dateStr}`
           });
         }
-        if (found.onboardingPhotos.back) {
+        if (patient.onboardingPhotos.back) {
           initialPhotos.push({
             id: `back-${Date.now() + 1}`,
             date: dateStr,
             uploadedBy: 'Paciente',
             label: 'Espalda',
-            url: found.onboardingPhotos.back,
+            url: patient.onboardingPhotos.back,
             folder: `Sesión ${dateStr}`
           });
         }
-        if (found.onboardingPhotos.left) {
+        if (patient.onboardingPhotos.left) {
           initialPhotos.push({
             id: `left-${Date.now() + 2}`,
             date: dateStr,
             uploadedBy: 'Paciente',
             label: 'Lat. Izquierdo',
-            url: found.onboardingPhotos.left,
+            url: patient.onboardingPhotos.left,
             folder: `Sesión ${dateStr}`
           });
         }
-        if (found.onboardingPhotos.right) {
+        if (patient.onboardingPhotos.right) {
           initialPhotos.push({
             id: `right-${Date.now() + 3}`,
             date: dateStr,
             uploadedBy: 'Paciente',
             label: 'Lat. Derecho',
-            url: found.onboardingPhotos.right,
+            url: patient.onboardingPhotos.right,
             folder: `Sesión ${dateStr}`
           });
         }
         
-        found.photosGallery = initialPhotos;
-        localStorage.setItem('nutri_patients', JSON.stringify(savedPatients.map(p => p.id === found.id ? found : p)));
+        const updatedPatient = { ...patient, photosGallery: initialPhotos };
+        updatePatient(patient.id, { photosGallery: initialPhotos }).then(() => {
+          setPatient(updatedPatient);
+        });
       }
-      
-      setPatient(found);
       
       // Cargar R24H e inputs locales
       try {
-        const r24hVal = localStorage.getItem(`r24h_${found.id}`);
+        const r24hVal = localStorage.getItem(`r24h_${patient.id}`);
         if (r24hVal) {
           setSavedR24h(JSON.parse(r24hVal));
         } else {
           setSavedR24h(null);
         }
-        const r24hNotesVal = localStorage.getItem(`r24h_notes_${found.id}`);
+        const r24hNotesVal = localStorage.getItem(`r24h_notes_${patient.id}`);
         if (r24hNotesVal) {
           setSavedR24hNotes(r24hNotesVal);
         } else {
@@ -251,16 +212,15 @@ export default function PatientFile() {
         }
       } catch (e) {}
 
-      if (found.dietForm) {
-        setLocalPctProt(found.dietForm.pctProt !== undefined ? found.dietForm.pctProt.toString() : '20');
-        setLocalPctCho(found.dietForm.pctCho !== undefined ? found.dietForm.pctCho.toString() : '50');
+      if (patient.dietForm) {
+        setLocalPctProt(patient.dietForm.pctProt !== undefined ? patient.dietForm.pctProt.toString() : '20');
+        setLocalPctCho(patient.dietForm.pctCho !== undefined ? patient.dietForm.pctCho.toString() : '50');
       } else {
         setLocalPctProt('20');
         setLocalPctCho('50');
       }
-    };
-    loadPatient();
-  }, [params.id]);
+    }
+  }, [patient?.id]);
 
   const mealPlanKey = patient?.details?.mealPlan || '3+2 snacks';
   const mealsForPatient = MEAL_PLANS[mealPlanKey] || MEAL_PLANS['3+2 snacks'];
@@ -271,7 +231,10 @@ export default function PatientFile() {
     }
   }, [mealsForPatient, selectedExchangeMeal]);
 
-  if (!patient) return <div style={{ padding: '20px' }}>Cargando paciente...</div>;
+  if (status === 'loading') return <div style={{ padding: '20px', textAlign: 'center', fontWeight: 'bold' }}>Cargando paciente...</div>;
+  if (status === 'not-found') return <div style={{ padding: '20px', textAlign: 'center' }}><h3>No encontramos este paciente</h3><button onClick={() => window.history.back()} style={{ padding: '10px 20px', background: 'var(--card-yellow)', borderRadius: '10px', border: 'none', fontWeight: 'bold', cursor: 'pointer', marginTop: '10px' }}>Volver al dashboard</button></div>;
+  if (status === 'error') return <div style={{ padding: '20px', textAlign: 'center' }}><h3>Hubo un problema cargando los datos</h3><button onClick={() => window.location.reload()} style={{ padding: '10px 20px', background: 'var(--card-yellow)', borderRadius: '10px', border: 'none', fontWeight: 'bold', cursor: 'pointer', marginTop: '10px' }}>Reintentar</button></div>;
+  if (!patient) return null;
 
   // Adaptar datos para el utilitario
   const patientDataForCalc = {

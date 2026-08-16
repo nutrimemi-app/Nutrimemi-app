@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Printer, ArrowLeft, ChefHat, CheckCircle } from 'lucide-react';
 import { useUI } from '@/context/UIContext';
-import { getPatientById } from '@/lib/patients';
+import { usePatient } from '@/hooks/usePatient';
 
 const FOOD_GROUPS = [
   { key: 'cereales',  name: 'CEREALES',  color: '#E07B00', bg: '#FFF3E0', dot: '#FFA500' },
@@ -28,22 +28,13 @@ export default function MenuCard() {
   const router = useRouter();
   const { showToast } = useUI();
 
-  const [patient, setPatient] = useState(null);
+  const { patient, status } = usePatient(params.id);
   const [activeDay, setActiveDay] = useState('day1'); // 'day1', 'day2' or 'both'
 
-  useEffect(() => {
-    const loadPatient = async () => {
-      const found = await getPatientById(params.id);
-      if (found) setPatient(found);
-    };
-    loadPatient();
-  }, [params.id]);
-
-  if (!patient) return (
-    <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-primary)' }}>
-      Cargando menú...
-    </div>
-  );
+  if (status === 'loading') return <div style={{ padding: '40px', textAlign: 'center', fontWeight: 'bold' }}>Cargando menú...</div>;
+  if (status === 'not-found') return <div style={{ padding: '40px', textAlign: 'center' }}>No se encontró el paciente.</div>;
+  if (status === 'error') return <div style={{ padding: '40px', textAlign: 'center' }}>Hubo un error cargando el menú.</div>;
+  if (!patient) return null;
 
   const mealPlanKey = patient.details?.mealPlan || '3+2 snacks';
 

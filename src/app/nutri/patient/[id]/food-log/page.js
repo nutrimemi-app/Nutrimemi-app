@@ -2,25 +2,20 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, BookOpen, Pizza, Flame } from 'lucide-react';
-import { getPatientById } from '@/lib/patients';
+import { usePatient } from '@/hooks/usePatient';
 
 export default function PatientFoodLog() {
   const params = useParams();
   const router = useRouter();
-  const [patient, setPatient] = useState(null);
+  const { patient, status } = usePatient(params.id);
   const [logs, setLogs] = useState([]);
 
   useEffect(() => {
-    const loadPatient = async () => {
-      const found = await getPatientById(params.id);
-      if (found) {
-        setPatient(found);
-        const allLogs = JSON.parse(localStorage.getItem(`daily_log_${found.id}`) || '[]');
-        setLogs(allLogs.sort((a, b) => new Date(b.date) - new Date(a.date)));
-      }
-    };
-    loadPatient();
-  }, [params.id]);
+    if (patient) {
+      const allLogs = JSON.parse(localStorage.getItem(`daily_log_${patient.id}`) || '[]');
+      setLogs(allLogs.sort((a, b) => new Date(b.date) - new Date(a.date)));
+    }
+  }, [patient]);
 
   const unusualEntries = logs.flatMap(log =>
     (log.entries || [])
@@ -32,7 +27,10 @@ export default function PatientFoodLog() {
     (log.entries || []).map(e => ({ ...e, date: log.date }))
   );
 
-  if (!patient) return <div style={{ padding: '20px' }}>Cargando...</div>;
+  if (status === 'loading') return <div style={{ padding: '20px', textAlign: 'center', fontWeight: 'bold' }}>Cargando...</div>;
+  if (status === 'not-found') return <div style={{ padding: '20px', textAlign: 'center' }}>No se encontró el paciente.</div>;
+  if (status === 'error') return <div style={{ padding: '20px', textAlign: 'center' }}>Hubo un error.</div>;
+  if (!patient) return null;
 
   return (
     <div style={{ padding: '20px', paddingBottom: '60px' }} className="fade-in">
