@@ -4,6 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Printer, MapPin, Phone, User, Activity, FileText, ArrowLeft, Save, CheckCircle, Info, Bell } from 'lucide-react';
 import { useUI } from '@/context/UIContext';
 import { calculateClinicalData } from '@/utils/calculationUtils';
+import { getPatientById } from '@/lib/patients';
 
 const MEAL_PLANS = {
   '2 comidas': [
@@ -49,15 +50,17 @@ export default function ClinicalReport() {
   const reportId = searchParams?.get('reportId');
 
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
-    const found = saved.find(p => p.id === parseInt(params.id));
-    if (found) {
-      setPatient(found);
-      if (reportId && found.reports) {
-        const foundSnapshot = found.reports.find(r => r.id == reportId);
-        if (foundSnapshot) setSnapshot(foundSnapshot);
+    const loadPatient = async () => {
+      const found = await getPatientById(params.id);
+      if (found) {
+        setPatient(found);
+        if (reportId && found.reports) {
+          const foundSnapshot = found.reports.find(r => r.id == reportId);
+          if (foundSnapshot) setSnapshot(foundSnapshot);
+        }
       }
-    }
+    };
+    loadPatient();
   }, [params.id, reportId]);
 
   if (!patient) return <div style={{ padding: '40px' }}>Generando informe...</div>;

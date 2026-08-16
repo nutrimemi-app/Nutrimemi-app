@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { getPatientById, updatePatient } from '@/lib/patients';
 
 export default function MeasurementsPage() {
   const params = useParams();
@@ -18,14 +19,16 @@ export default function MeasurementsPage() {
   });
 
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
-    const found = saved.find(p => p.id === parseInt(params.id));
-    if (found) {
-      setPatient(found);
-      if (found.measurements) {
-        setMeasurements({ ...measurements, ...found.measurements });
+    const loadPatient = async () => {
+      const found = await getPatientById(params.id);
+      if (found) {
+        setPatient(found);
+        if (found.measurements) {
+          setMeasurements({ ...measurements, ...found.measurements });
+        }
       }
-    }
+    };
+    loadPatient();
   }, [params.id]);
 
   const measurementGuides = [
@@ -39,17 +42,14 @@ export default function MeasurementsPage() {
     { key: 'PANTORRILLA', label: 'PANTORRILLA', desc: 'porción más ancha de la pantorrilla' },
   ];
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const saved = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
-    const updated = saved.map(p => {
-      if (p.id === parseInt(params.id)) {
-        return { ...p, measurements: measurements };
-      }
-      return p;
-    });
-    localStorage.setItem('nutri_patients', JSON.stringify(updated));
-    router.push(`/paciente/${params.id}/photos`);
+    try {
+      await updatePatient(params.id, { measurements: measurements });
+      router.push(`/paciente/${params.id}/photos`);
+    } catch (err) {
+      console.error("Error saving measurements:", err);
+    }
   };
 
   const isFemale = patient?.gender === 'Femenino';

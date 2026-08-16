@@ -43,7 +43,7 @@ export default function NutriDashboard() {
 
   const filteredPatients = patients.filter(p => {
     const term = searchTerm.toLowerCase();
-    const nameMatch = p.name.toLowerCase().includes(term);
+    const nameMatch = (p.name || '').toLowerCase().includes(term);
     const ciMatch = p.details?.ci ? p.details.ci.toLowerCase().includes(term) : false;
     return nameMatch || ciMatch;
   });
@@ -164,7 +164,7 @@ export default function NutriDashboard() {
             }}>
               <Link href={`/nutri/patient/${p.id}`} style={{ textDecoration: 'none', color: 'inherit', flex: 1, display: 'flex', alignItems: 'center', gap: '16px' }}>
                 <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'var(--bg-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700', color: 'var(--text-primary)' }}>
-                  {p.name.charAt(0).toUpperCase()}
+                  {(p.name || '?').charAt(0).toUpperCase()}
                 </div>
                 <div>
                   <h4 style={{ fontWeight: '600' }}>{p.name}</h4>

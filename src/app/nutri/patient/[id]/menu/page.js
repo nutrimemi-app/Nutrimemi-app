@@ -6,6 +6,7 @@ import { useUI } from '@/context/UIContext';
 import { loadFoods } from '@/data/defaultFoods';
 import { calculateClinicalData, DISTRIBUTION_TEMPLATES } from '@/utils/calculationUtils';
 import { supabase } from '@/lib/supabaseClient';
+import { getPatientById, updatePatient } from '@/lib/patients';
 
 const EXCHANGE_VALUES = {
   cereales: { prot: 2, fat: 0, cho: 15, kcal: 70 },
@@ -121,67 +122,70 @@ export default function ManageMenu() {
     };
     fetchRecipes();
 
-    const found = savedPatients.find(p => p.id === parseInt(params.id));
-    if (found) {
-      setPatient(found);
-      if (found.details?.mealPlan) {
-        setMealPlanKey(found.details.mealPlan);
-      }
-      
-      if (found.menus) {
-        setMenus(found.menus);
-      } else if (found.menu) {
-        setMenus({
-          day1: found.menu,
-          day2: {
-            desayuno: { time: '08:00', selectedFoods: [], portions: {} },
-            meriendaAM: { time: '10:30', selectedFoods: [], portions: {} },
-            almuerzo: { time: '13:00', selectedFoods: [], portions: {} },
-            meriendaPM: { time: '16:30', selectedFoods: [], portions: {} },
-            cena: { time: '19:30', selectedFoods: [], portions: {} },
-            snackNoche: { time: '21:00', selectedFoods: [], portions: {} }
-          }
-        });
-      }
-      
-      if (found.dietForm) {
-        const rct = found.dietForm.rct || '1700';
+    const loadPatient = async () => {
+      const found = await getPatientById(params.id);
+      if (found) {
+        setPatient(found);
+        if (found.details?.mealPlan) {
+          setMealPlanKey(found.details.mealPlan);
+        }
         
-        const tempClin = calculateClinicalData({
-          weight: found.details?.weight,
-          height: found.details?.height,
-          sex: found.details?.gender || 'female',
-          manualPi: found.details?.manualPi,
-          manualPa: found.details?.manualPa,
-          manualPc: found.details?.manualPc
-        });
+        if (found.menus) {
+          setMenus(found.menus);
+        } else if (found.menu) {
+          setMenus({
+            day1: found.menu,
+            day2: {
+              desayuno: { time: '08:00', selectedFoods: [], portions: {} },
+              meriendaAM: { time: '10:30', selectedFoods: [], portions: {} },
+              almuerzo: { time: '13:00', selectedFoods: [], portions: {} },
+              meriendaPM: { time: '16:30', selectedFoods: [], portions: {} },
+              cena: { time: '19:30', selectedFoods: [], portions: {} },
+              snackNoche: { time: '21:00', selectedFoods: [], portions: {} }
+            }
+          });
+        }
         
-        const getSuggestedPct = (key) => {
-          const prof = tempClin?.profile ? tempClin.profile.toUpperCase() : 'NORMOPESO';
-          if (prof === 'BAJO PESO') {
-            return key === 'pctProt' ? 18 : 50;
-          } else if (prof === 'SOBREPESO' || prof.startsWith('OBESIDAD')) {
-            return key === 'pctProt' ? 20 : 55;
-          } else {
-            return key === 'pctProt' ? 15 : 55;
-          }
-        };
-        const sugProt = getSuggestedPct('pctProt');
-        const sugCho = getSuggestedPct('pctCho');
+        if (found.dietForm) {
+          const rct = found.dietForm.rct || '1700';
+          
+          const tempClin = calculateClinicalData({
+            weight: found.details?.weight,
+            height: found.details?.height,
+            sex: found.details?.gender || 'female',
+            manualPi: found.details?.manualPi,
+            manualPa: found.details?.manualPa,
+            manualPc: found.details?.manualPc
+          });
+          
+          const getSuggestedPct = (key) => {
+            const prof = tempClin?.profile ? tempClin.profile.toUpperCase() : 'NORMOPESO';
+            if (prof === 'BAJO PESO') {
+              return key === 'pctProt' ? 18 : 50;
+            } else if (prof === 'SOBREPESO' || prof.startsWith('OBESIDAD')) {
+              return key === 'pctProt' ? 20 : 55;
+            } else {
+              return key === 'pctProt' ? 15 : 55;
+            }
+          };
+          const sugProt = getSuggestedPct('pctProt');
+          const sugCho = getSuggestedPct('pctCho');
 
-        const pctProt = (found.dietForm.pctProt !== undefined && found.dietForm.pctProt !== null && found.dietForm.pctProt !== '') ? parseFloat(found.dietForm.pctProt) : sugProt;
-        const pctCho = (found.dietForm.pctCho !== undefined && found.dietForm.pctCho !== null && found.dietForm.pctCho !== '') ? parseFloat(found.dietForm.pctCho) : sugCho;
-        const pctLip = Math.max(0, 100 - pctProt - pctCho);
-        setFormulas({
-          kcal: rct.toString(),
-          prot: ((parseFloat(rct) * pctProt) / 100 / 4).toFixed(1).toString(),
-          cho: ((parseFloat(rct) * pctCho) / 100 / 4).toFixed(1).toString(),
-          fat: ((parseFloat(rct) * pctLip) / 100 / 9).toFixed(1).toString()
-        });
-      } else if (found.formulas) {
-        setFormulas(found.formulas);
+          const pctProt = (found.dietForm.pctProt !== undefined && found.dietForm.pctProt !== null && found.dietForm.pctProt !== '') ? parseFloat(found.dietForm.pctProt) : sugProt;
+          const pctCho = (found.dietForm.pctCho !== undefined && found.dietForm.pctCho !== null && found.dietForm.pctCho !== '') ? parseFloat(found.dietForm.pctCho) : sugCho;
+          const pctLip = Math.max(0, 100 - pctProt - pctCho);
+          setFormulas({
+            kcal: rct.toString(),
+            prot: ((parseFloat(rct) * pctProt) / 100 / 4).toFixed(1).toString(),
+            cho: ((parseFloat(rct) * pctCho) / 100 / 4).toFixed(1).toString(),
+            fat: ((parseFloat(rct) * pctLip) / 100 / 9).toFixed(1).toString()
+          });
+        } else if (found.formulas) {
+          setFormulas(found.formulas);
+        }
       }
-    }
+    };
+    loadPatient();
   }, [params.id]);
 
   const menu = menus[activeDay];
@@ -375,9 +379,8 @@ export default function ManageMenu() {
 
   const totals = getPlannedTotals();
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!patient) return showToast('Paciente no cargado correctamente.', 'error');
-    const savedPatients = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
     
     const rctVal = evalFormula(formulas.kcal) || 1700;
     const protGrams = evalFormula(formulas.prot) || 0;
@@ -406,18 +409,19 @@ export default function ManageMenu() {
       mealPlan: mealPlanKey
     };
 
-    const updated = savedPatients.map(p => p.id === patient.id ? { 
-      ...p, 
-      details: updatedDetails,
-      menus,
-      menu: menus.day1, // Compatibilidad con vistas simples heredadas
-      formulas: finalFormulas,
-      dietForm: updatedDietForm
-    } : p);
-    
-    localStorage.setItem('nutri_patients', JSON.stringify(updated));
-    showToast('Plan nutricional guardado con éxito', 'success');
-    router.back();
+    try {
+      await updatePatient(patient.id, {
+        details: updatedDetails,
+        menus: menus,
+        menu: menus.day1, // Compatibilidad con vistas simples heredadas
+        formulas: finalFormulas,
+        dietForm: updatedDietForm
+      });
+      showToast('Plan nutricional guardado con éxito', 'success');
+      router.back();
+    } catch (err) {
+      showToast('Error al guardar plan nutricional', 'error');
+    }
   };
 
   const handleItemPortionChange = (mealKey, instanceId, newValue) => {

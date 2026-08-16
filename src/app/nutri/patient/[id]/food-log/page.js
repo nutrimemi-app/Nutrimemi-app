@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, BookOpen, Pizza, Flame } from 'lucide-react';
+import { getPatientById } from '@/lib/patients';
 
 export default function PatientFoodLog() {
   const params = useParams();
@@ -10,13 +11,15 @@ export default function PatientFoodLog() {
   const [logs, setLogs] = useState([]);
 
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
-    const found = saved.find(p => p.id === parseInt(params.id));
-    if (found) {
-      setPatient(found);
-      const allLogs = JSON.parse(localStorage.getItem(`daily_log_${found.id}`) || '[]');
-      setLogs(allLogs.sort((a, b) => new Date(b.date) - new Date(a.date)));
-    }
+    const loadPatient = async () => {
+      const found = await getPatientById(params.id);
+      if (found) {
+        setPatient(found);
+        const allLogs = JSON.parse(localStorage.getItem(`daily_log_${found.id}`) || '[]');
+        setLogs(allLogs.sort((a, b) => new Date(b.date) - new Date(a.date)));
+      }
+    };
+    loadPatient();
   }, [params.id]);
 
   const unusualEntries = logs.flatMap(log =>

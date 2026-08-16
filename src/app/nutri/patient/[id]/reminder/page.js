@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, Plus, Trash2, Save, Printer, Award } from 'lucide-react';
 import { useUI } from '@/context/UIContext';
 import { loadFoods } from '@/data/defaultFoods';
+import { getPatientById } from '@/lib/patients';
 
 export default function Recordatorio24H() {
   const params = useParams();
@@ -40,12 +41,11 @@ export default function Recordatorio24H() {
   };
 
   useEffect(() => {
-    // Cargar paciente
-    const savedPatients = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
-    const found = savedPatients.find(p => p.id === parseInt(params.id));
-    if (found) {
-      setPatient(found);
-      // Cargar recordatorio anterior si existe
+    const loadPatient = async () => {
+      const found = await getPatientById(params.id);
+      if (found) {
+        setPatient(found);
+        // Cargar recordatorio anterior si existe
       const savedReminder = localStorage.getItem(`r24h_${found.id}`);
       if (savedReminder) {
         setReminder(JSON.parse(savedReminder));
@@ -55,6 +55,8 @@ export default function Recordatorio24H() {
         setR24hNotes(savedNotes);
       }
     }
+    };
+    loadPatient();
     // Cargar alimentos disponibles
     setFoods(loadFoods());
   }, [params.id]);

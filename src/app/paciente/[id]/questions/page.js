@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { getPatientById, updatePatient } from '@/lib/patients';
 
 export default function QuestionsPage() {
   const params = useParams();
@@ -17,11 +18,13 @@ export default function QuestionsPage() {
   });
 
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
-    const found = saved.find(p => p.id === parseInt(params.id));
-    if (found && found.onboardingAnswers) {
+    const loadPatient = async () => {
+      const found = await getPatientById(params.id);
+      if (found && found.onboardingAnswers) {
         setAnswers(prev => ({ ...prev, ...found.onboardingAnswers }));
-    }
+      }
+    };
+    loadPatient();
   }, [params.id]);
 
   const mealOptions = [
@@ -32,19 +35,16 @@ export default function QuestionsPage() {
     { id: 'e', label: '2 comidas principales + 2 snacks' },
   ];
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (step < 4) {
       setStep(step + 1);
     } else {
-      const saved = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
-      const updated = saved.map(p => {
-        if (p.id === parseInt(params.id)) {
-          return { ...p, onboardingAnswers: answers };
-        }
-        return p;
-      });
-      localStorage.setItem('nutri_patients', JSON.stringify(updated));
-      router.push(`/paciente/${params.id}/measurements`);
+      try {
+        await updatePatient(params.id, { onboardingAnswers: answers });
+        router.push(`/paciente/${params.id}/measurements`);
+      } catch (err) {
+        console.error("Error saving answers:", err);
+      }
     }
   };
 

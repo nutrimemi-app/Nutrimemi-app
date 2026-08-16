@@ -6,6 +6,7 @@ import { ArrowLeft, Activity, Printer, Calendar, Save, History, Camera, FileText
 import { useUI } from '@/context/UIContext';
 import { calculateClinicalData, getBodyFatProfile, suggestPortionsFromMacros } from '@/utils/calculationUtils';
 import { getAnthropometricIconSrc } from '@/utils/anthropometricIcon';
+import { getPatientById } from '@/lib/patients';
 
 const MEAL_PLANS = {
   '2 comidas': [
@@ -175,9 +176,9 @@ export default function PatientFile() {
   });
 
   useEffect(() => {
-    const savedPatients = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
-    const found = savedPatients.find(p => p.id === parseInt(params.id));
-    if (found) {
+    const loadPatient = async () => {
+      const found = await getPatientById(params.id);
+      if (found) {
       if (found.details?.gender) {
         setGender(found.details.gender);
       }
@@ -257,7 +258,8 @@ export default function PatientFile() {
         setLocalPctProt('20');
         setLocalPctCho('50');
       }
-    }
+    };
+    loadPatient();
   }, [params.id]);
 
   const mealPlanKey = patient?.details?.mealPlan || '3+2 snacks';

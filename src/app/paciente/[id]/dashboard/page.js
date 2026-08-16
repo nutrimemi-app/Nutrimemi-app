@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { Activity, Calendar, User, History, Camera, Upload } from 'lucide-react';
+import { getPatientById, updatePatient } from '@/lib/patients';
 
 const MEAL_PLANS = {
   '2 comidas': [
@@ -140,9 +141,11 @@ export default function PatientDashboard() {
   const [photoLabel, setPhotoLabel] = useState('Frente');
 
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
-    const found = saved.find(p => p.id === parseInt(params.id));
-    if (found) setPatient(found);
+    const loadPatient = async () => {
+      const found = await getPatientById(params.id);
+      if (found) setPatient(found);
+    };
+    loadPatient();
   }, [params.id]);
 
   const handlePatientPhotoUpload = (e) => {
@@ -193,14 +196,17 @@ export default function PatientDashboard() {
         const updatedGallery = [...(patient.photosGallery || []), newPhotoItem];
         const updatedPatient = { ...patient, photosGallery: updatedGallery };
         
-        const saved = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
-        localStorage.setItem('nutri_patients', JSON.stringify(saved.map(p => p.id === patient.id ? updatedPatient : p)));
-        setPatient(updatedPatient);
+        updatePatient(patient.id, { photosGallery: updatedGallery }).then(() => {
+          setPatient(updatedPatient);
+          setPhotoFile(null);
+          alert('Foto subida con éxito');
+        }).catch(err => {
+          console.error('Error uploading photo:', err);
+          alert('Error al subir foto');
+        });
         
-        setPhotoFile(null);
         const fileInput = document.getElementById('patient-photo-input');
         if (fileInput) fileInput.value = '';
-        alert('Foto de evolución cargada y comprimida con éxito.');
       };
     };
     reader.readAsDataURL(photoFile);

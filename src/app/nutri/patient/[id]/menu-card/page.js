@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Printer, ArrowLeft, ChefHat, CheckCircle } from 'lucide-react';
 import { useUI } from '@/context/UIContext';
+import { getPatientById } from '@/lib/patients';
 
 const FOOD_GROUPS = [
   { key: 'cereales',  name: 'CEREALES',  color: '#E07B00', bg: '#FFF3E0', dot: '#FFA500' },
@@ -31,9 +32,11 @@ export default function MenuCard() {
   const [activeDay, setActiveDay] = useState('day1'); // 'day1', 'day2' or 'both'
 
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
-    const found = saved.find(p => p.id === parseInt(params.id));
-    if (found) setPatient(found);
+    const loadPatient = async () => {
+      const found = await getPatientById(params.id);
+      if (found) setPatient(found);
+    };
+    loadPatient();
   }, [params.id]);
 
   if (!patient) return (

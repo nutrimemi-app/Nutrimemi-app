@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Camera, Upload, CheckCircle2, Bell } from 'lucide-react';
 import { useUI } from '@/context/UIContext';
+import { updatePatient } from '@/lib/patients';
 
 export default function PhotosPage() {
   const params = useParams();
@@ -34,22 +35,19 @@ export default function PhotosPage() {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const saved = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
-    const updated = saved.map(p => {
-      if (p.id === parseInt(params.id)) {
-        return { 
-          ...p, 
-          onboardingPhotos: photos,
-          registrationComplete: true,
-          status: 'Waiting Plan' 
-        };
-      }
-      return p;
-    });
-    localStorage.setItem('nutri_patients', JSON.stringify(updated));
-    setSuccess(true);
+    try {
+      await updatePatient(params.id, {
+        onboardingPhotos: photos,
+        registrationComplete: true,
+        status: 'Waiting Plan'
+      });
+      setSuccess(true);
+    } catch (err) {
+      console.error("Error saving photos:", err);
+      showToast('Error al guardar fotos', 'error');
+    }
   };
 
   if (success) {
