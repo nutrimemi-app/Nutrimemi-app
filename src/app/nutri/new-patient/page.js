@@ -56,6 +56,10 @@ export default function NewPatient() {
 
   const savePatient = async (e, mode) => {
     e.preventDefault();
+    if (!formData.name || formData.name.trim() === '') {
+      showToast('El nombre del paciente es obligatorio', 'error');
+      return;
+    }
     try {
       const created = await createPatient(formData);
       if (mode === 'presencial') {
