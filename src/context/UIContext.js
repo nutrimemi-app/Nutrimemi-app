@@ -115,7 +115,7 @@ export function UIProvider({ children }) {
       {toast && (
         <div style={{
           position: 'fixed',
-          top: '40px',
+          top: 'calc(24px + env(safe-area-inset-top, 0px))',
           left: '50%',
           transform: 'translateX(-50%)',
           width: 'calc(100% - 40px)',
@@ -127,15 +127,15 @@ export function UIProvider({ children }) {
             className="fade-in"
             style={{
               pointerEvents: 'auto',
-              background: 'rgba(255, 255, 255, 0.94)',
+              background: 'rgba(255, 255, 255, 0.96)',
               backdropFilter: 'blur(25px) saturate(180%)',
               WebkitBackdropFilter: 'blur(25px) saturate(180%)',
-              padding: '18px 24px',
+              padding: '16px 20px',
               borderRadius: '24px',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.05)',
+              boxShadow: '0 20px 45px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05)',
               display: 'flex',
               alignItems: 'center',
-              gap: '14px',
+              gap: '12px',
               width: '100%',
               boxSizing: 'border-box'
             }}
@@ -152,7 +152,17 @@ export function UIProvider({ children }) {
             }}>
               {toast.type === 'success' ? <CheckCircle size={18} color="white" /> : <XCircle size={18} color="white" />}
             </div>
-            <p style={{ margin: 0, fontWeight: '800', color: '#1d512d', fontSize: '0.9rem', lineHeight: '1.3' }}>{toast.message}</p>
+            <p style={{ 
+              margin: 0, 
+              fontWeight: '900', 
+              color: toast.type === 'success' ? '#1d512d' : '#b71c1c', 
+              fontSize: '0.85rem', 
+              lineHeight: '1.4',
+              wordBreak: 'break-word',
+              flex: 1
+            }}>
+              {toast.message}
+            </p>
           </div>
         </div>
       )}

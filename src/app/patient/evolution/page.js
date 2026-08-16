@@ -26,6 +26,7 @@ export default function PatientEvolution() {
       weight: parseFloat(h.details?.weight || 0),
       height: parseFloat(h.details?.height || 0),
       imc: parseFloat(h.imc || 0),
+      age: parseFloat(h.details?.age || patient?.details?.age || 0),
     })),
     {
       date: new Date().toISOString().split('T')[0],
@@ -36,6 +37,7 @@ export default function PatientEvolution() {
         const h = parseFloat(current.height) / 100;
         return w && h ? parseFloat((w / (h * h)).toFixed(1)) : 0;
       })(),
+      age: parseFloat(current.age || 0),
     }
   ].filter(e => e.weight > 0);
 

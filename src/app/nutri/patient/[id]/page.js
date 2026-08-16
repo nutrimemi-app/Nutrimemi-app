@@ -4,15 +4,40 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Activity, Printer, Calendar, Save, History, Camera, FileText, BookOpen, BarChart2 } from 'lucide-react';
 import { useUI } from '@/context/UIContext';
-import { calculateClinicalData, getBodyFatProfile } from '@/utils/calculationUtils';
+import { calculateClinicalData, getBodyFatProfile, suggestPortionsFromMacros } from '@/utils/calculationUtils';
 
-const exchangeMeals = [
-  { key: 'desayuno', name: 'Desayuno' },
-  { key: 'meriendaAM', name: 'Merienda AM' },
-  { key: 'almuerzo', name: 'Almuerzo' },
-  { key: 'meriendaPM', name: 'Merienda PM' },
-  { key: 'cena', name: 'Cena' }
-];
+const MEAL_PLANS = {
+  '2 comidas': [
+    { key: 'almuerzo', name: 'Almuerzo' },
+    { key: 'cena', name: 'Cena' },
+  ],
+  '3 comidas': [
+    { key: 'desayuno', name: 'Desayuno' },
+    { key: 'almuerzo', name: 'Almuerzo' },
+    { key: 'cena', name: 'Cena' },
+  ],
+  '3+2 snacks': [
+    { key: 'desayuno', name: 'Desayuno' },
+    { key: 'meriendaAM', name: 'Merienda AM' },
+    { key: 'almuerzo', name: 'Almuerzo' },
+    { key: 'meriendaPM', name: 'Merienda PM' },
+    { key: 'cena', name: 'Cena' },
+  ],
+  '3+3 snacks': [
+    { key: 'desayuno', name: 'Desayuno' },
+    { key: 'meriendaAM', name: 'Merienda AM' },
+    { key: 'almuerzo', name: 'Almuerzo' },
+    { key: 'meriendaPM', name: 'Merienda PM' },
+    { key: 'cena', name: 'Cena' },
+    { key: 'snackNoche', name: 'Snack Nocturno' },
+  ],
+  '2+2 snacks': [
+    { key: 'desayuno', name: 'Desayuno' },
+    { key: 'meriendaAM', name: 'Merienda AM' },
+    { key: 'almuerzo', name: 'Almuerzo' },
+    { key: 'cena', name: 'Cena' },
+  ],
+};
 
 const EXCHANGE_GUIDE_DB = {
   cereales: {
@@ -114,8 +139,23 @@ export default function PatientFile() {
   const [editingAnswers, setEditingAnswers] = useState(false);
   const [showControlModal, setShowControlModal] = useState(false);
   const [focusedMeasurement, setFocusedMeasurement] = useState(null);
-  const [selectedExchangeMeal, setSelectedExchangeMeal] = useState('desayuno');
+  const [selectedExchangeMeal, setSelectedExchangeMeal] = useState('');
   const [previewDashboardOpen, setPreviewDashboardOpen] = useState(true);
+  const [previewDay, setPreviewDay] = useState('day1');
+  const [savedR24h, setSavedR24h] = useState(null);
+  const [savedR24hNotes, setSavedR24hNotes] = useState('');
+  const [localPctProt, setLocalPctProt] = useState('');
+  const [localPctCho, setLocalPctCho] = useState('');
+  const [localPctLip, setLocalPctLip] = useState('');
+  
+  // Estados para la galería de fotos corporales
+  const [photoSessionFilter, setPhotoSessionFilter] = useState('All');
+  const [newPhotoFile, setNewPhotoFile] = useState(null);
+  const [newPhotoLabel, setNewPhotoLabel] = useState('Frente');
+  const [newPhotoDate, setNewPhotoDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedPhotosForComp, setSelectedPhotosForComp] = useState([]);
+  const [showComparisonModal, setShowComparisonModal] = useState(false);
+
   const [controlData, setControlData] = useState({
     weight: '',
     rct: '',
@@ -129,6 +169,7 @@ export default function PatientFile() {
     MUSLO: '',
     PANTORRILLA: '',
     manualPi: '',
+    manualPa: '',
     manualPc: ''
   });
 
@@ -136,12 +177,96 @@ export default function PatientFile() {
     const savedPatients = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
     const found = savedPatients.find(p => p.id === parseInt(params.id));
     if (found) {
-      setPatient(found);
       if (found.details?.gender) {
         setGender(found.details.gender);
       }
+      
+      // Auto-migración de onboardingPhotos fijas a la nueva photosGallery dinámica
+      if (found.onboardingPhotos && (!found.photosGallery || found.photosGallery.length === 0)) {
+        const initialPhotos = [];
+        const dateStr = found.onboardingDate || new Date().toISOString().split('T')[0];
+        
+        if (found.onboardingPhotos.front) {
+          initialPhotos.push({
+            id: `front-${Date.now()}`,
+            date: dateStr,
+            uploadedBy: 'Paciente',
+            label: 'Frente',
+            url: found.onboardingPhotos.front,
+            folder: `Sesión ${dateStr}`
+          });
+        }
+        if (found.onboardingPhotos.back) {
+          initialPhotos.push({
+            id: `back-${Date.now() + 1}`,
+            date: dateStr,
+            uploadedBy: 'Paciente',
+            label: 'Espalda',
+            url: found.onboardingPhotos.back,
+            folder: `Sesión ${dateStr}`
+          });
+        }
+        if (found.onboardingPhotos.left) {
+          initialPhotos.push({
+            id: `left-${Date.now() + 2}`,
+            date: dateStr,
+            uploadedBy: 'Paciente',
+            label: 'Lat. Izquierdo',
+            url: found.onboardingPhotos.left,
+            folder: `Sesión ${dateStr}`
+          });
+        }
+        if (found.onboardingPhotos.right) {
+          initialPhotos.push({
+            id: `right-${Date.now() + 3}`,
+            date: dateStr,
+            uploadedBy: 'Paciente',
+            label: 'Lat. Derecho',
+            url: found.onboardingPhotos.right,
+            folder: `Sesión ${dateStr}`
+          });
+        }
+        
+        found.photosGallery = initialPhotos;
+        localStorage.setItem('nutri_patients', JSON.stringify(savedPatients.map(p => p.id === found.id ? found : p)));
+      }
+      
+      setPatient(found);
+      
+      // Cargar R24H e inputs locales
+      try {
+        const r24hVal = localStorage.getItem(`r24h_${found.id}`);
+        if (r24hVal) {
+          setSavedR24h(JSON.parse(r24hVal));
+        } else {
+          setSavedR24h(null);
+        }
+        const r24hNotesVal = localStorage.getItem(`r24h_notes_${found.id}`);
+        if (r24hNotesVal) {
+          setSavedR24hNotes(r24hNotesVal);
+        } else {
+          setSavedR24hNotes('');
+        }
+      } catch (e) {}
+
+      if (found.dietForm) {
+        setLocalPctProt(found.dietForm.pctProt !== undefined ? found.dietForm.pctProt.toString() : '20');
+        setLocalPctCho(found.dietForm.pctCho !== undefined ? found.dietForm.pctCho.toString() : '50');
+      } else {
+        setLocalPctProt('20');
+        setLocalPctCho('50');
+      }
     }
   }, [params.id]);
+
+  const mealPlanKey = patient?.details?.mealPlan || '3+2 snacks';
+  const mealsForPatient = MEAL_PLANS[mealPlanKey] || MEAL_PLANS['3+2 snacks'];
+
+  useEffect(() => {
+    if (mealsForPatient && mealsForPatient.length > 0 && !selectedExchangeMeal) {
+      setSelectedExchangeMeal(mealsForPatient[0].key);
+    }
+  }, [mealsForPatient, selectedExchangeMeal]);
 
   if (!patient) return <div style={{ padding: '20px' }}>Cargando paciente...</div>;
 
@@ -151,6 +276,7 @@ export default function PatientFile() {
     height: patient.details?.height,
     sex: gender,
     manualPi: patient.details?.manualPi,
+    manualPa: patient.details?.manualPa,
     manualPc: patient.details?.manualPc
   };
   const clinical = calculateClinicalData(patientDataForCalc, patient.measurements || {});
@@ -171,9 +297,193 @@ export default function PatientFile() {
   };
 
   const savePatientUpdate = (updatedPatient) => {
+    // Sincronizar formulas con el estado de dietForm
+    const rct = parseFloat(updatedPatient.dietForm?.rct) || 1700;
+    
+    // Calcular sugerencias basadas en el peso/perfil
+    const tempClinical = calculateClinicalData({
+      weight: updatedPatient.details?.weight,
+      height: updatedPatient.details?.height,
+      sex: updatedPatient.details?.gender || 'female',
+      manualPi: updatedPatient.details?.manualPi,
+      manualPa: updatedPatient.details?.manualPa,
+      manualPc: updatedPatient.details?.manualPc
+    });
+    
+    const getSuggestedPct = (key) => {
+      const prof = tempClinical?.profile ? tempClinical.profile.toUpperCase() : 'NORMOPESO';
+      if (prof === 'BAJO PESO') {
+        return key === 'pctProt' ? 18 : 50;
+      } else if (prof === 'SOBREPESO' || prof.startsWith('OBESIDAD')) {
+        return key === 'pctProt' ? 20 : 55;
+      } else {
+        return key === 'pctProt' ? 15 : 55;
+      }
+    };
+
+    const getFormVal = (key, fallback) => {
+      const val = updatedPatient.dietForm?.[key];
+      if (val === undefined || val === null || val === '') return fallback;
+      const num = parseFloat(val);
+      return isNaN(num) ? fallback : num;
+    };
+    const pctProt = getFormVal('pctProt', getSuggestedPct('pctProt'));
+    const pctCho = getFormVal('pctCho', getSuggestedPct('pctCho'));
+    const pctLip = Math.max(0, 100 - pctProt - pctCho);
+
+    updatedPatient.formulas = {
+      kcal: rct.toString(),
+      prot: ((rct * pctProt) / 100 / 4).toFixed(1),
+      cho: ((rct * pctCho) / 100 / 4).toFixed(1),
+      fat: ((rct * pctLip) / 100 / 9).toFixed(1)
+    };
+
     setPatient(updatedPatient);
     const saved = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
     localStorage.setItem('nutri_patients', JSON.stringify(saved.map(p => p.id === patient.id ? updatedPatient : p)));
+  };
+
+  const handlePhotoUpload = (e) => {
+    e.preventDefault();
+    if (!newPhotoFile) {
+      showToast('Por favor, selecciona una foto.', 'error');
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64Str = reader.result;
+      
+      const img = new Image();
+      img.src = base64Str;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        const MAX_SIZE = 800;
+        
+        if (width > height) {
+          if (width > MAX_SIZE) {
+            height *= MAX_SIZE / width;
+            width = MAX_SIZE;
+          }
+        } else {
+          if (height > MAX_SIZE) {
+            width *= MAX_SIZE / height;
+            height = MAX_SIZE;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
+        
+        const newPhotoItem = {
+          id: `doc-${Date.now()}`,
+          date: newPhotoDate,
+          uploadedBy: 'Doctor',
+          label: newPhotoLabel,
+          url: compressedBase64,
+          folder: `Sesión ${newPhotoDate}`
+        };
+        
+        const updatedGallery = [...(patient.photosGallery || []), newPhotoItem];
+        const updatedPatient = { ...patient, photosGallery: updatedGallery };
+        savePatientUpdate(updatedPatient);
+        showToast('Foto cargada y comprimida con éxito.', 'success');
+        
+        setNewPhotoFile(null);
+        const fileInput = document.getElementById('new-photo-upload-input');
+        if (fileInput) fileInput.value = '';
+      };
+    };
+    reader.readAsDataURL(newPhotoFile);
+  };
+
+  const handleDeletePhoto = (photoId) => {
+    showConfirm('Eliminar Foto', '¿Estás seguro de que deseas eliminar esta foto de la galería?', () => {
+      const updatedGallery = (patient.photosGallery || []).filter(ph => ph.id !== photoId);
+      const updatedPatient = { ...patient, photosGallery: updatedGallery };
+      savePatientUpdate(updatedPatient);
+      setSelectedPhotosForComp(selectedPhotosForComp.filter(id => id !== photoId));
+      showToast('Foto eliminada.', 'success');
+    });
+  };
+
+  const handleToggleCompPhoto = (photoId) => {
+    if (selectedPhotosForComp.includes(photoId)) {
+      setSelectedPhotosForComp(selectedPhotosForComp.filter(id => id !== photoId));
+    } else {
+      if (selectedPhotosForComp.length >= 2) {
+        showToast('Sólo puedes comparar un máximo de 2 fotos a la vez.', 'warning');
+        return;
+      }
+      setSelectedPhotosForComp([...selectedPhotosForComp, photoId]);
+    }
+  };
+
+  const handleSaveComparisonCanvas = () => {
+    if (selectedPhotosForComp.length !== 2) return;
+    const photoA = (patient.photosGallery || []).find(p => p.id === selectedPhotosForComp[0]);
+    const photoB = (patient.photosGallery || []).find(p => p.id === selectedPhotosForComp[1]);
+    if (!photoA || !photoB) return;
+    
+    // Dibujo en Canvas
+    const imgA = new Image();
+    const imgB = new Image();
+    imgA.src = photoA.url;
+    imgB.src = photoB.url;
+    
+    let loaded = 0;
+    const onLoaded = () => {
+      loaded++;
+      if (loaded === 2) {
+        const canvas = document.createElement('canvas');
+        const h = Math.max(imgA.height, imgB.height, 400);
+        const wA = imgA.width * (h / imgA.height);
+        const wB = imgB.width * (h / imgB.height);
+        
+        canvas.width = wA + wB + 10;
+        canvas.height = h + 60;
+        
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.drawImage(imgA, 0, 0, wA, h);
+        ctx.drawImage(imgB, wA + 10, 0, wB, h);
+        
+        ctx.fillStyle = '#1D512D';
+        ctx.font = 'bold 18px Arial';
+        ctx.fillText(`${photoA.label} (${photoA.date})`, 25, h + 35);
+        ctx.fillText(`${photoB.label} (${photoB.date})`, wA + 35, h + 35);
+        
+        const combinedBase64 = canvas.toDataURL('image/jpeg', 0.6);
+        const todayStr = new Date().toISOString().split('T')[0];
+        
+        const newPhotoItem = {
+          id: `comp-${Date.now()}`,
+          date: todayStr,
+          uploadedBy: 'Doctor',
+          label: `Comparación: ${photoA.label} (${photoA.date}) vs ${photoB.label} (${photoB.date})`,
+          url: combinedBase64,
+          folder: 'Comparativas',
+          sharedWithPatient: true
+        };
+        
+        const updatedGallery = [...(patient.photosGallery || []), newPhotoItem];
+        const updatedPatient = { ...patient, photosGallery: updatedGallery };
+        savePatientUpdate(updatedPatient);
+        showToast('Comparación guardada y compartida con el paciente en la carpeta Comparativas.', 'success');
+        setSelectedPhotosForComp([]);
+        setShowComparisonModal(false);
+      }
+    };
+    imgA.onload = onLoaded;
+    imgB.onload = onLoaded;
   };
 
   const getProfileColor = (p) => {
@@ -223,6 +533,7 @@ export default function PatientFile() {
       MUSLO: patient.measurements?.MUSLO || '',
       PANTORRILLA: patient.measurements?.PANTORRILLA || '',
       manualPi: patient.details?.manualPi || '',
+      manualPa: patient.details?.manualPa || '',
       manualPc: patient.details?.manualPc || ''
     });
     setShowControlModal(true);
@@ -248,8 +559,9 @@ export default function PatientFile() {
     const updatedDetails = {
       ...patient.details,
       weight: parseFloat(controlData.weight) || patient.details?.weight,
-      manualPi: controlData.manualPi ? parseFloat(controlData.manualPi) : patient.details?.manualPi,
-      manualPc: controlData.manualPc ? parseFloat(controlData.manualPc) : patient.details?.manualPc,
+      manualPi: controlData.manualPi !== '' ? parseFloat(controlData.manualPi) : patient.details?.manualPi,
+      manualPa: controlData.manualPa !== '' ? parseFloat(controlData.manualPa) : patient.details?.manualPa,
+      manualPc: controlData.manualPc !== '' ? parseFloat(controlData.manualPc) : patient.details?.manualPc,
       notes: controlData.notes || patient.details?.notes
     };
 
@@ -355,6 +667,13 @@ export default function PatientFile() {
               <BookOpen size={16} /> Bitácora
             </Link>
           </div>
+          <button 
+            onClick={startFollowUp}
+            className="btn-secondary" 
+            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '16px', borderRadius: '16px', fontSize: '0.85rem', fontWeight: '900', cursor: 'pointer', boxShadow: 'var(--shadow-subtle)' }}
+          >
+            <History size={18} /> Nuevo Control
+          </button>
         </div>
       </header>
 
@@ -399,67 +718,11 @@ export default function PatientFile() {
             </div>
             <div>
               <p style={{ fontSize: '0.6rem', fontWeight: '800', opacity: 0.5, marginBottom: '4px' }}>P. REF (PC)</p>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px', height: '36px' }}>
-                <input
-                  type="number"
-                  step="0.1"
-                  key={patient.details?.manualPc || 'autoPc'}
-                  defaultValue={patient.details?.manualPc || ''}
-                  placeholder={clinical.pc}
-                  onBlur={(e) => {
-                    const val = e.target.value;
-                    const updatedDetails = { ...patient.details, manualPc: val };
-                    const updatedPatient = { ...patient, details: updatedDetails };
-                    savePatientUpdate(updatedPatient);
-                    showToast('Peso de cálculo actualizado', 'success');
-                  }}
-                  style={{
-                    width: '50px',
-                    background: 'rgba(0,0,0,0.05)',
-                    border: 'none',
-                    borderRadius: '6px',
-                    fontSize: '1.1rem',
-                    fontWeight: '900',
-                    textAlign: 'center',
-                    padding: '2px',
-                    color: 'var(--text-primary)',
-                    outline: 'none'
-                  }}
-                />
-                <span style={{ fontSize: '0.7rem', fontWeight: '850' }}>kg</span>
-              </div>
+              <p style={{ fontSize: '1.1rem', fontWeight: '900', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{clinical.pc} kg</p>
             </div>
             <div>
               <p style={{ fontSize: '0.6rem', fontWeight: '800', opacity: 0.5, marginBottom: '4px' }}>P. IDEAL</p>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px', height: '36px' }}>
-                <input
-                  type="number"
-                  step="0.1"
-                  key={patient.details?.manualPi || 'autoPi'}
-                  defaultValue={patient.details?.manualPi || ''}
-                  placeholder={clinical.pi}
-                  onBlur={(e) => {
-                    const val = e.target.value;
-                    const updatedDetails = { ...patient.details, manualPi: val };
-                    const updatedPatient = { ...patient, details: updatedDetails };
-                    savePatientUpdate(updatedPatient);
-                    showToast('Peso ideal actualizado', 'success');
-                  }}
-                  style={{
-                    width: '50px',
-                    background: 'rgba(0,0,0,0.05)',
-                    border: 'none',
-                    borderRadius: '6px',
-                    fontSize: '1.1rem',
-                    fontWeight: '900',
-                    textAlign: 'center',
-                    padding: '2px',
-                    color: 'var(--text-primary)',
-                    outline: 'none'
-                  }}
-                />
-                <span style={{ fontSize: '0.7rem', fontWeight: '850' }}>kg</span>
-              </div>
+              <p style={{ fontSize: '1.1rem', fontWeight: '900', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{clinical.pi} kg</p>
             </div>
             <div>
               <p style={{ fontSize: '0.6rem', fontWeight: '800', opacity: 0.5, marginBottom: '4px' }}>% GRASA (GC)</p>
@@ -469,7 +732,7 @@ export default function PatientFile() {
                 </p>
                 {clinical.gc !== '—' && (
                   <span style={{ fontSize: '0.5rem', fontWeight: '900', color: '#B71C1C', opacity: 0.8, textTransform: 'uppercase', lineHeight: 1, marginTop: '2px' }}>
-                    {getBodyFatProfile(patient.gender || patient.details?.sex || 'female', patient.details?.age || 30, clinical.gc)}
+                    {getBodyFatProfile(gender, patient.details?.age || 30, clinical.gc)}
                   </span>
                 )}
               </div>
@@ -503,6 +766,105 @@ export default function PatientFile() {
               })()}
             </div>
           )}
+        </section>
+
+        {/* Caja de Ajustes de Peso */}
+        <section className="glass-panel shadow-premium" style={{ padding: '24px', background: 'white', borderRadius: '24px', border: '1px solid rgba(0,0,0,0.08)' }}>
+          <h4 style={{ fontSize: '0.85rem', fontWeight: '900', color: 'var(--primary)', marginBottom: '14px', letterSpacing: '1px', textTransform: 'uppercase' }}>
+            ⚖️ Cálculos y Ajustes de Peso (Lorentz / Devine)
+          </h4>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ background: 'rgba(0,0,0,0.015)', padding: '12px 16px', borderRadius: '16px', fontSize: '0.75rem', lineHeight: '1.45', borderLeft: '3px solid var(--primary)' }}>
+              <p style={{ margin: 0, fontWeight: '750', color: 'var(--primary)' }}>Fórmulas Clínicas:</p>
+              <p style={{ margin: '4px 0 0 0', opacity: 0.8 }}>
+                <strong>Peso Ideal (PI):</strong> {gender === 'female' ? 'PI = 45.5 + 2.3 * ((Talla_cm / 2.54) - 60)' : 'PI = 50.0 + 2.3 * ((Talla_cm / 2.54) - 60)'}
+              </p>
+              <p style={{ margin: '4px 0 0 0', opacity: 0.8 }}>
+                <strong>Peso Ajustado (PA):</strong> PA = ((Peso Actual - PI) * 0.25) + PI (Recomendado para sobrepeso y obesidad)
+              </p>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px' }}>
+              <div>
+                <label style={{ fontSize: '0.7rem', fontWeight: '850', opacity: 0.6, display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>P. ACTUAL</label>
+                <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,0.05)', borderRadius: '10px', padding: '2px 8px' }}>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={patient.details?.weight || ''}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value) || 0;
+                      const updatedDetails = { ...patient.details, weight: val };
+                      const updatedPatient = { ...patient, details: updatedDetails };
+                      savePatientUpdate(updatedPatient);
+                    }}
+                    style={{ width: '100%', background: 'none', border: 'none', outline: 'none', fontSize: '0.9rem', fontWeight: '800', padding: '8px 2px', textAlign: 'center' }}
+                  />
+                  <span style={{ fontSize: '0.7rem', fontWeight: '800', opacity: 0.5 }}>kg</span>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.7rem', fontWeight: '850', opacity: 0.6, display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>P. IDEAL (PI)</label>
+                <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,0.05)', borderRadius: '10px', padding: '2px 8px' }}>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={patient.details?.manualPi || ''}
+                    placeholder={clinical.suggestedPi}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const updatedDetails = { ...patient.details, manualPi: val };
+                      const updatedPatient = { ...patient, details: updatedDetails };
+                      savePatientUpdate(updatedPatient);
+                    }}
+                    style={{ width: '100%', background: 'none', border: 'none', outline: 'none', fontSize: '0.9rem', fontWeight: '800', padding: '8px 2px', textAlign: 'center' }}
+                  />
+                  <span style={{ fontSize: '0.7rem', fontWeight: '800', opacity: 0.5 }}>kg</span>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.7rem', fontWeight: '850', opacity: 0.6, display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>P. AJUSTADO (PA)</label>
+                <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,0.05)', borderRadius: '10px', padding: '2px 8px' }}>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={patient.details?.manualPa || ''}
+                    placeholder={clinical.suggestedPa}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const updatedDetails = { ...patient.details, manualPa: val };
+                      const updatedPatient = { ...patient, details: updatedDetails };
+                      savePatientUpdate(updatedPatient);
+                    }}
+                    style={{ width: '100%', background: 'none', border: 'none', outline: 'none', fontSize: '0.9rem', fontWeight: '800', padding: '8px 2px', textAlign: 'center' }}
+                  />
+                  <span style={{ fontSize: '0.7rem', fontWeight: '800', opacity: 0.5 }}>kg</span>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.7rem', fontWeight: '850', opacity: 0.6, display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>P. REFERENCIA (PC)</label>
+                <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,0.05)', borderRadius: '10px', padding: '2px 8px' }}>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={patient.details?.manualPc || ''}
+                    placeholder={clinical.suggestedPc}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const updatedDetails = { ...patient.details, manualPc: val };
+                      const updatedPatient = { ...patient, details: updatedDetails };
+                      savePatientUpdate(updatedPatient);
+                    }}
+                    style={{ width: '100%', background: 'none', border: 'none', outline: 'none', fontSize: '0.9rem', fontWeight: '800', padding: '8px 2px', textAlign: 'center' }}
+                  />
+                  <span style={{ fontSize: '0.7rem', fontWeight: '800', opacity: 0.5 }}>kg</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </section>
 
         {/* Ficha Clínica Editable Horizontal */}
@@ -583,56 +945,387 @@ export default function PatientFile() {
         />
       </section>
 
-      {/* Tarjeta Fórmula Dietética (Oliva) */}
-      <section className="glass-panel" style={{
-        background: 'var(--card-yellow)',
-        color: 'white',
-        padding: '20px',
+      {/* Resumen del Recordatorio de 24 Horas (R24H) */}
+      <section className="glass-panel" style={{ padding: '24px', marginBottom: '20px', background: 'white', border: '1.5px dashed var(--accent)', borderRadius: '24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <h4 style={{ fontSize: '1rem', fontWeight: '955', color: 'var(--primary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            🍏 Consulta / Resumen R24H (Última Ingesta)
+          </h4>
+          {patient.lastReminderDate && (
+            <span style={{ fontSize: '0.7rem', fontWeight: '800', background: 'var(--card-yellow-light)', color: 'var(--accent)', padding: '4px 10px', borderRadius: '12px' }}>
+              Modificado: {patient.lastReminderDate.split('-').reverse().join('/')}
+            </span>
+          )}
+        </div>
+
+        {!savedR24h ? (
+          <div style={{ padding: '16px', textAlign: 'center', opacity: 0.6, fontSize: '0.85rem' }}>
+            No hay recordatorio de 24 horas guardado todavía. 
+            <div style={{ marginTop: '10px' }}>
+              <Link href={`/nutri/patient/${patient.id}/reminder`} className="btn-secondary" style={{ textDecoration: 'none', display: 'inline-block', padding: '8px 16px', borderRadius: '10px', fontSize: '0.75rem' }}>
+                + Llenar R24H
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <div>
+            {/* Totales Nutricionales */}
+            {patient.r24hTotals && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', textAlign: 'center', marginBottom: '16px', background: 'var(--bg-primary)', padding: '12px', borderRadius: '16px' }}>
+                <div>
+                  <p style={{ fontSize: '0.55rem', fontWeight: '800', opacity: 0.6 }}>CALORÍAS</p>
+                  <p style={{ fontSize: '0.95rem', fontWeight: '900', color: 'var(--primary)', marginTop: '2px' }}>{patient.r24hTotals.kcal?.toFixed(0)} <span style={{ fontSize: '0.6rem' }}>kcal</span></p>
+                </div>
+                <div>
+                  <p style={{ fontSize: '0.55rem', fontWeight: '800', opacity: 0.6, color: '#FFA500' }}>CHO</p>
+                  <p style={{ fontSize: '0.95rem', fontWeight: '900', color: '#FFA500', marginTop: '2px' }}>{patient.r24hTotals.cho?.toFixed(1)}g</p>
+                </div>
+                <div>
+                  <p style={{ fontSize: '0.55rem', fontWeight: '800', opacity: 0.6, color: '#EF5350' }}>PROT</p>
+                  <p style={{ fontSize: '0.95rem', fontWeight: '900', color: '#EF5350', marginTop: '2px' }}>{patient.r24hTotals.prot?.toFixed(1)}g</p>
+                </div>
+                <div>
+                  <p style={{ fontSize: '0.55rem', fontWeight: '800', opacity: 0.6, color: '#CBBC1E' }}>GRASA</p>
+                  <p style={{ fontSize: '0.95rem', fontWeight: '900', color: '#CBBC1E', marginTop: '2px' }}>{patient.r24hTotals.fat?.toFixed(1)}g</p>
+                </div>
+              </div>
+            )}
+
+            {/* Listado de Alimentos por comida */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '250px', overflowY: 'auto', paddingRight: '4px', marginBottom: '16px' }}>
+              {['Desayuno', 'Merienda AM', 'Almuerzo', 'Merienda PM', 'Cena', 'Colación Nocturna'].map(meal => {
+                const entries = savedR24h[meal] || [];
+                if (entries.length === 0) return null;
+                return (
+                  <div key={meal} style={{ background: 'rgba(0,0,0,0.015)', padding: '10px 14px', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.03)' }}>
+                    <p style={{ fontSize: '0.75rem', fontWeight: '900', color: 'var(--primary)', marginBottom: '4px' }}>{meal.toUpperCase()}</p>
+                    <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '0.8rem', color: '#555' }}>
+                      {entries.map(e => (
+                        <li key={e.id}>
+                          <span style={{ fontWeight: '700', color: '#222' }}>{e.portionsQty} rac. de {e.name}</span>
+                          <span style={{ fontSize: '0.7rem', opacity: 0.6, marginLeft: '6px' }}>({(e.kcal).toFixed(0)} kcal)</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Notas Manuales */}
+            {savedR24hNotes && (
+              <div style={{ background: '#FFFDF0', borderLeft: '3.5px solid var(--accent)', padding: '12px 14px', borderRadius: '0 12px 12px 0', fontSize: '0.85rem' }}>
+                <p style={{ margin: '0 0 4px 0', fontWeight: '900', fontSize: '0.7rem', opacity: 0.7, color: 'var(--accent)', textTransform: 'uppercase' }}>Notas Manuales del Recordatorio:</p>
+                <p style={{ margin: 0, color: '#555', fontStyle: 'italic', whiteSpace: 'pre-wrap' }}>{savedR24hNotes}</p>
+              </div>
+            )}
+
+            <div style={{ marginTop: '14px', display: 'flex', justifyContent: 'flex-end' }}>
+              <Link href={`/nutri/patient/${patient.id}/reminder`} style={{ textDecoration: 'none' }}>
+                <button className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <History size={14} /> Editar Recordatorio
+                </button>
+              </Link>
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* Tarjeta Fórmula Dietética Interactiva */}
+      <section className="glass-panel shadow-premium" style={{
+        background: 'white',
+        border: '1.5px solid var(--primary)',
+        padding: '24px',
+        borderRadius: '24px',
         marginBottom: '20px'
       }}>
-        <h4 style={{ textAlign: 'center', marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '1px' }}>Fórmula Dietética</h4>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-          <tbody>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <h4 style={{ fontSize: '1rem', fontWeight: '955', color: 'var(--primary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            📊 Cálculo Automático de Fórmula Dietética
+          </h4>
+          <span style={{ fontSize: '0.7rem', fontWeight: '805', background: 'var(--card-green-light)', color: 'var(--primary)', padding: '4px 10px', borderRadius: '12px' }}>
+            Peso Ref (PC): {clinical.pc} kg
+          </span>
+        </div>
+
+        {/* Input de RCT */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', background: 'rgba(0,0,0,0.02)', padding: '12px 16px', borderRadius: '16px', marginBottom: '20px' }}>
+          <div style={{ flex: 1 }}>
+            <label style={{ fontSize: '0.7rem', fontWeight: '850', opacity: 0.6, display: 'block', marginBottom: '3px' }}>REQUERIMIENTO CALÓRICO TOTAL (RCT)</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <input
+                type="number"
+                value={patient.dietForm?.rct || '1700'}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  const updatedDietForm = { ...patient.dietForm, rct: val };
+                  const updatedPatient = { ...patient, dietForm: updatedDietForm };
+                  savePatientUpdate(updatedPatient);
+                }}
+                style={{ width: '100px', padding: '8px', border: '1px solid #ddd', borderRadius: '8px', fontSize: '1rem', fontWeight: '900', color: 'var(--text-primary)' }}
+              />
+              <span style={{ fontSize: '0.85rem', fontWeight: '900', color: 'var(--text-primary)' }}>Kcal / día</span>
+            </div>
+          </div>
+
+          <div style={{ flex: 1, display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
             {[
-              { label: 'PROTEÍNA', key: 'prot', placeholder: '1.4g / 76.5g / 306 Kcal' },
-              { label: 'CHO', key: 'cho', placeholder: '3.7g / 208.3g / 833 Kcal' },
-              { label: 'LÍPIDOS', key: 'lip', placeholder: '1.1g / 62.3g / 561 Kcal' },
-              { label: 'RCT', key: 'rct', placeholder: '1700 Kcal / d' },
-            ].map((item, idx) => (
-              <tr key={item.key} style={{ borderBottom: idx < 3 ? '1px solid rgba(255,255,255,0.2)' : 'none' }}>
-                <td style={{ padding: '8px', fontWeight: '700' }}>{item.label}</td>
-                <td style={{ padding: '8px', textAlign: 'right' }}>
-                  <input
-                    type="text"
-                    placeholder={item.placeholder}
-                    style={{
-                      background: 'rgba(255,255,255,0.1)',
-                      border: 'none',
-                      color: 'white',
-                      textAlign: 'right',
-                      fontSize: '0.8rem',
-                      width: '100%',
-                      outline: 'none',
-                      padding: '4px'
-                    }}
-                    defaultValue={patient.dietForm?.[item.key] || ''}
-                    onBlur={(e) => {
-                      const updated = { ...patient, dietForm: { ...patient.dietForm, [item.key]: e.target.value } };
-                      const saved = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
-                      localStorage.setItem('nutri_patients', JSON.stringify(saved.map(p => p.id === patient.id ? updated : p)));
-                    }}
-                  />
-                </td>
-              </tr>
+              { name: 'Control Peso', prot: 20, cho: 55 },
+              { name: 'Mantenimiento', prot: 15, cho: 55 },
+              { name: 'Bajo Peso', prot: 18, cho: 50 },
+            ].map((tmpl, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => {
+                  const updatedDietForm = { ...patient.dietForm, pctProt: tmpl.prot, pctCho: tmpl.cho };
+                  const updatedPatient = { ...patient, dietForm: updatedDietForm };
+                  setLocalPctProt(tmpl.prot.toString());
+                  setLocalPctCho(tmpl.cho.toString());
+                  savePatientUpdate(updatedPatient);
+                  showToast(`Distribuido: Proteína ${tmpl.prot}%, CHO ${tmpl.cho}%, Lípidos ${100 - tmpl.prot - tmpl.cho}%`, 'success');
+                }}
+                style={{
+                  background: 'none',
+                  border: '1px solid var(--primary)',
+                  color: 'var(--primary)',
+                  fontSize: '0.65rem',
+                  fontWeight: '800',
+                  padding: '6px 10px',
+                  borderRadius: '10px',
+                  cursor: 'pointer'
+                }}
+              >
+                {tmpl.name}
+              </button>
             ))}
+          </div>
+        </div>
+
+        {/* Tabla interactiva */}
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', marginBottom: '20px' }}>
+          <thead>
+            <tr style={{ borderBottom: '2px solid rgba(0,0,0,0.08)', textAlign: 'left' }}>
+              <th style={{ padding: '8px', fontWeight: '900', color: 'var(--primary)' }}>GRUPO</th>
+              <th style={{ padding: '8px', fontWeight: '900', color: 'var(--primary)', textAlign: 'center', width: '80px' }}>%</th>
+              <th style={{ padding: '8px', fontWeight: '900', color: 'var(--primary)', textAlign: 'right' }}>KCAL</th>
+              <th style={{ padding: '8px', fontWeight: '900', color: 'var(--primary)', textAlign: 'right' }}>GRAMOS</th>
+              <th style={{ padding: '8px', fontWeight: '900', color: 'var(--primary)', textAlign: 'right' }}>Gr x Kg de Peso</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(() => {
+              const rct = parseFloat(patient.dietForm?.rct) || 1700;
+
+              const getSuggestedPct = (key) => {
+                const prof = clinical?.profile ? clinical.profile.toUpperCase() : 'NORMOPESO';
+                if (prof === 'BAJO PESO') {
+                  return key === 'pctProt' ? 18 : key === 'pctCho' ? 50 : 32;
+                } else if (prof === 'SOBREPESO' || prof.startsWith('OBESIDAD')) {
+                  return key === 'pctProt' ? 20 : key === 'pctCho' ? 55 : 25;
+                } else {
+                  return key === 'pctProt' ? 15 : key === 'pctCho' ? 55 : 30;
+                }
+              };
+              const sugProt = getSuggestedPct('pctProt');
+              const sugCho = getSuggestedPct('pctCho');
+              const sugLip = getSuggestedPct('pctLip');
+
+              const pctProt = (patient.dietForm?.pctProt !== undefined && patient.dietForm?.pctProt !== null && patient.dietForm?.pctProt !== '') ? parseFloat(patient.dietForm.pctProt) : sugProt;
+              const pctCho = (patient.dietForm?.pctCho !== undefined && patient.dietForm?.pctCho !== null && patient.dietForm?.pctCho !== '') ? parseFloat(patient.dietForm.pctCho) : sugCho;
+              const pctLip = (patient.dietForm?.pctLip !== undefined && patient.dietForm?.pctLip !== null && patient.dietForm?.pctLip !== '') ? parseFloat(patient.dietForm.pctLip) : sugLip;
+              const w = parseFloat(clinical.pc) || 70;
+
+              const rows = [
+                { name: 'PROTEÍNA', pct: pctProt, isInput: true, divider: 4, key: 'pctProt' },
+                { name: 'CHO', pct: pctCho, isInput: true, divider: 4, key: 'pctCho' },
+                { name: 'LÍPIDOS', pct: pctLip, isInput: true, divider: 9, key: 'pctLip' },
+              ];
+
+              return (
+                <>
+                  {rows.map((row, idx) => {
+                    const rowKcal = rct * (row.pct / 100);
+                    const rowGrams = rowKcal / row.divider;
+                    const rowGramsPerKg = rowGrams / w;
+
+                    return (
+                      <tr key={idx} style={{ borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
+                        <td style={{ padding: '10px 8px', fontWeight: '700' }}>{row.name}</td>
+                        <td style={{ padding: '10px 8px', textAlign: 'center' }}>
+                          {row.isInput ? (
+                            <input
+                              type="number"
+                              value={row.key === 'pctProt' ? (localPctProt !== '' ? localPctProt : pctProt) : row.key === 'pctCho' ? (localPctCho !== '' ? localPctCho : pctCho) : (localPctLip !== '' ? localPctLip : pctLip)}
+                              onChange={(e) => {
+                                const valStr = e.target.value;
+                                if (row.key === 'pctProt') {
+                                  setLocalPctProt(valStr);
+                                } else if (row.key === 'pctCho') {
+                                  setLocalPctCho(valStr);
+                                } else {
+                                  setLocalPctLip(valStr);
+                                }
+                                const val = parseFloat(valStr) || 0;
+                                const updatedDietForm = { ...patient.dietForm, [row.key]: val };
+                                const updatedPatient = { ...patient, dietForm: updatedDietForm };
+                                savePatientUpdate(updatedPatient);
+                              }}
+                              style={{ width: '55px', padding: '4px', border: '1px solid #ddd', borderRadius: '4px', textAlign: 'center', fontSize: '0.8rem', fontWeight: '800' }}
+                            />
+                          ) : (
+                            <span style={{ fontSize: '0.8rem', fontWeight: '800', opacity: 0.6 }}>{row.pct}%</span>
+                          )}
+                        </td>
+                        <td style={{ padding: '10px 8px', textAlign: 'right', fontWeight: '600' }}>{rowKcal.toFixed(0)} kcal</td>
+                        <td style={{ padding: '10px 8px', textAlign: 'right', fontWeight: '750', color: 'var(--primary)' }}>{rowGrams.toFixed(1)}g</td>
+                        <td style={{ padding: '10px 8px', textAlign: 'right', fontWeight: '700' }}>{rowGramsPerKg.toFixed(2)} g/kg</td>
+                      </tr>
+                    );
+                  })}
+                  <tr style={{ background: 'rgba(29, 81, 45, 0.05)', fontWeight: '900' }}>
+                    <td style={{ padding: '12px 8px' }}>TOTAL</td>
+                    <td style={{ padding: '12px 8px', textAlign: 'center' }}>{(pctProt + pctCho + pctLip).toFixed(1)}%</td>
+                    <td style={{ padding: '12px 8px', textAlign: 'right' }}>{rct} kcal</td>
+                    <td style={{ padding: '12px 8px', textAlign: 'right' }}>-</td>
+                    <td style={{ padding: '12px 8px', textAlign: 'right' }}>-</td>
+                  </tr>
+                </>
+              );
+            })()}
           </tbody>
         </table>
+
+        {/* Caja de sugerencia de raciones de intercambio */}
+        {(() => {
+          const rct = parseFloat(patient.dietForm?.rct) || 1700;
+          const getSuggestedPct = (key) => {
+            const prof = clinical?.profile ? clinical.profile.toUpperCase() : 'NORMOPESO';
+            if (prof === 'BAJO PESO') {
+              return key === 'pctProt' ? 18 : 50;
+            } else if (prof === 'SOBREPESO' || prof.startsWith('OBESIDAD')) {
+              return key === 'pctProt' ? 20 : 55;
+            } else {
+              return key === 'pctProt' ? 15 : 55;
+            }
+          };
+          const sugProt = getSuggestedPct('pctProt');
+          const sugCho = getSuggestedPct('pctCho');
+
+          const pctProt = (patient.dietForm?.pctProt !== undefined && patient.dietForm?.pctProt !== null && patient.dietForm?.pctProt !== '') ? parseFloat(patient.dietForm.pctProt) : sugProt;
+          const pctCho = (patient.dietForm?.pctCho !== undefined && patient.dietForm?.pctCho !== null && patient.dietForm?.pctCho !== '') ? parseFloat(patient.dietForm.pctCho) : sugCho;
+          const pctLipStr = (100 - pctProt - pctCho);
+          const pctLip = pctLipStr > 0 ? pctLipStr : 0;
+
+          const targetProtGrams = (rct * pctProt / 100) / 4;
+          const targetChoGrams = (rct * pctCho / 100) / 4;
+          const targetFatGrams = (rct * pctLip / 100) / 9;
+
+          const suggestions = suggestPortionsFromMacros(targetProtGrams, targetChoGrams, targetFatGrams);
+
+          return (
+            <div style={{
+              background: '#F9FBE7',
+              border: '2px solid #AFB42B',
+              borderRadius: '20px',
+              padding: '16px'
+            }}>
+              <h5 style={{ margin: '0 0 10px 0', fontSize: '0.8rem', fontWeight: '900', color: '#1d512d', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                ✨ Sugerencia de Distribución de Raciones (Equivalencias)
+              </h5>
+              <p style={{ margin: '0 0 12px 0', fontSize: '0.7rem', opacity: 0.8, color: '#1d512d', lineHeight: '1.4' }}>
+                Basado en tu prescripción, esta es la distribución teórica diaria sugerida:
+              </p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '14px' }}>
+                {[
+                  { name: 'Cereales', val: suggestions.cereales, color: '#FFA500' },
+                  { name: 'Proteínas', val: suggestions.proteinas, color: '#FF0000' },
+                  { name: 'Vegetales', val: 2, note: '(Fijo)' },
+                  { name: 'Frutas', val: suggestions.frutas, color: '#BA55D3' },
+                  { name: 'Lácteos', val: 1, note: '(Fijo)' },
+                  { name: 'Grasas', val: suggestions.grasas, color: '#FFD700' },
+                ].map((g, idx) => (
+                  <div key={idx} style={{ background: 'white', border: '1px solid rgba(0,0,0,0.05)', padding: '10px 8px', borderRadius: '12px', textAlign: 'center' }}>
+                    <p style={{ margin: 0, fontSize: '0.55rem', fontWeight: '850', color: '#1d512d', textTransform: 'uppercase' }}>{g.name}</p>
+                    <p style={{ margin: '4px 0 0 0', fontSize: '1.1rem', fontWeight: '950', color: '#1d512d' }}>
+                      {g.val} <span style={{ fontSize: '0.65rem', fontWeight: '750', opacity: 0.6 }}>rac.</span>
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const updatedMenu = { ...patient.menu };
+                  const activeKeys = mealsForPatient.map(m => m.key);
+                  const cCount = activeKeys.length;
+                  
+                  activeKeys.forEach((key, idx) => {
+                    updatedMenu[key] = {
+                      ...(updatedMenu[key] || { time: '08:00', selectedFoods: [] }),
+                      portions: { cereales: '0', proteinas: '0', vegetales: '0', frutas: '0', lacteos: '0', grasas: '0' }
+                    };
+                  });
+
+                  if (activeKeys.includes('almuerzo')) updatedMenu.almuerzo.portions.vegetales = '1';
+                  if (activeKeys.includes('cena')) updatedMenu.cena.portions.vegetales = '1';
+
+                  if (activeKeys.includes('desayuno')) {
+                    updatedMenu.desayuno.portions.lacteos = '1';
+                  } else if (activeKeys.length > 0) {
+                    updatedMenu[activeKeys[0]].portions.lacteos = '1';
+                  }
+
+                  if (activeKeys.includes('desayuno')) updatedMenu.desayuno.portions.frutas = '1';
+                  else if (activeKeys.length > 0) updatedMenu[activeKeys[0]].portions.frutas = '1';
+
+                  if (activeKeys.includes('meriendaPM')) updatedMenu.meriendaPM.portions.frutas = '1';
+                  else if (activeKeys.includes('cena')) updatedMenu.cena.portions.frutas = '1';
+
+                  activeKeys.forEach((key, idx) => {
+                    let cPortion = Math.floor(suggestions.cereales / cCount);
+                    if (idx === cCount - 1) cPortion += (suggestions.cereales % cCount);
+                    updatedMenu[key].portions.cereales = cPortion.toString();
+
+                    let pPortion = Math.floor(suggestions.proteinas / cCount);
+                    if (idx === cCount - 1) pPortion += (suggestions.proteinas % cCount);
+                    updatedMenu[key].portions.proteinas = pPortion.toString();
+
+                    let gPortion = Math.floor(suggestions.grasas / cCount);
+                    if (idx === cCount - 1) gPortion += (suggestions.grasas % cCount);
+                    updatedMenu[key].portions.grasas = gPortion.toString();
+                  });
+
+                  const updatedPatient = { ...patient, menu: updatedMenu };
+                  savePatientUpdate(updatedPatient);
+                  showToast('¡Distribución sugerida aplicada a las comidas con éxito!', 'success');
+                }}
+                style={{
+                  width: '100%',
+                  background: '#1d512d',
+                  color: 'white',
+                  border: 'none',
+                  padding: '12px',
+                  borderRadius: '12px',
+                  fontWeight: '900',
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                  boxShadow: '0 8px 16px rgba(29, 81, 45, 0.15)'
+                }}
+              >
+                📥 Aplicar Distribución Sugerida a las Comidas
+              </button>
+            </div>
+          );
+        })()}
       </section>
 
       {/* Tarjeta Antropometría (Coral) */}
       <section className="glass-panel" style={{
-        background: gender === 'female' ? 'var(--card-red)' : 'var(--card-blue)',
-        color: 'white',
+        background: gender === 'female' ? '#FFF0F5' : '#E6F2FF',
+        color: '#111',
         padding: '20px',
         marginBottom: '20px'
       }}>
@@ -648,9 +1341,9 @@ export default function PatientFile() {
         </div>
 
         <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
-          <div style={{ flex: 1, position: 'relative', minHeight: '370px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.05)', borderRadius: '20px', paddingBottom: '70px' }}>
+          <div style={{ flex: 1, position: 'relative', minHeight: '440px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.15)', borderRadius: '20px', paddingBottom: '90px' }}>
             {patient.details?.isPediatric ? (
-              <svg viewBox="0 0 100 220" style={{ height: '280px', width: 'auto' }}>
+              <svg viewBox="0 0 100 220" style={{ height: '320px', width: 'auto' }}>
                 <g stroke="white" strokeWidth="1.5" fill="none" opacity="0.7">
                   {/* Cabeza */}
                   <circle cx="50" cy="25" r="14" />
@@ -663,64 +1356,58 @@ export default function PatientFile() {
                   <path d="M43 110 L38 200 M57 110 L62 200" />
                 </g>
                 <g style={{ cursor: 'pointer' }}>
-                  <circle cx="50" cy="35" r="6" fill="var(--accent)" onClick={() => document.getElementById('input-CUELLO')?.focus()} onMouseEnter={() => setFocusedMeasurement('CUELLO')} onMouseLeave={() => setFocusedMeasurement(null)} />
-                  <circle cx="28" cy="80" r="6" fill="white" onClick={() => document.getElementById('input-BRAZO')?.focus()} onMouseEnter={() => setFocusedMeasurement('BRAZO')} onMouseLeave={() => setFocusedMeasurement(null)} />
-                  <circle cx="50" cy="57" r="6" fill="white" onClick={() => document.getElementById('input-TORSO')?.focus()} onMouseEnter={() => setFocusedMeasurement('TORSO')} onMouseLeave={() => setFocusedMeasurement(null)} />
-                  <circle cx="50" cy="92" r="6" fill="white" onClick={() => document.getElementById('input-CINTURA')?.focus()} onMouseEnter={() => setFocusedMeasurement('CINTURA')} onMouseLeave={() => setFocusedMeasurement(null)} />
-                  <circle cx="50" cy="118" r="6" fill="white" onClick={() => document.getElementById('input-CADERA')?.focus()} onMouseEnter={() => setFocusedMeasurement('CADERA')} onMouseLeave={() => setFocusedMeasurement(null)} />
-                  <circle cx="50" cy="135" r="6" fill="white" onClick={() => document.getElementById('input-GLÚTEOS')?.focus()} onMouseEnter={() => setFocusedMeasurement('GLÚTEOS')} onMouseLeave={() => setFocusedMeasurement(null)} />
-                  <circle cx="41" cy="160" r="6" fill="white" onClick={() => document.getElementById('input-MUSLO')?.focus()} onMouseEnter={() => setFocusedMeasurement('MUSLO')} onMouseLeave={() => setFocusedMeasurement(null)} />
-                  <circle cx="59" cy="160" r="6" fill="white" onClick={() => document.getElementById('input-PANTORRILLA')?.focus()} onMouseEnter={() => setFocusedMeasurement('PANTORRILLA')} onMouseLeave={() => setFocusedMeasurement(null)} />
+                  <circle cx="50" cy="35" r="4" fill="var(--accent)" onClick={() => setFocusedMeasurement('CUELLO')} onMouseEnter={() => setFocusedMeasurement('CUELLO')} />
+                  <circle cx="28" cy="80" r="4" fill="white" stroke="#333" strokeWidth="0.5" onClick={() => setFocusedMeasurement('BRAZO')} onMouseEnter={() => setFocusedMeasurement('BRAZO')} />
+                  <circle cx="50" cy="57" r="4" fill="white" stroke="#333" strokeWidth="0.5" onClick={() => setFocusedMeasurement('TORSO')} onMouseEnter={() => setFocusedMeasurement('TORSO')} />
+                  <circle cx="50" cy="92" r="4" fill="white" stroke="#333" strokeWidth="0.5" onClick={() => setFocusedMeasurement('CINTURA')} onMouseEnter={() => setFocusedMeasurement('CINTURA')} />
+                  <circle cx="50" cy="118" r="4" fill="white" stroke="#333" strokeWidth="0.5" onClick={() => setFocusedMeasurement('CADERA')} onMouseEnter={() => setFocusedMeasurement('CADERA')} />
+                  <circle cx="50" cy="135" r="4" fill="white" stroke="#333" strokeWidth="0.5" onClick={() => setFocusedMeasurement('GLÚTEOS')} onMouseEnter={() => setFocusedMeasurement('GLÚTEOS')} />
+                  <circle cx="41" cy="160" r="4" fill="white" stroke="#333" strokeWidth="0.5" onClick={() => setFocusedMeasurement('MUSLO')} onMouseEnter={() => setFocusedMeasurement('MUSLO')} />
+                  <circle cx="59" cy="160" r="4" fill="white" stroke="#333" strokeWidth="0.5" onClick={() => setFocusedMeasurement('PANTORRILLA')} onMouseEnter={() => setFocusedMeasurement('PANTORRILLA')} />
                 </g>
               </svg>
             ) : gender === 'female' ? (
-              <svg viewBox="0 0 100 220" style={{ height: '280px', width: 'auto' }}>
-                <g stroke="white" strokeWidth="1.5" fill="none" opacity="0.7">
-                  {/* Cabeza */}
-                  <circle cx="50" cy="20" r="10" />
-                  {/* Torso con curvas */}
-                  <path d="M40 35 Q50 32 60 35 L62 70 Q50 80 38 70 Z" />
-                  <path d="M42 70 Q50 75 58 70 L60 110 Q50 120 40 110 Z" />
-                  {/* Brazos */}
-                  <path d="M40 35 L25 80 M60 35 L75 80" />
-                  {/* Piernas */}
-                  <path d="M40 110 L35 210 M60 110 L65 210" />
-                </g>
-                {/* Puntos Interactivos */}
-                <g style={{ cursor: 'pointer' }}>
-                  <circle cx="50" cy="30" r="6" fill="var(--accent)" onClick={() => document.getElementById('input-CUELLO')?.focus()} onMouseEnter={() => setFocusedMeasurement('CUELLO')} onMouseLeave={() => setFocusedMeasurement(null)} />
-                  <circle cx="25" cy="80" r="6" fill="white" onClick={() => document.getElementById('input-BRAZO')?.focus()} onMouseEnter={() => setFocusedMeasurement('BRAZO')} onMouseLeave={() => setFocusedMeasurement(null)} />
-                  <circle cx="50" cy="55" r="6" fill="white" onClick={() => document.getElementById('input-TORSO')?.focus()} onMouseEnter={() => setFocusedMeasurement('TORSO')} onMouseLeave={() => setFocusedMeasurement(null)} />
-                  <circle cx="50" cy="85" r="6" fill="white" onClick={() => document.getElementById('input-CINTURA')?.focus()} onMouseEnter={() => setFocusedMeasurement('CINTURA')} onMouseLeave={() => setFocusedMeasurement(null)} />
-                  <circle cx="50" cy="115" r="6" fill="white" onClick={() => document.getElementById('input-CADERA')?.focus()} onMouseEnter={() => setFocusedMeasurement('CADERA')} onMouseLeave={() => setFocusedMeasurement(null)} />
-                  <circle cx="50" cy="140" r="6" fill="white" onClick={() => document.getElementById('input-GLÚTEOS')?.focus()} onMouseEnter={() => setFocusedMeasurement('GLÚTEOS')} onMouseLeave={() => setFocusedMeasurement(null)} />
-                  <circle cx="36" cy="180" r="6" fill="white" onClick={() => document.getElementById('input-MUSLO')?.focus()} onMouseEnter={() => setFocusedMeasurement('MUSLO')} onMouseLeave={() => setFocusedMeasurement(null)} />
-                  <circle cx="64" cy="180" r="6" fill="white" onClick={() => document.getElementById('input-PANTORRILLA')?.focus()} onMouseEnter={() => setFocusedMeasurement('PANTORRILLA')} onMouseLeave={() => setFocusedMeasurement(null)} />
-                </g>
-              </svg>
+              <div style={{ position: 'relative', height: '340px', width: '160px' }}>
+                <img 
+                  src={`/ICONO ANTROPOMETRIA FEMENINO/FEMENINO_${clinical.profile === 'BAJO PESO' ? 'BAJO PESO' : clinical.profile === 'NORMOPESO' ? 'NORMOPESO' : clinical.profile?.includes('OBESIDAD II') || clinical.profile?.includes('OBESIDAD III') ? 'OBESIDAD II,III' : clinical.profile?.includes('OBESIDAD') ? 'OBESIDAD' : 'SOBRE PESO'}.svg`} 
+                  alt={clinical.profile} 
+                  style={{ position: 'absolute', height: '100%', width: '100%', objectFit: 'contain' }} 
+                />
+                <svg viewBox="0 0 100 220" style={{ position: 'absolute', top: 0, left: 0, height: '100%', width: '100%', zIndex: 1 }}>
+                  {/* Puntos Interactivos (Invisibles, actúan como hitboxes sobre los círculos del SVG original) */}
+                  <g style={{ cursor: 'pointer', opacity: 0 }}>
+                    <circle cx="50" cy="22" r="12" fill="red" onClick={() => setFocusedMeasurement('CUELLO')} onMouseEnter={() => setFocusedMeasurement('CUELLO')} />
+                    <circle cx="25" cy="50" r="12" fill="red" onClick={() => setFocusedMeasurement('BRAZO')} onMouseEnter={() => setFocusedMeasurement('BRAZO')} />
+                    <circle cx="50" cy="42" r="12" fill="red" onClick={() => setFocusedMeasurement('TORSO')} onMouseEnter={() => setFocusedMeasurement('TORSO')} />
+                    <circle cx="50" cy="65" r="12" fill="red" onClick={() => setFocusedMeasurement('CINTURA')} onMouseEnter={() => setFocusedMeasurement('CINTURA')} />
+                    <circle cx="50" cy="85" r="12" fill="red" onClick={() => setFocusedMeasurement('CADERA')} onMouseEnter={() => setFocusedMeasurement('CADERA')} />
+                    <circle cx="50" cy="95" r="12" fill="red" onClick={() => setFocusedMeasurement('GLÚTEOS')} onMouseEnter={() => setFocusedMeasurement('GLÚTEOS')} />
+                    <circle cx="42" cy="125" r="12" fill="red" onClick={() => setFocusedMeasurement('MUSLO')} onMouseEnter={() => setFocusedMeasurement('MUSLO')} />
+                    <circle cx="40" cy="165" r="12" fill="red" onClick={() => setFocusedMeasurement('PANTORRILLA')} onMouseEnter={() => setFocusedMeasurement('PANTORRILLA')} />
+                  </g>
+                </svg>
+              </div>
             ) : (
-              <svg viewBox="0 0 100 220" style={{ height: '280px', width: 'auto' }}>
-                <g stroke="white" strokeWidth="1.8" fill="none" opacity="0.7">
-                  {/* Cabeza */}
-                  <circle cx="50" cy="20" r="11" />
-                  {/* Torso V-Shape */}
-                  <path d="M30 40 L70 40 L65 110 L35 110 Z" />
-                  {/* Brazos Fuertes */}
-                  <path d="M30 40 L15 90 M70 40 L85 90" />
-                  {/* Piernas */}
-                  <path d="M35 110 L30 210 M65 110 L70 210" />
-                </g>
-                <g style={{ cursor: 'pointer' }}>
-                  <circle cx="50" cy="35" r="6" fill="var(--accent)" onClick={() => document.getElementById('input-CUELLO')?.focus()} onMouseEnter={() => setFocusedMeasurement('CUELLO')} onMouseLeave={() => setFocusedMeasurement(null)} />
-                  <circle cx="15" cy="90" r="6" fill="white" onClick={() => document.getElementById('input-BRAZO')?.focus()} onMouseEnter={() => setFocusedMeasurement('BRAZO')} onMouseLeave={() => setFocusedMeasurement(null)} />
-                  <circle cx="50" cy="65" r="6" fill="white" onClick={() => document.getElementById('input-TORSO')?.focus()} onMouseEnter={() => setFocusedMeasurement('TORSO')} onMouseLeave={() => setFocusedMeasurement(null)} />
-                  <circle cx="50" cy="115" r="6" fill="white" onClick={() => document.getElementById('input-CINTURA')?.focus()} onMouseEnter={() => setFocusedMeasurement('CINTURA')} onMouseLeave={() => setFocusedMeasurement(null)} />
-                  <circle cx="50" cy="135" r="6" fill="white" onClick={() => document.getElementById('input-CADERA')?.focus()} onMouseEnter={() => setFocusedMeasurement('CADERA')} onMouseLeave={() => setFocusedMeasurement(null)} />
-                  <circle cx="50" cy="155" r="6" fill="white" onClick={() => document.getElementById('input-GLÚTEOS')?.focus()} onMouseEnter={() => setFocusedMeasurement('GLÚTEOS')} onMouseLeave={() => setFocusedMeasurement(null)} />
-                  <circle cx="32" cy="180" r="6" fill="white" onClick={() => document.getElementById('input-MUSLO')?.focus()} onMouseEnter={() => setFocusedMeasurement('MUSLO')} onMouseLeave={() => setFocusedMeasurement(null)} />
-                  <circle cx="68" cy="180" r="6" fill="white" onClick={() => document.getElementById('input-PANTORRILLA')?.focus()} onMouseEnter={() => setFocusedMeasurement('PANTORRILLA')} onMouseLeave={() => setFocusedMeasurement(null)} />
-                </g>
-              </svg>
+              <div style={{ position: 'relative', height: '340px', width: '160px' }}>
+                <img 
+                  src={`/ICONO ANTROPOMETRIA MASCULINO/MASCULINO_${clinical.profile === 'BAJO PESO' ? 'BAJO PESO' : clinical.profile === 'NORMOPESO' ? 'NORMO PESO' : clinical.profile?.includes('OBESIDAD') ? 'OBESIDAD' : 'SOBRE PESO'}.svg`} 
+                  alt={clinical.profile} 
+                  style={{ position: 'absolute', height: '100%', width: '100%', objectFit: 'contain' }} 
+                />
+                <svg viewBox="0 0 100 220" style={{ position: 'absolute', top: 0, left: 0, height: '100%', width: '100%', zIndex: 1 }}>
+                  {/* Puntos Interactivos (Invisibles, actúan como hitboxes sobre los círculos del SVG original) */}
+                  <g style={{ cursor: 'pointer', opacity: 0 }}>
+                    <circle cx="50" cy="22" r="12" fill="red" onClick={() => setFocusedMeasurement('CUELLO')} onMouseEnter={() => setFocusedMeasurement('CUELLO')} />
+                    <circle cx="25" cy="50" r="12" fill="red" onClick={() => setFocusedMeasurement('BRAZO')} onMouseEnter={() => setFocusedMeasurement('BRAZO')} />
+                    <circle cx="50" cy="42" r="12" fill="red" onClick={() => setFocusedMeasurement('TORSO')} onMouseEnter={() => setFocusedMeasurement('TORSO')} />
+                    <circle cx="50" cy="65" r="12" fill="red" onClick={() => setFocusedMeasurement('CINTURA')} onMouseEnter={() => setFocusedMeasurement('CINTURA')} />
+                    <circle cx="50" cy="85" r="12" fill="red" onClick={() => setFocusedMeasurement('CADERA')} onMouseEnter={() => setFocusedMeasurement('CADERA')} />
+                    <circle cx="50" cy="95" r="12" fill="red" onClick={() => setFocusedMeasurement('GLÚTEOS')} onMouseEnter={() => setFocusedMeasurement('GLÚTEOS')} />
+                    <circle cx="42" cy="125" r="12" fill="red" onClick={() => setFocusedMeasurement('MUSLO')} onMouseEnter={() => setFocusedMeasurement('MUSLO')} />
+                    <circle cx="40" cy="165" r="12" fill="red" onClick={() => setFocusedMeasurement('PANTORRILLA')} onMouseEnter={() => setFocusedMeasurement('PANTORRILLA')} />
+                  </g>
+                </svg>
+              </div>
             )}
             
             {/* Guía Explicativa Detallada de Cinta Métrica */}
@@ -755,7 +1442,7 @@ export default function PatientFile() {
             {measurements.map((m) => (
               <div key={m.label} style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '4px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <p style={{ fontSize: '0.6rem', fontWeight: '700' }}>{m.label}</p>
+                  <p style={{ fontSize: '0.7rem', fontWeight: '800', fontFamily: 'Belinda, sans-serif', cursor: 'pointer', color: '#111', textTransform: 'uppercase' }} onClick={() => setFocusedMeasurement(m.label)}>{m.label}</p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <input
                       id={`input-${m.label}`}
@@ -764,12 +1451,13 @@ export default function PatientFile() {
                       defaultValue={patient.measurements?.[m.label] || ''}
                       style={{
                         width: '45px',
-                        background: 'rgba(255,255,255,0.2)',
-                        border: 'none',
+                        background: 'rgba(0,0,0,0.05)',
+                        border: '1px solid rgba(0,0,0,0.1)',
                         borderRadius: '4px',
                         padding: '4px',
-                        color: 'white',
+                        color: '#111',
                         fontSize: '0.8rem',
+                        fontWeight: '600',
                         textAlign: 'right'
                       }}
                       onFocus={() => setFocusedMeasurement(m.label)}
@@ -777,6 +1465,7 @@ export default function PatientFile() {
                         const updated = { ...patient, measurements: { ...patient.measurements, [m.label]: e.target.value } };
                         const saved = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
                         localStorage.setItem('nutri_patients', JSON.stringify(saved.map(p => p.id === patient.id ? updated : p)));
+                        setPatient(updated);
                         setFocusedMeasurement(null);
                       }}
                     />
@@ -812,26 +1501,75 @@ export default function PatientFile() {
             { q: "2. Comida y alimento NO favorito", key: "nonFavFood" },
             { q: "3. Comidas que desea realizar", key: "mealCount" },
             { q: "4. Actividad física", key: "physicalActivity" },
-            { q: "5. Intolerancia o alergia", key: "allergies" }
+            { q: "5. Intolerancia o alergia", key: "allergies" },
+            { q: "6. Consumo Hídrico (Agua al día)", key: "waterGlasses", isWater: true }
           ].map((item) => (
             <div key={item.key} style={{ background: 'rgba(0,0,0,0.02)', padding: '12px', borderRadius: '10px', borderLeft: '4px solid var(--primary)' }}>
               <p style={{ fontWeight: '800', fontSize: '0.8rem', opacity: 0.6, marginBottom: '4px', textTransform: 'uppercase' }}>{item.q}</p>
-              {editingAnswers ? (
-                <textarea 
-                  className="input-field"
-                  style={{ width: '100%', minHeight: '60px', padding: '10px', fontSize: '0.9rem', borderRadius: '8px', border: '1px solid rgba(0,0,0,0.1)', background: 'white', marginTop: '4px' }}
-                  value={patient.onboardingAnswers?.[item.key] || ''}
-                  placeholder={`Escribe aquí la respuesta para: ${item.q}...`}
-                  onChange={(e) => {
-                    const updatedAnswers = { ...patient.onboardingAnswers, [item.key]: e.target.value };
-                    const updatedPatient = { ...patient, onboardingAnswers: updatedAnswers };
-                    savePatientUpdate(updatedPatient);
-                  }}
-                />
+              {item.isWater ? (
+                <div style={{ display: 'flex', gap: '15px', alignItems: 'center', marginTop: editingAnswers ? '6px' : '2px' }}>
+                  <div>
+                    <span style={{ fontSize: '0.65rem', opacity: 0.5, display: 'block', fontWeight: '800' }}>VASOS DE AGUA:</span>
+                    <input 
+                      type="number" 
+                      step="0.5" 
+                      disabled={!editingAnswers}
+                      value={patient.onboardingAnswers?.waterGlasses || ''} 
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        const parsed = parseFloat(val);
+                        const updatedAnswers = { 
+                          ...patient.onboardingAnswers, 
+                          waterGlasses: val,
+                          waterLiters: val ? (parsed * 0.24).toFixed(2).replace(/\.?0+$/, '') : ''
+                        };
+                        const updatedPatient = { ...patient, onboardingAnswers: updatedAnswers };
+                        savePatientUpdate(updatedPatient);
+                      }}
+                      style={{ background: editingAnswers ? 'white' : 'transparent', border: editingAnswers ? '1px solid rgba(0,0,0,0.1)' : 'none', cursor: editingAnswers ? 'text' : 'default', padding: '6px', fontSize: '0.9rem', borderRadius: '6px', width: '90px', fontWeight: '900', textAlign: editingAnswers ? 'center' : 'left', outline: 'none' }} 
+                    />
+                  </div>
+                  <div style={{ fontSize: '1.2rem', fontWeight: '900', color: 'var(--primary)', alignSelf: 'flex-end', paddingBottom: '2px' }}>=</div>
+                  <div>
+                    <span style={{ fontSize: '0.65rem', opacity: 0.5, display: 'block', fontWeight: '800' }}>LITROS DE AGUA:</span>
+                    <input 
+                      type="number" 
+                      step="0.1" 
+                      disabled={!editingAnswers}
+                      value={patient.onboardingAnswers?.waterLiters || ''} 
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        const parsed = parseFloat(val);
+                        const updatedAnswers = { 
+                          ...patient.onboardingAnswers, 
+                          waterLiters: val,
+                          waterGlasses: val ? (parsed / 0.24).toFixed(1).replace(/\.?0+$/, '') : ''
+                        };
+                        const updatedPatient = { ...patient, onboardingAnswers: updatedAnswers };
+                        savePatientUpdate(updatedPatient);
+                      }}
+                      style={{ background: editingAnswers ? 'white' : 'transparent', border: editingAnswers ? '1px solid rgba(0,0,0,0.1)' : 'none', cursor: editingAnswers ? 'text' : 'default', padding: '6px', fontSize: '0.9rem', borderRadius: '6px', width: '90px', fontWeight: '900', textAlign: editingAnswers ? 'center' : 'left', outline: 'none' }} 
+                    />
+                  </div>
+                </div>
               ) : (
-                <p style={{ fontSize: '0.95rem', fontWeight: '600', color: '#333', whiteSpace: 'pre-wrap' }}>
-                  {patient.onboardingAnswers?.[item.key] || 'Pendiente por llenar por el paciente...'}
-                </p>
+                editingAnswers ? (
+                  <textarea 
+                    className="input-field"
+                    style={{ width: '100%', minHeight: '60px', padding: '10px', fontSize: '0.9rem', borderRadius: '8px', border: '1px solid rgba(0,0,0,0.1)', background: 'white', marginTop: '4px' }}
+                    value={patient.onboardingAnswers?.[item.key] || ''}
+                    placeholder={`Escribe aquí la respuesta para: ${item.q}...`}
+                    onChange={(e) => {
+                      const updatedAnswers = { ...patient.onboardingAnswers, [item.key]: e.target.value };
+                      const updatedPatient = { ...patient, onboardingAnswers: updatedAnswers };
+                      savePatientUpdate(updatedPatient);
+                    }}
+                  />
+                ) : (
+                  <p style={{ fontSize: '0.95rem', fontWeight: '600', color: '#333', whiteSpace: 'pre-wrap' }}>
+                    {patient.onboardingAnswers?.[item.key] || 'Pendiente por llenar por el paciente...'}
+                  </p>
+                )
               )}
             </div>
           ))}
@@ -840,35 +1578,314 @@ export default function PatientFile() {
 
       {/* Galería de Fotos de Evolución */}
       <section className="glass-panel" style={{ padding: '24px', marginBottom: '20px' }}>
-         <h4 style={{ color: 'var(--text-primary)', marginBottom: '20px', fontSize: '1.2rem', textAlign: 'center', fontWeight: '900' }}>COMPOSICIÓN CORPORAL (FOTOS)</h4>
-         {patient.onboardingPhotos ? (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-               {[
-                 { label: 'Frente', key: 'front' },
-                 { label: 'Espalda', key: 'back' },
-                 { label: 'Lat. Izquierdo', key: 'left' },
-                 { label: 'Lat. Derecho', key: 'right' }
-               ].map(item => (
-                 <div key={item.key} style={{ textAlign: 'center' }}>
-                    <p style={{ fontSize: '0.65rem', fontWeight: '800', marginBottom: '6px', opacity: 0.5 }}>{item.label}</p>
-                    <div style={{ 
-                      width: '100%', 
-                      aspectRatio: '0.8', 
-                      background: patient.onboardingPhotos[item.key] ? `url(${patient.onboardingPhotos[item.key]})` : '#eee',
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center',
-                      borderRadius: '12px',
-                      border: '1px solid rgba(0,0,0,0.1)'
-                    }} />
-                 </div>
+         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '20px', borderBottom: '1px solid rgba(0,0,0,0.05)', paddingBottom: '12px' }}>
+           <h4 style={{ color: 'var(--text-primary)', margin: 0, fontSize: '1.2rem', fontWeight: '900' }}>COMPOSICIÓN CORPORAL (FOTOS)</h4>
+           
+           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+             {/* Filtro de Carpeta/Sesión */}
+             <select
+               value={photoSessionFilter}
+               onChange={(e) => setPhotoSessionFilter(e.target.value)}
+               className="input-field"
+               style={{ padding: '4px 8px', fontSize: '0.8rem', width: 'auto', minWidth: '130px', margin: 0 }}
+             >
+               <option value="All">📁 Todas las fotos</option>
+               {[...new Set((patient.photosGallery || []).map(p => p.folder).filter(Boolean))].map(f => (
+                 <option key={f} value={f}>📁 {f}</option>
                ))}
-            </div>
+               <option value="Comparativas">📂 Comparativas</option>
+             </select>
+
+             {/* Botón de comparativa */}
+             <button
+               onClick={() => {
+                 if (selectedPhotosForComp.length !== 2) {
+                   showToast('Por favor, selecciona exactamente 2 fotos para comparar.', 'info');
+                   return;
+                 }
+                 setShowComparisonModal(true);
+               }}
+               disabled={selectedPhotosForComp.length !== 2}
+               style={{
+                 padding: '6px 12px',
+                 fontSize: '0.8rem',
+                 fontWeight: '700',
+                 borderRadius: '8px',
+                 border: 'none',
+                 background: selectedPhotosForComp.length === 2 ? 'var(--accent)' : '#ccc',
+                 color: selectedPhotosForComp.length === 2 ? 'white' : '#666',
+                 cursor: selectedPhotosForComp.length === 2 ? 'pointer' : 'not-allowed',
+                 display: 'flex',
+                 alignItems: 'center',
+                 gap: '6px'
+               }}
+             >
+               Comparar ({selectedPhotosForComp.length}/2)
+             </button>
+           </div>
+         </div>
+
+         {/* Formulario rápido para subir fotos por el Doctor */}
+         <div style={{ background: 'rgba(29, 81, 45, 0.05)', padding: '16px', borderRadius: '12px', marginBottom: '20px' }}>
+           <p style={{ margin: '0 0 10px 0', fontSize: '0.8rem', fontWeight: '900', color: 'var(--primary)' }}>Cargar Nueva Toma del Paciente</p>
+           <form onSubmit={handlePhotoUpload} style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center' }}>
+             <div>
+               <label style={{ fontSize: '0.65rem', fontWeight: '800', display: 'block', marginBottom: '3px', opacity: 0.7 }}>POSE / TOMA</label>
+               <select
+                 value={newPhotoLabel}
+                 onChange={(e) => setNewPhotoLabel(e.target.value)}
+                 className="input-field"
+                 style={{ padding: '6px', fontSize: '0.8rem', margin: 0, width: '130px' }}
+               >
+                 <option value="Frente">Frente</option>
+                 <option value="Espalda">Espalda</option>
+                 <option value="Lat. Izquierdo">Lat. Izquierdo</option>
+                 <option value="Lat. Derecho">Lat. Derecho</option>
+                 <option value="Comparativa">Comparativa</option>
+                 <option value="Otra">Otra</option>
+               </select>
+             </div>
+
+             <div>
+               <label style={{ fontSize: '0.65rem', fontWeight: '800', display: 'block', marginBottom: '3px', opacity: 0.7 }}>FECHA CONSULTA</label>
+               <input
+                 type="date"
+                 value={newPhotoDate}
+                 onChange={(e) => setNewPhotoDate(e.target.value)}
+                 className="input-field"
+                 style={{ padding: '4px 6px', fontSize: '0.8rem', margin: 0, width: '135px' }}
+               />
+             </div>
+
+             <div style={{ flex: 1, minWidth: '150px' }}>
+               <label style={{ fontSize: '0.65rem', fontWeight: '800', display: 'block', marginBottom: '3px', opacity: 0.7 }}>ARCHIVO IMAGEN</label>
+               <input
+                 type="file"
+                 id="new-photo-upload-input"
+                 accept="image/*"
+                 onChange={(e) => setNewPhotoFile(e.target.files[0])}
+                 style={{ fontSize: '0.75rem' }}
+               />
+             </div>
+
+             <button
+               type="submit"
+               style={{
+                 alignSelf: 'flex-end',
+                 padding: '8px 16px',
+                 fontSize: '0.8rem',
+                 fontWeight: '800',
+                 borderRadius: '8px',
+                 border: 'none',
+                 background: 'var(--primary)',
+                 color: 'white',
+                 cursor: 'pointer'
+               }}
+             >
+               Cargar
+             </button>
+           </form>
+         </div>
+
+         {/* Grid de Fotos */}
+         {patient.photosGallery && patient.photosGallery.length > 0 ? (
+           <div>
+             {/* Agrupamiento dinámico por carpetas */}
+             {(() => {
+               let filteredPhotos = patient.photosGallery;
+               if (photoSessionFilter !== 'All') {
+                 filteredPhotos = patient.photosGallery.filter(p => p.folder === photoSessionFilter);
+               }
+               
+               if (filteredPhotos.length === 0) {
+                 return (
+                   <p style={{ textAlign: 'center', opacity: 0.5, fontSize: '0.85rem', padding: '20px' }}>No hay fotos en esta carpeta.</p>
+                 );
+               }
+
+               const groups = {};
+               filteredPhotos.forEach(p => {
+                 const f = p.folder || 'Sin Sesión';
+                 if (!groups[f]) groups[f] = [];
+                 groups[f].push(p);
+               });
+
+               return Object.entries(groups).map(([folderName, photosInFolder]) => (
+                 <div key={folderName} style={{ marginBottom: '24px' }}>
+                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', borderBottom: '1.5px solid rgba(29, 81, 45, 0.1)', paddingBottom: '4px' }}>
+                     <span style={{ fontSize: '0.85rem', fontWeight: '900', color: 'var(--primary)', textTransform: 'uppercase' }}>📁 {folderName}</span>
+                     <span style={{ fontSize: '0.7rem', opacity: 0.5 }}>({photosInFolder.length} fotos)</span>
+                   </div>
+
+                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '14px' }}>
+                     {photosInFolder.map(photo => {
+                       const isSelected = selectedPhotosForComp.includes(photo.id);
+                       return (
+                         <div
+                           key={photo.id}
+                           style={{
+                             background: 'white',
+                             borderRadius: '12px',
+                             overflow: 'hidden',
+                             border: isSelected ? '2.5px solid var(--accent)' : '1px solid rgba(0,0,0,0.08)',
+                             boxShadow: '0 4px 10px rgba(0,0,0,0.02)',
+                             position: 'relative',
+                             display: 'flex',
+                             flexDirection: 'column'
+                           }}
+                         >
+                           <div style={{ position: 'relative', width: '100%', aspectRatio: '0.85', background: '#f5f5f5' }}>
+                             <img
+                               src={photo.url}
+                               alt={photo.label}
+                               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                             />
+                             <div
+                               style={{
+                                 position: 'absolute',
+                                 top: '6px',
+                                 left: '6px',
+                                 background: 'rgba(0,0,0,0.6)',
+                                 color: 'white',
+                                 padding: '2px 6px',
+                                 borderRadius: '4px',
+                                 fontSize: '0.55rem',
+                                 fontWeight: '800'
+                               }}
+                             >
+                               {photo.label}
+                             </div>
+                           </div>
+
+                           <div style={{ padding: '8px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '4px' }}>
+                             <div style={{ fontSize: '0.6rem', opacity: 0.6 }}>
+                               <p style={{ margin: 0 }}>Subido: {photo.date}</p>
+                               <p style={{ margin: 0, fontWeight: '700' }}>Por: {photo.uploadedBy}</p>
+                             </div>
+                             
+                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px', borderTop: '1px solid #f0f0f0', paddingTop: '4px' }}>
+                               <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', cursor: 'pointer', fontWeight: '800', color: isSelected ? 'var(--accent)' : '#444' }}>
+                                 <input
+                                   type="checkbox"
+                                   checked={isSelected}
+                                   onChange={() => handleToggleCompPhoto(photo.id)}
+                                   style={{ margin: 0, cursor: 'pointer' }}
+                                 />
+                                 Comparar
+                               </label>
+                               
+                               <button
+                                 onClick={() => handleDeletePhoto(photo.id)}
+                                 style={{ background: 'none', border: 'none', color: '#ff4444', cursor: 'pointer', padding: '2px' }}
+                                 title="Eliminar foto"
+                               >
+                                 ✕
+                               </button>
+                             </div>
+                           </div>
+                         </div>
+                       );
+                     })}
+                   </div>
+                 </div>
+               ));
+             })()}
+           </div>
          ) : (
            <div style={{ textAlign: 'center', padding: '40px 0', opacity: 0.4 }}>
-              <Camera size={40} style={{ margin: '0 auto 10px' }} />
-              <p style={{ fontSize: '0.85rem', fontWeight: '700' }}>El paciente aún no ha cargado fotos de su evolución corporal.</p>
+             <Camera size={40} style={{ margin: '0 auto 10px' }} />
+             <p style={{ fontSize: '0.85rem', fontWeight: '700' }}>El paciente aún no tiene fotos en su galería corporal.</p>
            </div>
          )}
+
+         {showComparisonModal && selectedPhotosForComp.length === 2 && (() => {
+           const photoA = (patient.photosGallery || []).find(p => p.id === selectedPhotosForComp[0]);
+           const photoB = (patient.photosGallery || []).find(p => p.id === selectedPhotosForComp[1]);
+           if (!photoA || !photoB) return null;
+           
+           return (
+             <div style={{
+               position: 'fixed',
+               top: 0,
+               left: 0,
+               right: 0,
+               bottom: 0,
+               background: 'rgba(0,0,0,0.85)',
+               display: 'flex',
+               alignItems: 'center',
+               justifyContent: 'center',
+               zIndex: 9999,
+               padding: '20px'
+             }}>
+               <div style={{
+                 background: 'white',
+                 borderRadius: '24px',
+                 padding: '24px',
+                 maxWidth: '750px',
+                 width: '100%',
+                 boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+               }}>
+                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                   <h3 style={{ margin: 0, color: 'var(--primary)', fontWeight: '900', fontSize: '1.2rem' }}>Comparar Toma de Fotos</h3>
+                   <button
+                     onClick={() => setShowComparisonModal(false)}
+                     style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#666', fontWeight: '700' }}
+                   >
+                     ✕
+                   </button>
+                 </div>
+                 
+                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+                   <div style={{ textAlign: 'center' }}>
+                     <p style={{ fontWeight: '800', fontSize: '0.85rem', marginBottom: '8px', color: 'var(--primary)' }}>TOMA A: {photoA.label} ({photoA.date})</p>
+                     <div style={{ width: '100%', aspectRatio: '0.85', borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(0,0,0,0.1)' }}>
+                       <img src={photoA.url} alt="A" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                     </div>
+                   </div>
+                   <div style={{ textAlign: 'center' }}>
+                     <p style={{ fontWeight: '800', fontSize: '0.85rem', marginBottom: '8px', color: 'var(--primary)' }}>TOMA B: {photoB.label} ({photoB.date})</p>
+                     <div style={{ width: '100%', aspectRatio: '0.85', borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(0,0,0,0.1)' }}>
+                       <img src={photoB.url} alt="B" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                     </div>
+                   </div>
+                 </div>
+
+                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                   <button
+                     onClick={() => setShowComparisonModal(false)}
+                     style={{
+                       padding: '10px 20px',
+                       fontSize: '0.9rem',
+                       fontWeight: '700',
+                       borderRadius: '50px',
+                       border: '1px solid #ccc',
+                       background: 'white',
+                       color: '#666',
+                       cursor: 'pointer'
+                     }}
+                   >
+                     Cancelar
+                   </button>
+                   <button
+                     onClick={handleSaveComparisonCanvas}
+                     style={{
+                       padding: '10px 24px',
+                       fontSize: '0.9rem',
+                       fontWeight: '900',
+                       borderRadius: '50px',
+                       border: 'none',
+                       background: 'var(--primary)',
+                       color: 'white',
+                       cursor: 'pointer'
+                     }}
+                   >
+                     Guardar Comparativa en Álbum
+                   </button>
+                 </div>
+               </div>
+             </div>
+           );
+         })()}
       </section>
       {/* PREVISUALIZACIÓN DEL DASHBOARD INTERACTIVO DEL PACIENTE */}
       <section className="glass-panel" style={{ padding: '24px', marginBottom: '20px', background: 'white' }}>
@@ -887,6 +1904,20 @@ export default function PatientFile() {
 
         {previewDashboardOpen && (
           <div className="fade-in" style={{ marginTop: '24px', borderTop: '1.5px solid rgba(0,0,0,0.08)', paddingTop: '20px' }}>
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
+              <button 
+                onClick={() => setPreviewDay('day1')}
+                style={{ flex: 1, padding: '10px', borderRadius: '12px', border: previewDay === 'day1' ? '2px solid var(--accent)' : '1px solid #ccc', background: previewDay === 'day1' ? 'rgba(255,167,38,0.1)' : 'white', fontWeight: '900', color: previewDay === 'day1' ? 'var(--accent)' : '#666', cursor: 'pointer' }}
+              >
+                ☀️ DÍA 1
+              </button>
+              <button 
+                onClick={() => setPreviewDay('day2')}
+                style={{ flex: 1, padding: '10px', borderRadius: '12px', border: previewDay === 'day2' ? '2px solid var(--primary)' : '1px solid #ccc', background: previewDay === 'day2' ? 'rgba(29, 81, 45, 0.1)' : 'white', fontWeight: '900', color: previewDay === 'day2' ? 'var(--primary)' : '#666', cursor: 'pointer' }}
+              >
+                🌙 DÍA 2
+              </button>
+            </div>
             <p style={{ fontSize: '0.8rem', opacity: 0.7, marginBottom: '20px', fontStyle: 'italic' }}>
               Así es como el paciente visualiza su distribución e intercambios auto-calculada en tiempo real:
             </p>
@@ -908,9 +1939,9 @@ export default function PatientFile() {
                 </h4>
                 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {exchangeMeals.map(m => {
+                  {mealsForPatient.map(m => {
                     const isActive = selectedExchangeMeal === m.key;
-                    const mealPortions = patient.menu?.[m.key]?.portions || {};
+                    const mealPortions = patient.menus?.[previewDay]?.[m.key]?.portions || {};
                     const hasPortions = Object.values(mealPortions).some(val => parseFloat(val) > 0);
                     
                     return (
@@ -927,7 +1958,7 @@ export default function PatientFile() {
                           transition: 'all 0.2s'
                         }}
                       >
-                        <p style={{ margin: '0 0 6px 0', fontWeight: '950', fontSize: '0.85rem', textTransform: 'uppercase', color: isActive ? '#1d512d' : '#555' }}>
+                        <p style={{ margin: '0 0 6px 0', fontWeight: '955', fontSize: '0.85rem', textTransform: 'uppercase', color: isActive ? '#1d512d' : '#555' }}>
                           {m.name}
                         </p>
                         
@@ -956,12 +1987,12 @@ export default function PatientFile() {
               {/* LADO DERECHO: INTERCAMBIOS AUTO-RELLENADOS */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <h4 style={{ fontSize: '0.95rem', fontWeight: '900', margin: '0 0 4px 0', color: '#1d512d' }}>
-                  📋 TABLA DE INTERCAMBIOS PARA: <span style={{ textTransform: 'uppercase', color: '#1d512d', fontWeight: '950' }}>{exchangeMeals.find(em => em.key === selectedExchangeMeal)?.name}</span>
+                  📋 TABLA DE INTERCAMBIOS PARA: <span style={{ textTransform: 'uppercase', color: '#1d512d', fontWeight: '950' }}>{mealsForPatient.find(em => em.key === selectedExchangeMeal)?.name || ''}</span>
                 </h4>
                 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   {Object.entries(EXCHANGE_GUIDE_DB).map(([groupKey, groupMeta]) => {
-                    const targetVal = parseFloat(patient.menu?.[selectedExchangeMeal]?.portions?.[groupKey]) || 0;
+                    const targetVal = parseFloat(patient.menus?.[previewDay]?.[selectedExchangeMeal]?.portions?.[groupKey]) || 0;
                     
                     return (
                       <div key={groupKey} style={{ border: `1.5px solid ${groupMeta.color}`, borderRadius: '16px', overflow: 'hidden' }}>
@@ -1062,13 +2093,6 @@ export default function PatientFile() {
         zIndex: 10000, 
         boxShadow: '0 -10px 25px rgba(0,0,0,0.1)'
       }}>
-        <button 
-          onClick={startFollowUp}
-          className="btn-secondary" 
-          style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '14px', borderRadius: '16px', fontSize: '0.85rem' }}
-        >
-          <History size={18} /> <span className="btn-text">Nuevo Control</span>
-        </button>
         <button 
           onClick={saveHistory}
           className="btn-accent" 
@@ -1172,9 +2196,9 @@ export default function PatientFile() {
               </div>
 
               {/* Ajustes Manuales de Pesos clínicos en este control */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px', marginBottom: '20px' }}>
                 <div>
-                  <label style={{ fontSize: '0.75rem', fontWeight: '700', opacity: 0.6, display: 'block', marginBottom: '6px' }}>Ajustar Peso Ideal Clínico (PI)</label>
+                  <label style={{ fontSize: '0.75rem', fontWeight: '700', opacity: 0.6, display: 'block', marginBottom: '6px' }}>Peso Ideal Clínico (PI)</label>
                   <input 
                     type="number" 
                     step="0.1"
@@ -1186,7 +2210,19 @@ export default function PatientFile() {
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '0.75rem', fontWeight: '700', opacity: 0.6, display: 'block', marginBottom: '6px' }}>Ajustar Peso de Cálculo (PC)</label>
+                  <label style={{ fontSize: '0.75rem', fontWeight: '700', opacity: 0.6, display: 'block', marginBottom: '6px' }}>Peso Ajustado Clínico (PA)</label>
+                  <input 
+                    type="number" 
+                    step="0.1"
+                    placeholder={`Calculado: ${clinical.pa} kg`}
+                    className="input-field"
+                    style={{ margin: 0 }}
+                    value={controlData.manualPa || ''}
+                    onChange={(e) => setControlData({...controlData, manualPa: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: '700', opacity: 0.6, display: 'block', marginBottom: '6px' }}>Peso de Cálculo (PC)</label>
                   <input 
                     type="number" 
                     step="0.1"

@@ -11,14 +11,16 @@ export default function QuestionsPage() {
     nonFavFood: '',
     mealCount: '',
     physicalActivity: '',
-    allergies: ''
+    allergies: '',
+    waterGlasses: '',
+    waterLiters: ''
   });
 
   useEffect(() => {
     const saved = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
     const found = saved.find(p => p.id === parseInt(params.id));
     if (found && found.onboardingAnswers) {
-        setAnswers(found.onboardingAnswers);
+        setAnswers(prev => ({ ...prev, ...found.onboardingAnswers }));
     }
   }, [params.id]);
 
@@ -31,7 +33,7 @@ export default function QuestionsPage() {
   ];
 
   const handleNext = () => {
-    if (step < 3) {
+    if (step < 4) {
       setStep(step + 1);
     } else {
       const saved = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
@@ -144,6 +146,71 @@ export default function QuestionsPage() {
           </div>
         )}
 
+        {step === 4 && (
+          <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div>
+              <p style={{ fontSize: '1rem', fontWeight: '800', marginBottom: '8px' }}>6. Consumo hídrico (Agua al día)</p>
+              <p style={{ fontSize: '0.75rem', opacity: 0.7, marginBottom: '15px', fontWeight: '600' }}>
+                Indica tu consumo en vasos o en litros. Ambos campos se mantendrán sincronizados automáticamente.
+              </p>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                <div style={{ background: 'white', padding: '15px', borderRadius: '15px', border: '1px solid #1d512d20', textAlign: 'center' }}>
+                  <span style={{ fontSize: '1.8rem', display: 'block', marginBottom: '8px' }}>🥛</span>
+                  <label style={{ fontSize: '0.75rem', fontWeight: '800', display: 'block', marginBottom: '6px' }}>VASOS DE AGUA</label>
+                  <input 
+                    type="number"
+                    step="0.5" 
+                    value={answers.waterGlasses}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const parsed = parseFloat(val);
+                      if (!val) {
+                        setAnswers({ ...answers, waterGlasses: '', waterLiters: '' });
+                      } else if (!isNaN(parsed)) {
+                        setAnswers({ 
+                          ...answers, 
+                          waterGlasses: val, 
+                          waterLiters: (parsed * 0.24).toFixed(2).replace(/\.?0+$/, '') 
+                        });
+                      }
+                    }}
+                    placeholder="Ej. 8"
+                    style={{ width: '100%', padding: '10px', fontSize: '1rem', fontWeight: '900', border: '2px solid #1d512d50', borderRadius: '8px', textAlign: 'center', outline: 'none' }}
+                  />
+                  <span style={{ fontSize: '0.65rem', opacity: 0.5, marginTop: '4px', display: 'block' }}>(1 vaso = 240 ml)</span>
+                </div>
+
+                <div style={{ background: 'white', padding: '15px', borderRadius: '15px', border: '1px solid #1d512d20', textAlign: 'center' }}>
+                  <span style={{ fontSize: '1.8rem', display: 'block', marginBottom: '8px' }}>💧</span>
+                  <label style={{ fontSize: '0.75rem', fontWeight: '800', display: 'block', marginBottom: '6px' }}>LITROS DE AGUA</label>
+                  <input 
+                    type="number"
+                    step="0.1" 
+                    value={answers.waterLiters}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const parsed = parseFloat(val);
+                      if (!val) {
+                        setAnswers({ ...answers, waterGlasses: '', waterLiters: '' });
+                      } else if (!isNaN(parsed)) {
+                        setAnswers({ 
+                          ...answers, 
+                          waterGlasses: (parsed / 0.24).toFixed(1).replace(/\.?0+$/, ''), 
+                          waterLiters: val 
+                        });
+                      }
+                    }}
+                    placeholder="Ej. 2.0"
+                    style={{ width: '100%', padding: '10px', fontSize: '1rem', fontWeight: '900', border: '2px solid #1d512d50', borderRadius: '8px', textAlign: 'center', outline: 'none' }}
+                  />
+                  <span style={{ fontSize: '0.65rem', opacity: 0.5, marginTop: '4px', display: 'block' }}>(en litros)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
 
       <div style={{ width: '100%', maxWidth: '380px', paddingBottom: '20px' }}>
@@ -162,7 +229,7 @@ export default function QuestionsPage() {
             boxShadow: '0 4px 15px rgba(29, 81, 45, 0.3)'
           }}
         >
-          {step < 3 ? 'SIGUIENTE PREGUNTA' : 'SIGUIENTE PASO: MEDIDAS'}
+          {step < 4 ? 'SIGUIENTE PREGUNTA' : 'SIGUIENTE PASO: MEDIDAS'}
         </button>
 
         <div style={{ textAlign: 'center', marginTop: '15px' }}>

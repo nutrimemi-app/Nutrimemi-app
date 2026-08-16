@@ -15,6 +15,7 @@ export default function Recordatorio24H() {
   const [foods, setFoods] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeMeal, setActiveMeal] = useState('Desayuno');
+  const [r24hNotes, setR24hNotes] = useState('');
   
   // Estructura del Recordatorio 24 Horas
   const [reminder, setReminder] = useState({
@@ -48,6 +49,10 @@ export default function Recordatorio24H() {
       const savedReminder = localStorage.getItem(`r24h_${found.id}`);
       if (savedReminder) {
         setReminder(JSON.parse(savedReminder));
+      }
+      const savedNotes = localStorage.getItem(`r24h_notes_${found.id}`);
+      if (savedNotes) {
+        setR24hNotes(savedNotes);
       }
     }
     // Cargar alimentos disponibles
@@ -126,6 +131,7 @@ export default function Recordatorio24H() {
 
   const saveReminder = () => {
     localStorage.setItem(`r24h_${patient.id}`, JSON.stringify(reminder));
+    localStorage.setItem(`r24h_notes_${patient.id}`, r24hNotes);
     
     // Guardar en el historial del paciente también para registrar la evaluación nutricional
     const savedPatients = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
@@ -380,6 +386,20 @@ export default function Recordatorio24H() {
           ))
         )}
       </div>
+
+      {/* Notas Manuales del Recordatorio */}
+      <section className="glass-panel" style={{ padding: '18px', background: 'white', marginTop: '24px', marginBottom: '24px' }}>
+        <p style={{ fontSize: '0.75rem', fontWeight: '900', color: 'var(--text-primary)', marginBottom: '10px', textTransform: 'uppercase' }}>
+          Notas Manuales / Observaciones del Recordatorio
+        </p>
+        <textarea
+          placeholder="Escribe aquí observaciones, hábitos o notas del recordatorio..."
+          className="input-field"
+          value={r24hNotes}
+          onChange={(e) => setR24hNotes(e.target.value)}
+          style={{ width: '100%', minHeight: '100px', padding: '12px', fontSize: '0.9rem', borderRadius: '12px', resize: 'vertical' }}
+        />
+      </section>
 
       {/* Botones de Guardar y Cerrar fijos en el footer */}
       <div style={{

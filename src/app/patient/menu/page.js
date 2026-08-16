@@ -22,15 +22,6 @@ const EXCHANGE_EXAMPLES = {
   grasas:    '1 RACIÓN = 1 cdta aceite; 30 g aguacate; 6 almendras; 1 cda maní.',
 };
 
-const MEAL_ORDER = [
-  { key: 'desayuno',    label: 'Desayuno' },
-  { key: 'meriendaAM', label: 'Merienda AM' },
-  { key: 'almuerzo',   label: 'Almuerzo' },
-  { key: 'meriendaPM', label: 'Merienda PM' },
-  { key: 'cena',       label: 'Cena' },
-  { key: 'snackNoche', label: 'Snack Noche' },
-];
-
 export default function PatientMenu() {
   const { user } = useAuth();
   const [patient, setPatient] = useState(null);
@@ -44,8 +35,44 @@ export default function PatientMenu() {
   }, [user]);
 
   const menu = patient?.menu || {};
+  const mealPlanKey = patient?.details?.mealPlan || '3+2 snacks';
 
-  const mealsWithData = MEAL_ORDER.filter(m => {
+  const MEAL_PLANS = {
+    '2 comidas': [
+      { label: 'Almuerzo', key: 'almuerzo' },
+      { label: 'Cena', key: 'cena' },
+    ],
+    '3 comidas': [
+      { label: 'Desayuno', key: 'desayuno' },
+      { label: 'Almuerzo', key: 'almuerzo' },
+      { label: 'Cena', key: 'cena' },
+    ],
+    '3+2 snacks': [
+      { label: 'Desayuno', key: 'desayuno' },
+      { label: 'Merienda AM', key: 'meriendaAM' },
+      { label: 'Almuerzo', key: 'almuerzo' },
+      { label: 'Merienda PM', key: 'meriendaPM' },
+      { label: 'Cena', key: 'cena' },
+    ],
+    '3+3 snacks': [
+      { label: 'Desayuno', key: 'desayuno' },
+      { label: 'Merienda AM', key: 'meriendaAM' },
+      { label: 'Almuerzo', key: 'almuerzo' },
+      { label: 'Merienda PM', key: 'meriendaPM' },
+      { label: 'Cena', key: 'cena' },
+      { label: 'Snack Noche', key: 'snackNoche' },
+    ],
+    '2+2 snacks': [
+      { label: 'Desayuno', key: 'desayuno' },
+      { label: 'Merienda AM', key: 'meriendaAM' },
+      { label: 'Almuerzo', key: 'almuerzo' },
+      { label: 'Cena', key: 'cena' },
+    ],
+  };
+
+  const currentMeals = MEAL_PLANS[mealPlanKey] || MEAL_PLANS['3+2 snacks'];
+
+  const mealsWithData = currentMeals.filter(m => {
     const d = menu[m.key];
     if (!d) return false;
     return d.selectedFoods?.length > 0 || Object.values(d.portions || {}).some(v => parseFloat(v) > 0);

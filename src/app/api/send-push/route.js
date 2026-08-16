@@ -1,11 +1,15 @@
 import webpush from 'web-push';
 import { NextResponse } from 'next/server';
 
-webpush.setVapidDetails(
-  `mailto:${process.env.VAPIDEMAIL}`,
-  process.env.P_keynutrimemi,
-  process.env.VPRIVATEKEY
-);
+export const dynamic = 'force-dynamic';
+
+if (process.env.P_keynutrimemi && process.env.VPRIVATEKEY) {
+  webpush.setVapidDetails(
+    `mailto:${process.env.VAPIDEMAIL || 'admin@nutrimemi.com'}`,
+    process.env.P_keynutrimemi,
+    process.env.VPRIVATEKEY
+  );
+}
 
 export async function POST(req) {
   try {

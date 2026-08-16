@@ -15,6 +15,15 @@ const EXCHANGE_VALUES = {
   grasas: { prot: 0, fat: 5, cho: 0, kcal: 45 }
 };
 
+const PRESET_RECIPES = [
+  { name: '🍳 Huevo revuelto con pan', portions: { cereales: 1, proteinas: 1, vegetales: 0, frutas: 0, lacteos: 0, grasas: 1 } },
+  { name: '🥪 Sándwich de pavo y queso', portions: { cereales: 2, proteinas: 2, vegetales: 0, frutas: 0, lacteos: 0, grasas: 1 } },
+  { name: '🌮 Tacos de Pollo', portions: { cereales: 2, proteinas: 2, vegetales: 1, frutas: 0, lacteos: 0, grasas: 1 } },
+  { name: '🍽️ Almuerzo Clásico (Pollo/Arroz/Granos)', portions: { cereales: 3, proteinas: 4, vegetales: 2, frutas: 0, lacteos: 0, grasas: 1 } },
+  { name: '🥣 Yogurt con fresas/frutas', portions: { cereales: 0, proteinas: 0, vegetales: 0, frutas: 1, lacteos: 1, grasas: 0 } },
+  { name: '🍧 Bowl de Avena con Fruta y Frutos secos', portions: { cereales: 1, proteinas: 0, vegetales: 0, frutas: 1, lacteos: 1, grasas: 1 } }
+];
+
 const suggestRecipesForPortions = (portions) => {
   const c = parseFloat(portions?.cereales) || 0;
   const p = parseFloat(portions?.proteinas) || 0;
@@ -65,30 +74,107 @@ export default function ManageMenu() {
   const { showToast } = useUI();
   const [patient, setPatient] = useState(null);
   const [foodDB, setFoodDB] = useState([]);
-  const [step, setStep] = useState(1); // 1: Porciones, 2: Ejemplos de Menú
+  const [step, setStep] = useState(1);
+  const [activeDay, setActiveDay] = useState('day1');
   const [formulas, setFormulas] = useState({ kcal: '', prot: '', cho: '', fat: '' });
   const [mealCalculators, setMealCalculators] = useState({});
-  const [menu, setMenu] = useState({
+  const [mealPlanKey, setMealPlanKey] = useState('3+2 snacks');
+  
+  const initialMenuStructure = {
     desayuno: { time: '08:00', selectedFoods: [], portions: {} },
     meriendaAM: { time: '10:30', selectedFoods: [], portions: {} },
     almuerzo: { time: '13:00', selectedFoods: [], portions: {} },
     meriendaPM: { time: '16:30', selectedFoods: [], portions: {} },
     cena: { time: '19:30', selectedFoods: [], portions: {} },
     snackNoche: { time: '21:00', selectedFoods: [], portions: {} }
+  };
+
+  const [menus, setMenus] = useState({
+    day1: { ...initialMenuStructure },
+    day2: { ...initialMenuStructure }
   });
+  
   const [searchTerms, setSearchTerms] = useState({});
   const [expandedSuggestions, setExpandedSuggestions] = useState({});
+  const [customRecipes, setCustomRecipes] = useState([]);
+  const [recipeNames, setRecipeNames] = useState({});
+  
+  const [quickFoodName, setQuickFoodName] = useState('');
+  const [quickFoodGroup, setQuickFoodGroup] = useState('cereales');
+  const [quickFoodPortion, setQuickFoodPortion] = useState('1 ración');
 
   useEffect(() => {
-    setFoodDB(loadFoods());
-    const savedPatients = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
+    const defaultFoods = loadFoods();
+    const customFoods = JSON.parse(localStorage.getItem('nutri_custom_foods') || '[]');
+    setFoodDB([...defaultFoods, ...customFoods]);
+    
+    const savedRecipes = JSON.parse(localStorage.getItem('nutri_custom_dishes') || '[]');
+    setCustomRecipes(savedRecipes);
+
     const found = savedPatients.find(p => p.id === parseInt(params.id));
     if (found) {
       setPatient(found);
-      if (found.menu) setMenu(prev => ({ ...prev, ...found.menu }));
-      if (found.formulas) setFormulas(found.formulas);
+      if (found.details?.mealPlan) {
+        setMealPlanKey(found.details.mealPlan);
+      }
+      
+      if (found.menus) {
+        setMenus(found.menus);
+      } else if (found.menu) {
+        setMenus({
+          day1: found.menu,
+          day2: {
+            desayuno: { time: '08:00', selectedFoods: [], portions: {} },
+            meriendaAM: { time: '10:30', selectedFoods: [], portions: {} },
+            almuerzo: { time: '13:00', selectedFoods: [], portions: {} },
+            meriendaPM: { time: '16:30', selectedFoods: [], portions: {} },
+            cena: { time: '19:30', selectedFoods: [], portions: {} },
+            snackNoche: { time: '21:00', selectedFoods: [], portions: {} }
+          }
+        });
+      }
+      
+      if (found.dietForm) {
+        const rct = found.dietForm.rct || '1700';
+        
+        const tempClin = calculateClinicalData({
+          weight: found.details?.weight,
+          height: found.details?.height,
+          sex: found.details?.gender || 'female',
+          manualPi: found.details?.manualPi,
+          manualPa: found.details?.manualPa,
+          manualPc: found.details?.manualPc
+        });
+        
+        const getSuggestedPct = (key) => {
+          const prof = tempClin?.profile ? tempClin.profile.toUpperCase() : 'NORMOPESO';
+          if (prof === 'BAJO PESO') {
+            return key === 'pctProt' ? 18 : 50;
+          } else if (prof === 'SOBREPESO' || prof.startsWith('OBESIDAD')) {
+            return key === 'pctProt' ? 20 : 55;
+          } else {
+            return key === 'pctProt' ? 15 : 55;
+          }
+        };
+        const sugProt = getSuggestedPct('pctProt');
+        const sugCho = getSuggestedPct('pctCho');
+
+        const pctProt = (found.dietForm.pctProt !== undefined && found.dietForm.pctProt !== null && found.dietForm.pctProt !== '') ? parseFloat(found.dietForm.pctProt) : sugProt;
+        const pctCho = (found.dietForm.pctCho !== undefined && found.dietForm.pctCho !== null && found.dietForm.pctCho !== '') ? parseFloat(found.dietForm.pctCho) : sugCho;
+        const pctLip = Math.max(0, 100 - pctProt - pctCho);
+        setFormulas({
+          kcal: rct.toString(),
+          prot: ((parseFloat(rct) * pctProt) / 100 / 4).toFixed(1).toString(),
+          cho: ((parseFloat(rct) * pctCho) / 100 / 4).toFixed(1).toString(),
+          fat: ((parseFloat(rct) * pctLip) / 100 / 9).toFixed(1).toString()
+        });
+      } else if (found.formulas) {
+        setFormulas(found.formulas);
+      }
     }
   }, [params.id]);
+
+  const menu = menus[activeDay];
 
   const previousControl = patient?.history && patient.history.length > 0
     ? patient.history[patient.history.length - 1]
@@ -99,6 +185,7 @@ export default function ManageMenu() {
     height: patient.details?.height,
     sex: patient.details?.gender || 'female',
     manualPi: patient.details?.manualPi,
+    manualPa: patient.details?.manualPa,
     manualPc: patient.details?.manualPc
   }) : null;
 
@@ -119,11 +206,14 @@ export default function ManageMenu() {
   };
 
   const updatePortion = (mealKey, groupKey, value) => {
-    setMenu(prev => ({
+    setMenus(prev => ({
       ...prev,
-      [mealKey]: {
-        ...prev[mealKey],
-        portions: { ...prev[mealKey].portions, [groupKey]: value }
+      [activeDay]: {
+        ...prev[activeDay],
+        [mealKey]: {
+          ...prev[activeDay][mealKey],
+          portions: { ...prev[activeDay][mealKey].portions, [groupKey]: value }
+        }
       }
     }));
   };
@@ -143,6 +233,118 @@ export default function ManageMenu() {
       updatePortion(mealKey, group, val.toString());
     });
     setMealCalculators({...mealCalculators, [mealKey]: null});
+  };
+
+  const getSuggestedPortions = () => {
+    const rctVal = evalFormula(formulas.kcal) || 1700;
+    const protGrams = evalFormula(formulas.prot) || 0;
+    const choGrams = evalFormula(formulas.cho) || 0;
+    const fatGrams = evalFormula(formulas.fat) || 0;
+
+    return {
+      proteinas: Math.floor(protGrams / EXCHANGE_VALUES.proteinas.prot),
+      cereales: Math.floor((choGrams > 0 ? choGrams * 0.7 : 0) / EXCHANGE_VALUES.cereales.cho),
+      frutas: Math.floor((choGrams > 0 ? choGrams * 0.3 : 0) / EXCHANGE_VALUES.frutas.cho),
+      grasas: Math.floor(fatGrams / EXCHANGE_VALUES.grasas.fat),
+      vegetales: 2,
+      lacteos: 1
+    };
+  };
+
+  const autoDistributeAll = () => {
+    const suggested = getSuggestedPortions();
+    const mainMeals = ['desayuno', 'almuerzo', 'cena'].filter(k => mealTypes.some(m => m.key === k));
+    const snackMeals = ['meriendaAM', 'meriendaPM', 'snackNoche'].filter(k => mealTypes.some(m => m.key === k));
+
+    const newPortions = {};
+    mealTypes.forEach(m => {
+       newPortions[m.key] = { cereales: 0, proteinas: 0, vegetales: 0, frutas: 0, lacteos: 0, grasas: 0 };
+    });
+
+    if (mainMeals.length > 0) {
+       const p_main = Math.floor(suggested.proteinas / mainMeals.length);
+       const g_main = Math.floor(suggested.grasas / mainMeals.length);
+       const v_main = 1;
+       const c_main = Math.max(1, Math.floor((suggested.cereales * 0.6) / mainMeals.length));
+
+       mainMeals.forEach(m => {
+          newPortions[m].proteinas = p_main;
+          newPortions[m].grasas = g_main;
+          newPortions[m].cereales = c_main;
+          if (m === 'almuerzo' || m === 'cena') newPortions[m].vegetales = v_main;
+       });
+    }
+
+    if (snackMeals.length > 0) {
+       const f_snack = Math.max(1, Math.floor(suggested.frutas / snackMeals.length));
+       const l_snack = 1;
+       const c_snack = Math.max(0, Math.floor((suggested.cereales * 0.4) / snackMeals.length));
+
+       snackMeals.forEach(m => {
+          newPortions[m].frutas = f_snack;
+          newPortions[m].cereales = c_snack;
+       });
+       if (snackMeals.length > 0) newPortions[snackMeals[0]].lacteos = 1;
+    }
+
+    setMenus(prev => ({
+      ...prev,
+      [activeDay]: {
+         ...prev[activeDay],
+         ...Object.fromEntries(Object.entries(newPortions).map(([k, v]) => [k, { ...prev[activeDay][k], portions: v }]))
+      }
+    }));
+    showToast('Porciones distribuidas automáticamente', 'success');
+  };
+
+  const autoFillMealWithFoods = (mealKey) => {
+    const mealData = menu[mealKey];
+    const portions = mealData.portions || {};
+    
+    const isBreakfastOrDinner = mealKey === 'desayuno' || mealKey === 'cena';
+    const isLunch = mealKey === 'almuerzo';
+    
+    const mapping = {
+      cereales: isBreakfastOrDinner ? 'c_106' : (isLunch ? 'c_109' : 'c_155'),
+      proteinas: isBreakfastOrDinner ? 'p_186' : (isLunch ? 'p_172' : 'p_180'),
+      vegetales: 'v_55',
+      frutas: isBreakfastOrDinner ? 'f_76' : (isLunch ? 'f_98' : 'f_60'),
+      lacteos: isBreakfastOrDinner ? 'l_5' : 'l_2',
+      grasas: isBreakfastOrDinner ? 'g_198' : 'g_195',
+    };
+
+    let updatedFoods = [...(mealData.selectedFoods || [])];
+    let addedCount = 0;
+    
+    Object.entries(portions).forEach(([groupKey, portionVal]) => {
+      const pVal = parseFloat(portionVal) || 0;
+      if (pVal > 0) {
+        const recommendedId = mapping[groupKey];
+        const foodItem = foodDB.find(f => f.id === recommendedId) || foodDB.find(f => f.groupKey === groupKey);
+        if (foodItem) {
+          const existingIdx = updatedFoods.findIndex(f => f.id === foodItem.id);
+          if (existingIdx !== -1) {
+            updatedFoods[existingIdx] = { ...updatedFoods[existingIdx], qty: pVal };
+          } else {
+            updatedFoods.push({ ...foodItem, instanceId: Date.now() + Math.random(), qty: pVal });
+          }
+          addedCount++;
+        }
+      }
+    });
+
+    if (addedCount === 0) {
+      return showToast('Primero define alguna ración/porción en el Paso 1 para esta comida.', 'info');
+    }
+
+    setMenus(prev => ({
+      ...prev,
+      [activeDay]: {
+        ...prev[activeDay],
+        [mealKey]: { ...mealData, selectedFoods: updatedFoods }
+      }
+    }));
+    showToast(`Alimentos autocompletados para ${mealKey === 'desayuno' ? 'el Desayuno' : mealKey === 'almuerzo' ? 'el Almuerzo' : mealKey === 'cena' ? 'la Cena' : 'la Merienda'}`, 'success');
   };
 
   const getPlannedTotals = () => {
@@ -166,19 +368,62 @@ export default function ManageMenu() {
   const handleSave = () => {
     if (!patient) return showToast('Paciente no cargado correctamente.', 'error');
     const savedPatients = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
-    const updated = savedPatients.map(p => p.id === patient.id ? { ...p, menu, formulas } : p);
+    
+    const rctVal = evalFormula(formulas.kcal) || 1700;
+    const protGrams = evalFormula(formulas.prot) || 0;
+    const choGrams = evalFormula(formulas.cho) || 0;
+    const fatGrams = evalFormula(formulas.fat) || 0;
+
+    const calculatedPctProt = Math.min(100, Math.round((protGrams * 4 * 100) / rctVal)) || 20;
+    const calculatedPctCho = Math.min(100, Math.round((choGrams * 4 * 100) / rctVal)) || 50;
+
+    const updatedDietForm = {
+      ...patient.dietForm,
+      rct: rctVal.toString(),
+      pctProt: calculatedPctProt,
+      pctCho: calculatedPctCho
+    };
+
+    const finalFormulas = {
+      kcal: rctVal.toString(),
+      prot: protGrams.toFixed(1),
+      cho: choGrams.toFixed(1),
+      fat: fatGrams.toFixed(1)
+    };
+
+    const updatedDetails = {
+      ...patient.details,
+      mealPlan: mealPlanKey
+    };
+
+    const updated = savedPatients.map(p => p.id === patient.id ? { 
+      ...p, 
+      details: updatedDetails,
+      menus,
+      menu: menus.day1, // Compatibilidad con vistas simples heredadas
+      formulas: finalFormulas,
+      dietForm: updatedDietForm
+    } : p);
+    
     localStorage.setItem('nutri_patients', JSON.stringify(updated));
     showToast('Plan nutricional guardado con éxito', 'success');
     router.back();
   };
 
   const handleItemPortionChange = (mealKey, instanceId, newValue) => {
-    setMenu(prev => {
-      const meal = prev[mealKey];
+    setMenus(prev => {
+      const activeMenu = prev[activeDay];
+      const meal = activeMenu[mealKey];
       const updatedFoods = meal.selectedFoods.map(f => 
         f.instanceId === instanceId ? { ...f, portion: newValue } : f
       );
-      return { ...prev, [mealKey]: { ...meal, selectedFoods: updatedFoods } };
+      return {
+        ...prev,
+        [activeDay]: {
+          ...activeMenu,
+          [mealKey]: { ...meal, selectedFoods: updatedFoods }
+        }
+      };
     });
   };
 
@@ -227,7 +472,6 @@ export default function ManageMenu() {
     ],
   };
 
-  const mealPlanKey = patient?.details?.mealPlan || '3+2 snacks';
   const mealTypes = MEAL_PLANS[mealPlanKey] || MEAL_PLANS['3+2 snacks'];
 
   const foodGroups = [
@@ -242,7 +486,7 @@ export default function ManageMenu() {
   if (!patient) return <div style={{ padding: '20px' }}>Cargando datos del paciente...</div>;
 
   return (
-    <div style={{ padding: '20px', paddingBottom: '140px' }} className="fade-in">
+    <div style={{ padding: '20px', paddingBottom: '220px' }} className="fade-in">
       <header style={{ marginBottom: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '12px' }}>
           <button onClick={() => step === 2 ? setStep(1) : router.back()} style={{ background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer' }}>
@@ -250,9 +494,42 @@ export default function ManageMenu() {
           </button>
           <h2 style={{ fontSize: '1.2rem', fontWeight: '900' }}>{step === 1 ? 'Paso 1: Definir Porciones' : 'Paso 2: Crear Menú Ejemplo'}</h2>
         </div>
-        <div style={{ display: 'flex', gap: '8px', paddingLeft: '40px' }}>
-          <div style={{ padding: '6px 14px', background: step === 1 ? 'var(--primary)' : '#eee', color: step === 1 ? 'white' : '#888', borderRadius: '20px', fontSize: '0.65rem', fontWeight: '900' }}>1. CALCULO</div>
-          <div style={{ padding: '6px 14px', background: step === 2 ? 'var(--primary)' : '#eee', color: step === 2 ? 'white' : '#888', borderRadius: '20px', fontSize: '0.65rem', fontWeight: '900' }}>2. MENU</div>
+        <div style={{ display: 'flex', gap: '8px', paddingLeft: '40px', alignItems: 'center' }}>
+          <button 
+            onClick={() => setStep(1)}
+            style={{ 
+              border: 'none',
+              cursor: 'pointer',
+              padding: '6px 14px',
+              background: step === 1 ? 'var(--primary)' : '#eee',
+              color: step === 1 ? 'white' : '#888',
+              borderRadius: '20px',
+              fontSize: '0.65rem',
+              fontWeight: '900',
+              transition: 'all 0.2s'
+            }}
+          >
+            1. CALCULO
+          </button>
+          <button 
+            onClick={() => setStep(2)}
+            style={{ 
+              border: 'none',
+              cursor: 'pointer',
+              padding: '6px 14px',
+              background: step === 2 ? 'var(--primary)' : '#eee',
+              color: step === 2 ? 'white' : '#888',
+              borderRadius: '20px',
+              fontSize: '0.65rem',
+              fontWeight: '900',
+              transition: 'all 0.2s'
+            }}
+          >
+            2. MENU
+          </button>
+          <div style={{ height: '14px', width: '2px', background: '#ccc', margin: '0 4px' }} />
+          <button onClick={() => setActiveDay('day1')} style={{ padding: '6.5px 12px', background: activeDay === 'day1' ? '#1D512D' : 'rgba(0,0,0,0.05)', color: activeDay === 'day1' ? 'white' : '#888', border: 'none', borderRadius: '12px', fontSize: '0.65rem', fontWeight: '950', cursor: 'pointer', transition: 'all 0.2s' }}>☀️ DÍA 1</button>
+          <button onClick={() => setActiveDay('day2')} style={{ padding: '6.5px 12px', background: activeDay === 'day2' ? '#1D512D' : 'rgba(0,0,0,0.05)', color: activeDay === 'day2' ? 'white' : '#888', border: 'none', borderRadius: '12px', fontSize: '0.65rem', fontWeight: '950', cursor: 'pointer', transition: 'all 0.2s' }}>🌙 DÍA 2</button>
         </div>
       </header>
 
@@ -288,25 +565,20 @@ export default function ManageMenu() {
               <h4 style={{ fontWeight: '900', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
                 <Activity size={18} /> Requerimientos del Día
               </h4>
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                {Object.keys(DISTRIBUTION_TEMPLATES).map(k => (
-                  <button 
-                    key={k} 
-                    onClick={() => applyTemplate(k)} 
-                    className="btn-secondary" 
-                    style={{ 
-                      fontSize: '0.7rem', 
-                      padding: '8px 14px', 
-                      borderRadius: '10px', 
-                      border: '1px solid var(--primary)',
-                      background: 'white',
-                      color: 'var(--primary)',
-                      fontWeight: '800'
-                    }}
-                  >
-                    {DISTRIBUTION_TEMPLATES[k].name}
-                  </button>
-                ))}
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                <select 
+                  value={mealPlanKey}
+                  onChange={(e) => setMealPlanKey(e.target.value)}
+                  style={{ padding: '8px 12px', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid #ddd', fontWeight: '900', color: 'var(--primary)', cursor: 'pointer', background: 'white' }}
+                >
+                  {Object.keys(MEAL_PLANS).map(k => <option key={k} value={k}>{k.toUpperCase()}</option>)}
+                </select>
+                <button 
+                  onClick={autoDistributeAll}
+                  style={{ background: 'var(--accent)', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', fontSize: '0.8rem', fontWeight: '900', cursor: 'pointer' }}
+                >
+                  ⚡ Auto-Distribuir Porciones
+                </button>
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 80px), 1fr))', gap: '12px' }}>
@@ -333,6 +605,29 @@ export default function ManageMenu() {
                 );
               })}
             </div>
+          </section>
+
+          {/* Contador de Raciones Paso 1 */}
+          <section className="glass-panel" style={{ padding: '20px', background: 'var(--card-green-light)', marginBottom: '24px', border: '1.5px dashed var(--primary)', borderRadius: '16px', position: 'sticky', top: '10px', zIndex: 50 }}>
+             <h4 style={{ color: 'var(--primary)', fontSize: '0.8rem', fontWeight: '900', marginBottom: '10px' }}>📊 RACIONES DISTRIBUIDAS VS SUGERIDAS (Calculadas)</h4>
+             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                {foodGroups.map(g => {
+                   let defined = 0;
+                   Object.keys(menu).forEach(mKey => {
+                      defined += parseFloat(menu[mKey].portions?.[g.key]) || 0;
+                   });
+                   const suggested = getSuggestedPortions()[g.key] || 0;
+                   const isOver = defined > suggested;
+                   return (
+                     <div key={g.key} style={{ textAlign: 'center', background: 'white', padding: '8px', borderRadius: '8px', border: isOver ? '1.5px solid #ff4444' : '1px solid #eee' }}>
+                        <p style={{ fontSize: '0.6rem', fontWeight: '900', color: g.color }}>{g.name.toUpperCase()}</p>
+                        <p style={{ fontSize: '0.85rem', fontWeight: '900', color: isOver ? '#ff4444' : '#333' }}>
+                           {defined} <span style={{ opacity: 0.3, fontSize: '0.6rem' }}>/ {suggested}</span>
+                        </p>
+                     </div>
+                   );
+                })}
+             </div>
           </section>
 
           {/* Grid de Porciones por Comida */}
@@ -427,28 +722,49 @@ export default function ManageMenu() {
                       ))}
                     </div>
                   </div>
-
-                  {/* Sugerir Receta según porciones distribuidas */}
+                  {/* Fila de sugerencias y autocompletados mágicos */}
                   <div style={{ marginBottom: '14px' }}>
-                    <button 
-                      onClick={() => setExpandedSuggestions(prev => ({ ...prev, [meal.key]: !prev[meal.key] }))}
-                      style={{
-                        background: 'rgba(29, 81, 45, 0.08)',
-                        color: 'var(--primary)',
-                        border: 'none',
-                        padding: '6px 12px',
-                        borderRadius: '8px',
-                        fontSize: '0.7rem',
-                        fontWeight: '900',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        outline: 'none'
-                      }}
-                    >
-                      <span>✨ {expandedSuggestions[meal.key] ? 'Ocultar sugerencia' : 'Sugerir combinación de plato'}</span>
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                      <button 
+                        onClick={() => setExpandedSuggestions(prev => ({ ...prev, [meal.key]: !prev[meal.key] }))}
+                        style={{
+                          background: 'rgba(29, 81, 45, 0.08)',
+                          color: 'var(--primary)',
+                          border: 'none',
+                          padding: '6px 12px',
+                          borderRadius: '8px',
+                          fontSize: '0.7rem',
+                          fontWeight: '900',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          outline: 'none'
+                        }}
+                      >
+                        <span>✨ {expandedSuggestions[meal.key] ? 'Ocultar sugerencia' : 'Sugerir combinación de plato'}</span>
+                      </button>
+
+                      <button 
+                        onClick={() => autoFillMealWithFoods(meal.key)}
+                        style={{
+                          background: 'rgba(253, 158, 20, 0.1)',
+                          color: 'var(--accent)',
+                          border: 'none',
+                          padding: '6px 12px',
+                          borderRadius: '8px',
+                          fontSize: '0.7rem',
+                          fontWeight: '900',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          outline: 'none'
+                        }}
+                      >
+                        <span>⚡ Autocompletar con alimentos sugeridos</span>
+                      </button>
+                    </div>
 
                     {expandedSuggestions[meal.key] && (
                       <div className="fade-in" style={{
@@ -467,11 +783,146 @@ export default function ManageMenu() {
                     )}
                   </div>
 
+                  {/* Recetas Frecuentes Movido al Paso 2 */}
+                  <div style={{ marginBottom: '16px', background: '#f9f9f9', padding: '12px', borderRadius: '12px', border: '1px solid #eee' }}>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '0.7rem', fontWeight: '800', opacity: 0.6 }}>🍱 Recetas Frecuentes:</span>
+                      <select
+                        onChange={(e) => {
+                          if (!e.target.value) return;
+                          const r = [...PRESET_RECIPES, ...customRecipes].find(item => item.name === e.target.value);
+                          if (r) {
+                            Object.entries(r.portions).forEach(([gk, val]) => {
+                              updatePortion(meal.key, gk, val.toString());
+                            });
+                            showToast('Porciones precargadas para ' + r.name, 'success');
+                            e.target.value = '';
+                          }
+                        }}
+                        style={{ flex: 1, padding: '4px 8px', fontSize: '0.7rem', borderRadius: '6px', border: '1px solid #ccc', background: 'white' }}
+                      >
+                        <option value="">-- Cargar Sugerencia/Receta --</option>
+                        <optgroup label="Sugerencias del Sistema">
+                          {PRESET_RECIPES.map(p => (
+                            <option key={p.name} value={p.name}>{p.name}</option>
+                          ))}
+                        </optgroup>
+                        {customRecipes.length > 0 && (
+                          <optgroup label="Tus Recetas Personalizadas">
+                            {customRecipes.map(c => (
+                              <option key={c.name} value={c.name}>{c.name}</option>
+                            ))}
+                          </optgroup>
+                        )}
+                      </select>
+                    </div>
+                    
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <input 
+                        type="text" 
+                        placeholder="Guardar actual como: Ej. Tortilla Fit de Claras" 
+                        value={recipeNames[meal.key] || ''}
+                        onChange={(e) => setRecipeNames({...recipeNames, [meal.key]: e.target.value})}
+                        style={{ flex: 1, padding: '4px 8px', fontSize: '0.7rem', borderRadius: '6px', border: '1px solid #eee' }} 
+                      />
+                      <button 
+                        onClick={() => {
+                          const name = recipeNames[meal.key];
+                          if (!name) return showToast('Escribe un nombre para guardar la receta', 'warning');
+                          
+                          const currentMealPortions = menu[meal.key].portions || {};
+                          const recipePortions = {
+                            cereales: parseFloat(currentMealPortions.cereales) || 0,
+                            proteinas: parseFloat(currentMealPortions.proteinas) || 0,
+                            vegetales: parseFloat(currentMealPortions.vegetales) || 0,
+                            frutas: parseFloat(currentMealPortions.frutas) || 0,
+                            lacteos: parseFloat(currentMealPortions.lacteos) || 0,
+                            grasas: parseFloat(currentMealPortions.grasas) || 0
+                          };
+                          
+                          const newRecipe = { name, portions: recipePortions };
+                          const updatedRecipes = [...customRecipes, newRecipe];
+                          localStorage.setItem('nutri_custom_dishes', JSON.stringify(updatedRecipes));
+                          setCustomRecipes(updatedRecipes);
+                          setRecipeNames({...recipeNames, [meal.key]: ''});
+                          showToast(`Receta "${name}" guardada con éxito`, 'success');
+                        }}
+                        style={{ background: '#1D512D', color: 'white', border: 'none', padding: '6px 12px', fontSize: '0.7rem', fontWeight: '800', borderRadius: '6px', cursor: 'pointer' }}
+                      >
+                        Guardar
+                      </button>
+                    </div>
+                  </div>
+
                   {/* Buscador de Alimentos para el Menú */}
                   <div style={{ position: 'relative', marginBottom: '16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', background: '#f9f9f9', borderRadius: '12px', padding: '0 12px', border: '1px solid #eee' }}>
                       <Search size={16} opacity={0.3} />
                       <input type="text" placeholder={`¿Qué comerá en el ${meal.title}?`} value={searchTerms[meal.key] || ''} onChange={e => setSearchTerms({...searchTerms, [meal.key]: e.target.value})} style={{ flex: 1, padding: '12px', border: 'none', outline: 'none', fontSize: '0.85rem', background: 'none' }} />
+                    </div>
+
+                    <div style={{ marginTop: '8px', padding: '10px', background: '#fcfcfc', border: '1px solid #eee', borderRadius: '8px', display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.62rem', fontWeight: '850', opacity: 0.7 }}>➕ Crear alimento custom:</span>
+                      <input 
+                        type="text" 
+                        placeholder="Nombre, arepa..." 
+                        value={quickFoodName} 
+                        onChange={(e) => setQuickFoodName(e.target.value)} 
+                        style={{ padding: '4.5px 8px', fontSize: '0.7rem', borderRadius: '6px', border: '1px solid #ddd', flex: 1, minWidth: '120px' }} 
+                      />
+                      <select 
+                        value={quickFoodGroup} 
+                        onChange={(e) => setQuickFoodGroup(e.target.value)} 
+                        style={{ padding: '4.5px 8px', fontSize: '0.7rem', borderRadius: '6px', border: '1px solid #ddd', background: 'white' }}
+                      >
+                        <option value="cereales">Cereales</option>
+                        <option value="proteinas">Proteína</option>
+                        <option value="vegetales">Veg</option>
+                        <option value="frutas">Fruta</option>
+                        <option value="lacteos">Lácteo</option>
+                        <option value="grasas">Grasa</option>
+                      </select>
+                      <input 
+                        type="text" 
+                        placeholder="Porción..." 
+                        value={quickFoodPortion} 
+                        onChange={(e) => setQuickFoodPortion(e.target.value)} 
+                        style={{ padding: '4.5px 8px', fontSize: '0.7rem', borderRadius: '6px', border: '1px solid #ddd', width: '80px' }} 
+                      />
+                      <button
+                        onClick={() => {
+                          if (!quickFoodName) return showToast('Escribe el nombre del alimento', 'warning');
+                          
+                          const newFood = {
+                            id: `custom-${Date.now()}`,
+                            name: quickFoodName,
+                            groupKey: quickFoodGroup,
+                            portion: quickFoodPortion
+                          };
+                          
+                          setFoodDB(prev => [...prev, newFood]);
+                          
+                          const savedCustom = JSON.parse(localStorage.getItem('nutri_custom_foods') || '[]');
+                          localStorage.setItem('nutri_custom_foods', JSON.stringify([...savedCustom, newFood]));
+                          
+                          const targetQty = parseFloat(mealData.portions?.[quickFoodGroup]) || 1;
+                          const updatedFoods = [...(mealData.selectedFoods || []), { ...newFood, instanceId: Date.now(), qty: targetQty }];
+                          
+                          setMenus({
+                            ...menus,
+                            [activeDay]: {
+                              ...menus[activeDay],
+                              [meal.key]: { ...mealData, selectedFoods: updatedFoods }
+                            }
+                          });
+                          
+                          setQuickFoodName('');
+                          showToast(`"${quickFoodName}" guardado e inyectado`, 'success');
+                        }}
+                        style={{ padding: '6px 12px', background: '#1D512D', color: 'white', border: 'none', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '850', cursor: 'pointer' }}
+                      >
+                        Crear e Insertar
+                      </button>
                     </div>
                     
                     {searchTerms[meal.key] && (
@@ -487,62 +938,132 @@ export default function ManageMenu() {
                               } else {
                                 // Agregar nuevo autorellenando la porción en base a las raciones objetivo
                                 const targetQty = parseFloat(mealData.portions?.[food.groupKey]) || 1;
-                                updatedFoods = [...(mealData.selectedFoods || []), { ...food, instanceId: Date.now(), qty: targetQty }];
+                              updatedFoods = [...(mealData.selectedFoods || []), { ...food, instanceId: Date.now(), qty: targetQty }];
+                            }
+                            setMenus({
+                              ...menus,
+                              [activeDay]: {
+                                ...menus[activeDay],
+                                [meal.key]: { ...mealData, selectedFoods: updatedFoods }
                               }
-                              setMenu({...menu, [meal.key]: { ...mealData, selectedFoods: updatedFoods }});
-                              setSearchTerms({...searchTerms, [meal.key]: ''});
-                              showToast(`${food.name} agregado`, 'success');
-                            }} style={{ padding: '12px 16px', borderBottom: '1px solid #f9f9f9', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span style={{ fontWeight: '700', color: foodGroups.find(g => g.key === food.groupKey)?.color }}>{food.name}</span>
-                              <span style={{ fontSize: '0.7rem', opacity: 0.5 }}>{food.portion}</span>
-                            </div>
-                         ))}
-                       </div>
-                    )}
-                  </div>
-
-                  {/* Visualización del Menú Ejemplo con edición de porción */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                     {mealData.selectedFoods?.map(item => {
-                       const group = foodGroups.find(g => g.key === item.groupKey);
-                       return (
-                        <div key={item.instanceId} style={{ background: '#f5f5f5', padding: '10px 14px', borderRadius: '16px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '12px', border: `1px solid ${group.color}20` }}>
-                          <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: group.color }}></div>
-                          <div style={{ flex: 1 }}>
-                            <p style={{ margin: 0, fontWeight: '900', color: group.color, fontSize: '0.9rem' }}>{item.name}</p>
-                            <p style={{ margin: 0, fontSize: '0.75rem', opacity: 0.6, fontWeight: '700' }}>P. Base: {item.portion}</p>
+                            });
+                            setSearchTerms({...searchTerms, [meal.key]: ''});
+                            showToast(`${food.name} agregado`, 'success');
+                          }} style={{ padding: '12px 16px', borderBottom: '1px solid #f9f9f9', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontWeight: '700', color: foodGroups.find(g => g.key === food.groupKey)?.color }}>{food.name}</span>
+                            <span style={{ fontSize: '0.7rem', opacity: 0.5 }}>{food.portion}</span>
                           </div>
-                          
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'white', padding: '4px 8px', borderRadius: '10px', border: '1px solid #eee' }}>
-                            <button 
-                              onClick={() => {
-                                const updatedFoods = mealData.selectedFoods.map(f => 
-                                  f.instanceId === item.instanceId ? { ...f, qty: Math.max(1, (f.qty || 1) - 1) } : f
-                                );
-                                setMenu({...menu, [meal.key]: { ...mealData, selectedFoods: updatedFoods }});
-                              }}
-                              style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: '900', cursor: 'pointer', padding: '4px' }}
-                            >-</button>
-                            <span style={{ fontWeight: '900', fontSize: '0.9rem', minWidth: '15px', textAlign: 'center' }}>{item.qty || 1}</span>
-                            <button 
-                              onClick={() => {
-                                const updatedFoods = mealData.selectedFoods.map(f => 
-                                  f.instanceId === item.instanceId ? { ...f, qty: (f.qty || 1) + 1 } : f
-                                );
-                                setMenu({...menu, [meal.key]: { ...mealData, selectedFoods: updatedFoods }});
-                              }}
-                              style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: '900', cursor: 'pointer', padding: '4px' }}
-                            >+</button>
-                          </div>
+                       ))}
+                     </div>
+                  )}
+                </div>
 
-                          <button onClick={() => {
-                            const updatedFoods = mealData.selectedFoods.filter(f => f.instanceId !== item.instanceId);
-                            setMenu({...menu, [meal.key]: { ...mealData, selectedFoods: updatedFoods }});
-                          }} style={{ background: 'rgba(255,0,0,0.05)', border: 'none', color: '#ff4444', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><X size={14} /></button>
+                {/* Visualización del Menú Ejemplo con edición de porción */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                   {mealData.selectedFoods?.map(item => {
+                     const group = foodGroups.find(g => g.key === item.groupKey);
+                     return (
+                      <div key={item.instanceId} style={{ background: '#f5f5f5', padding: '10px 14px', borderRadius: '16px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '12px', border: `1px solid ${group.color}20` }}>
+                        <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: group.color }}></div>
+                        <div style={{ flex: 1 }}>
+                          <p style={{ margin: 0, fontWeight: '900', color: group.color, fontSize: '0.9rem' }}>{item.name}</p>
+                          <p style={{ margin: 0, fontSize: '0.75rem', opacity: 0.6, fontWeight: '700' }}>P. Base: {item.portion}</p>
                         </div>
-                       );
-                     })}
+                        
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'white', padding: '4px 8px', borderRadius: '10px', border: '1px solid #eee' }}>
+                          <button 
+                            onClick={() => {
+                              const updatedFoods = mealData.selectedFoods.map(f => 
+                                f.instanceId === item.instanceId ? { ...f, qty: Math.max(1, (f.qty || 1) - 1) } : f
+                              );
+                              setMenus({
+                                ...menus,
+                                [activeDay]: {
+                                  ...menus[activeDay],
+                                  [meal.key]: { ...mealData, selectedFoods: updatedFoods }
+                                }
+                              });
+                            }}
+                            style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: '900', cursor: 'pointer', padding: '4px' }}
+                          >-</button>
+                          <span style={{ fontWeight: '900', fontSize: '0.9rem', minWidth: '15px', textAlign: 'center' }}>{item.qty || 1}</span>
+                          <button 
+                            onClick={() => {
+                              const updatedFoods = mealData.selectedFoods.map(f => 
+                                f.instanceId === item.instanceId ? { ...f, qty: (f.qty || 1) + 1 } : f
+                              );
+                              setMenus({
+                                ...menus,
+                                [activeDay]: {
+                                  ...menus[activeDay],
+                                  [meal.key]: { ...mealData, selectedFoods: updatedFoods }
+                                }
+                              });
+                            }}
+                            style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: '900', cursor: 'pointer', padding: '4px' }}
+                          >+</button>
+                        </div>
+
+                        <button onClick={() => {
+                          const updatedFoods = mealData.selectedFoods.filter(f => f.instanceId !== item.instanceId);
+                          setMenus({
+                            ...menus,
+                            [activeDay]: {
+                              ...menus[activeDay],
+                              [meal.key]: { ...mealData, selectedFoods: updatedFoods }
+                            }
+                          });
+                        }} style={{ background: 'rgba(255,0,0,0.05)', border: 'none', color: '#ff4444', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><X size={14} /></button>
+                      </div>
+                     );
+                   })}
                   </div>
+
+                  {(() => {
+                    const targets = mealData.portions || {};
+                    const used = getUsedPortionsInMeal(meal.key);
+                    const missing = [];
+                    
+                    Object.keys(targets).forEach(gKey => {
+                      const tgt = parseFloat(targets[gKey]) || 0;
+                      const usd = used[gKey] || 0;
+                      if (tgt > usd) {
+                        const groupName = foodGroups.find(g => g.key === gKey)?.name || gKey;
+                        missing.push(`${(tgt - usd).toFixed(1).replace('.0', '')} ${groupName}`);
+                      }
+                    });
+                    
+                    const hasTargets = Object.values(targets).some(t => parseFloat(t) > 0);
+                    if (!hasTargets) return null;
+                    
+                    return (
+                      <div style={{ 
+                        marginTop: '15px', 
+                        padding: '10px 12px', 
+                        borderRadius: '12px', 
+                        background: missing.length === 0 ? 'rgba(46, 204, 113, 0.1)' : 'rgba(231, 76, 60, 0.08)',
+                        border: missing.length === 0 ? '1px solid #2ecc71' : '1px solid rgba(231, 76, 60, 0.2)',
+                        fontSize: '0.75rem',
+                        fontWeight: '800',
+                        color: missing.length === 0 ? '#27ae60' : '#c0392b',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}>
+                        {missing.length === 0 ? (
+                          <>
+                            <CheckCircle size={14} />
+                            <span>✔ ¡Raciones objetivo cubiertas con éxito!</span>
+                          </>
+                        ) : (
+                          <>
+                            <AlertCircle size={14} />
+                            <span>Pendiente: {missing.join(', ')}</span>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               );
             })}

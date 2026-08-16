@@ -1,15 +1,40 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { Activity, Calendar, User, History } from 'lucide-react';
+import { Activity, Calendar, User, History, Camera, Upload } from 'lucide-react';
 
-const exchangeMeals = [
-  { key: 'desayuno', name: 'Desayuno' },
-  { key: 'meriendaAM', name: 'Merienda AM' },
-  { key: 'almuerzo', name: 'Almuerzo' },
-  { key: 'meriendaPM', name: 'Merienda PM' },
-  { key: 'cena', name: 'Cena' }
-];
+const MEAL_PLANS = {
+  '2 comidas': [
+    { name: 'Almuerzo', key: 'almuerzo' },
+    { name: 'Cena', key: 'cena' },
+  ],
+  '3 comidas': [
+    { name: 'Desayuno', key: 'desayuno' },
+    { name: 'Almuerzo', key: 'almuerzo' },
+    { name: 'Cena', key: 'cena' },
+  ],
+  '3+2 snacks': [
+    { name: 'Desayuno', key: 'desayuno' },
+    { name: 'Merienda AM', key: 'meriendaAM' },
+    { name: 'Almuerzo', key: 'almuerzo' },
+    { name: 'Merienda PM', key: 'meriendaPM' },
+    { name: 'Cena', key: 'cena' },
+  ],
+  '3+3 snacks': [
+    { name: 'Desayuno', key: 'desayuno' },
+    { name: 'Merienda AM', key: 'meriendaAM' },
+    { name: 'Almuerzo', key: 'almuerzo' },
+    { name: 'Merienda PM', key: 'meriendaPM' },
+    { name: 'Cena', key: 'cena' },
+    { name: 'Snack Nocturno', key: 'snackNoche' },
+  ],
+  '2+2 snacks': [
+    { name: 'Desayuno', key: 'desayuno' },
+    { name: 'Merienda AM', key: 'meriendaAM' },
+    { name: 'Almuerzo', key: 'almuerzo' },
+    { name: 'Cena', key: 'cena' },
+  ],
+};
 
 const EXCHANGE_GUIDE_DB = {
   cereales: {
@@ -107,13 +132,91 @@ export default function PatientDashboard() {
   const [patient, setPatient] = useState(null);
   const [activeTip, setActiveTip] = useState(null);
   const [activeTool, setActiveTool] = useState(null); // 'palma', 'tazas', 'cucharas'
-  const [selectedExchangeMeal, setSelectedExchangeMeal] = useState('desayuno');
+  const [selectedExchangeMeal, setSelectedExchangeMeal] = useState('');
+  const [activeDay, setActiveDay] = useState('day1'); // 'day1' o 'day2'
+  
+  // Estados para la carga de fotos del paciente
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoLabel, setPhotoLabel] = useState('Frente');
 
   useEffect(() => {
     const saved = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
     const found = saved.find(p => p.id === parseInt(params.id));
     if (found) setPatient(found);
   }, [params.id]);
+
+  const handlePatientPhotoUpload = (e) => {
+    e.preventDefault();
+    if (!photoFile) return;
+    
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64Str = reader.result;
+      
+      const img = new Image();
+      img.src = base64Str;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        const MAX_SIZE = 800;
+        
+        if (width > height) {
+          if (width > MAX_SIZE) {
+            height *= MAX_SIZE / width;
+            width = MAX_SIZE;
+          }
+        } else {
+          if (height > MAX_SIZE) {
+            width *= MAX_SIZE / height;
+            height = MAX_SIZE;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
+        const todayStr = new Date().toISOString().split('T')[0];
+        
+        const newPhotoItem = {
+          id: `pat-${Date.now()}`,
+          date: todayStr,
+          uploadedBy: 'Paciente',
+          label: photoLabel,
+          url: compressedBase64,
+          folder: `Sesión ${todayStr}`
+        };
+        
+        const updatedGallery = [...(patient.photosGallery || []), newPhotoItem];
+        const updatedPatient = { ...patient, photosGallery: updatedGallery };
+        
+        const saved = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
+        localStorage.setItem('nutri_patients', JSON.stringify(saved.map(p => p.id === patient.id ? updatedPatient : p)));
+        setPatient(updatedPatient);
+        
+        setPhotoFile(null);
+        const fileInput = document.getElementById('patient-photo-input');
+        if (fileInput) fileInput.value = '';
+        alert('Foto de evolución cargada y comprimida con éxito.');
+      };
+    };
+    reader.readAsDataURL(photoFile);
+  };
+
+  const mealPlanKey = patient?.details?.mealPlan || '3+2 snacks';
+  const currentMeals = MEAL_PLANS[mealPlanKey] || MEAL_PLANS['3+2 snacks'];
+
+  useEffect(() => {
+    if (patient) {
+      const keys = currentMeals.map(m => m.key);
+      if (!selectedExchangeMeal || !keys.includes(selectedExchangeMeal)) {
+        setSelectedExchangeMeal(keys[0] || 'desayuno');
+      }
+    }
+  }, [patient, mealPlanKey, currentMeals]);
 
   const foodGroups = {
     cereales: { color: '#FFA500', name: 'Almidones' },
@@ -124,6 +227,8 @@ export default function PatientDashboard() {
     grasas: { color: '#FFD700', name: 'Grasas' }
   };
 
+  const activeMenu = patient ? (patient.menus?.[activeDay] || (activeDay === 'day1' ? patient.menu : {})) : {};
+
   if (!patient) return <div style={{ padding: '40px', textAlign: 'center' }}>Cargando tu plan...</div>;
 
   return (
@@ -133,27 +238,58 @@ export default function PatientDashboard() {
          <p style={{ fontSize: '1.1rem', fontWeight: '700', opacity: 0.8 }}>Tu Plan Nutricional Personalizado</p>
       </header>
 
+      {/* Selector de Día (☀️ / 🌙) */}
+      {(patient.menus || patient.menu) && (
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginBottom: '24px' }}>
+          {[
+            { id: 'day1', label: '☀️ DÍA 1', activeColor: '#1d512d', bgColor: 'rgba(29, 81, 45, 0.1)' },
+            { id: 'day2', label: '🌙 DÍA 2', activeColor: '#827717', bgColor: '#F9FBE7' }
+          ].map(day => (
+            <button
+              key={day.id}
+              onClick={() => setActiveDay(day.id)}
+              style={{
+                padding: '10px 24px',
+                borderRadius: '16px',
+                border: activeDay === day.id ? `2px solid ${day.activeColor}` : '1.5px solid rgba(0,0,0,0.08)',
+                background: activeDay === day.id ? day.bgColor : 'white',
+                color: activeDay === day.id ? day.activeColor : '#666',
+                fontWeight: '900',
+                fontSize: '0.9rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                boxShadow: activeDay === day.id ? '0 4px 12px rgba(0,0,0,0.05)' : 'none'
+              }}
+            >
+              {day.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Tabla de Menú */}
       <section style={{ background: 'white', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 15px 35px rgba(0,0,0,0.1)', border: '2px solid #1d512d', marginBottom: '40px' }}>
-         <h3 style={{ background: '#1d512d', color: 'white', padding: '15px', textAlign: 'center', fontSize: '1.2rem', fontWeight: '900', margin: 0 }}>MI MENÚ SEMANAL</h3>
+         <h3 style={{ background: '#1d512d', color: 'white', padding: '15px', textAlign: 'center', fontSize: '1.2rem', fontWeight: '900', margin: 0 }}>
+           MI MENÚ SEMANAL - {activeDay === 'day1' ? '☀️ DÍA 1' : '🌙 DÍA 2'}
+         </h3>
          
          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px' }}>
                 <thead>
                    <tr style={{ background: '#f5f5f5' }}>
-                      {['DESAYUNO', 'MERIENDA', 'ALMUERZO', 'MERIENDA', 'CENA'].map((label, idx) => (
-                        <th key={idx} style={{ padding: '15px 10px', fontSize: '0.8rem', fontWeight: '900', border: '1px solid #1d512d' }}>{label}</th>
+                      {currentMeals.map((meal, idx) => (
+                        <th key={idx} style={{ padding: '15px 10px', fontSize: '0.8rem', fontWeight: '900', border: '1px solid #1d512d', textTransform: 'uppercase' }}>{meal.name}</th>
                       ))}
                    </tr>
                 </thead>
                 <tbody>
-                   {Array.from({ length: Math.max(...Object.values(patient.menu || {}).map(m => m.selectedFoods?.length || 0), 1) }).map((_, rowIdx) => (
+                   {Array.from({ length: Math.max(...Object.values(activeMenu || {}).map(m => m.selectedFoods?.length || 0), 1) }).map((_, rowIdx) => (
                       <tr key={rowIdx}>
-                         {['desayuno', 'meriendaAM', 'almuerzo', 'meriendaPM', 'cena'].map(mealKey => {
-                            const food = patient.menu?.[mealKey]?.selectedFoods?.[rowIdx];
+                         {currentMeals.map(meal => {
+                            const food = activeMenu?.[meal.key]?.selectedFoods?.[rowIdx];
                             const group = food ? foodGroups[food.groupKey] : null;
                             return (
-                               <td key={mealKey} style={{ padding: '15px 10px', border: '1px solid #eee', verticalAlign: 'top', height: '120px' }}>
+                               <td key={meal.key} style={{ padding: '15px 10px', border: '1px solid #eee', verticalAlign: 'top', height: '120px' }}>
                                   {food ? (
                                      <div style={{ fontSize: '0.8rem', borderLeft: `4px solid ${group.color}`, paddingLeft: '8px' }}>
                                         <p style={{ margin: '0 0 4px 0', fontWeight: '900', color: group.color }}>{food.portion}</p>
@@ -215,9 +351,9 @@ export default function PatientDashboard() {
             </h4>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {exchangeMeals.map(m => {
+              {currentMeals.map(m => {
                 const isActive = selectedExchangeMeal === m.key;
-                const mealPortions = patient.menu?.[m.key]?.portions || {};
+                const mealPortions = activeMenu?.[m.key]?.portions || {};
                 const hasPortions = Object.values(mealPortions).some(val => parseFloat(val) > 0);
                 
                 return (
@@ -263,12 +399,12 @@ export default function PatientDashboard() {
           {/* LADO DERECHO: INTERCAMBIOS AUTO-RELLENADOS */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <h4 style={{ fontSize: '0.95rem', fontWeight: '900', margin: '0 0 4px 0', color: '#1d512d' }}>
-              📋 TABLA DE INTERCAMBIOS PARA: <span style={{ textTransform: 'uppercase', color: '#1d512d', fontWeight: '950' }}>{exchangeMeals.find(em => em.key === selectedExchangeMeal)?.name}</span>
+              📋 TABLA DE INTERCAMBIOS PARA: <span style={{ textTransform: 'uppercase', color: '#1d512d', fontWeight: '950' }}>{currentMeals.find(em => em.key === selectedExchangeMeal)?.name}</span>
             </h4>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {Object.entries(EXCHANGE_GUIDE_DB).map(([groupKey, groupMeta]) => {
-                const targetVal = parseFloat(patient.menu?.[selectedExchangeMeal]?.portions?.[groupKey]) || 0;
+                const targetVal = parseFloat(activeMenu?.[selectedExchangeMeal]?.portions?.[groupKey]) || 0;
                 
                 return (
                   <div key={groupKey} style={{ border: `1.5px solid ${groupMeta.color}`, borderRadius: '16px', overflow: 'hidden' }}>
@@ -559,8 +695,115 @@ export default function PatientDashboard() {
         </section>
       )}
 
+      {/* Galería de Evolución Corporal */}
+      <section className="glass-panel" style={{ 
+        background: 'white', 
+        borderRadius: '24px', 
+        padding: '24px', 
+        border: '2px solid #1D512D', 
+        boxShadow: '0 15px 35px rgba(0,0,0,0.05)',
+        marginBottom: '40px'
+      }}>
+         <h3 style={{ color: '#1D512D', fontSize: '1.2rem', fontWeight: '900', marginBottom: '20px', borderBottom: '1px solid rgba(0,0,0,0.05)', paddingBottom: '10px' }}>
+           📸 MI EVOLUCIÓN CORPORAL (FOTOS)
+         </h3>
+         
+         <div style={{ background: 'rgba(29, 81, 45, 0.03)', padding: '16px', borderRadius: '16px', marginBottom: '20px' }}>
+           <p style={{ margin: '0 0 10px 0', fontSize: '0.85rem', fontWeight: '800' }}>Cargar Nueva Foto de Evolución</p>
+           <form onSubmit={handlePatientPhotoUpload} style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
+             <div>
+               <label style={{ fontSize: '0.65rem', fontWeight: '800', display: 'block', marginBottom: '3px', opacity: 0.7 }}>POSE / TOMA</label>
+               <select
+                 value={photoLabel}
+                 onChange={(e) => setPhotoLabel(e.target.value)}
+                 style={{ padding: '6px', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid rgba(0,0,0,0.15)', background: 'white' }}
+               >
+                 <option value="Frente">Frente</option>
+                 <option value="Espalda">Espalda</option>
+                 <option value="Lat. Izquierdo">Lat. Izquierdo</option>
+                 <option value="Lat. Derecho">Lat. Derecho</option>
+                 <option value="Otra">Otra</option>
+               </select>
+             </div>
+             
+             <div style={{ flex: 1, minWidth: '160px' }}>
+               <label style={{ fontSize: '0.65rem', fontWeight: '800', display: 'block', marginBottom: '3px', opacity: 0.7 }}>SELECCIONAR ARCHIVO</label>
+               <input
+                 type="file"
+                 id="patient-photo-input"
+                 accept="image/*"
+                 onChange={(e) => setPhotoFile(e.target.files[0])}
+                 style={{ fontSize: '0.75rem' }}
+               />
+             </div>
+             
+             <button
+               type="submit"
+               style={{
+                 alignSelf: 'flex-end',
+                 padding: '8px 16px',
+                 fontSize: '0.8rem',
+                 fontWeight: '800',
+                 borderRadius: '8px',
+                 border: 'none',
+                 background: '#1D512D',
+                 color: 'white',
+                 cursor: 'pointer'
+               }}
+             >
+               Subir Foto
+             </button>
+           </form>
+         </div>
+
+         {patient.photosGallery && patient.photosGallery.length > 0 ? (
+           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '16px' }}>
+             {patient.photosGallery.map(photo => (
+               <div
+                 key={photo.id}
+                 style={{
+                   background: '#f9f9f9',
+                   borderRadius: '12px',
+                   overflow: 'hidden',
+                   border: '1px solid rgba(0,0,0,0.06)',
+                   display: 'flex',
+                   flexDirection: 'column'
+                 }}
+               >
+                 <div style={{ position: 'relative', width: '100%', aspectRatio: '0.85', background: '#e0e0e0' }}>
+                   <img src={photo.url} alt={photo.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                   <div style={{
+                     position: 'absolute',
+                     top: '4px',
+                     left: '4px',
+                     background: 'rgba(29, 81, 45, 0.85)',
+                     color: 'white',
+                     padding: '2px 6px',
+                     borderRadius: '4px',
+                     fontSize: '0.55rem',
+                     fontWeight: '800'
+                   }}>
+                     {photo.label}
+                   </div>
+                 </div>
+                 
+                 <div style={{ padding: '8px', fontSize: '0.65rem', opacity: 0.7 }}>
+                   <p style={{ margin: 0 }}>Fecha: {photo.date}</p>
+                   <p style={{ margin: 0, fontWeight: '700' }}>Cargado por: {photo.uploadedBy}</p>
+                 </div>
+               </div>
+             ))}
+           </div>
+         ) : (
+           <div style={{ textAlign: 'center', padding: '30px 0', opacity: 0.5 }}>
+             <Camera size={36} style={{ margin: '0 auto 8px', color: '#1D512D' }} />
+             <p style={{ fontSize: '0.85rem', fontWeight: '700' }}>Aún no hay fotos en tu galería de evolución.</p>
+           </div>
+         )}
+      </section>
+
       <div style={{ textAlign: 'center', paddingBottom: '40px' }}>
-        <p style={{ fontSize: '1.5rem', fontWeight: '900', color: '#1d512d' }}>nutrimemi</p>
+        <p style={{ fontSize: '1.5rem', fontWeight: '900', color: '#1D512D' }}>nutrimemi</p>
       </div>
     </div>
   );

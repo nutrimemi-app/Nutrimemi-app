@@ -5,6 +5,40 @@ import { Printer, MapPin, Phone, User, Activity, FileText, ArrowLeft, Save, Chec
 import { useUI } from '@/context/UIContext';
 import { calculateClinicalData } from '@/utils/calculationUtils';
 
+const MEAL_PLANS = {
+  '2 comidas': [
+    { label: 'DESAYUNO', key: 'desayuno', active: false },
+    { label: 'ALMUERZO', key: 'almuerzo' },
+    { label: 'CENA', key: 'cena' },
+  ],
+  '3 comidas': [
+    { label: 'DESAYUNO', key: 'desayuno' },
+    { label: 'ALMUERZO', key: 'almuerzo' },
+    { label: 'CENA', key: 'cena' },
+  ],
+  '3+2 snacks': [
+    { label: 'DESAYUNO', key: 'desayuno' },
+    { label: 'MER. AM', key: 'meriendaAM' },
+    { label: 'ALMUERZO', key: 'almuerzo' },
+    { label: 'MER. PM', key: 'meriendaPM' },
+    { label: 'CENA', key: 'cena' },
+  ],
+  '3+3 snacks': [
+    { label: 'DESAYUNO', key: 'desayuno' },
+    { label: 'MER. AM', key: 'meriendaAM' },
+    { label: 'ALMUERZO', key: 'almuerzo' },
+    { label: 'MER. PM', key: 'meriendaPM' },
+    { label: 'CENA', key: 'cena' },
+    { label: 'S. NOCHE', key: 'snackNoche' },
+  ],
+  '2+2 snacks': [
+    { label: 'DESAYUNO', key: 'desayuno' },
+    { label: 'MER. AM', key: 'meriendaAM' },
+    { label: 'ALMUERZO', key: 'almuerzo' },
+    { label: 'CENA', key: 'cena' },
+  ],
+};
+
 export default function ClinicalReport() {
   const params = useParams();
   const router = useRouter();
@@ -32,12 +66,14 @@ export default function ClinicalReport() {
   const targetDetails = snapshot ? snapshot.details : patient.details;
   const targetMeasurements = snapshot ? snapshot.measurements : patient.measurements;
   const targetMenu = snapshot ? snapshot.menu : patient.menu;
+  const targetMenus = snapshot ? (snapshot.menus || { day1: snapshot.menu || {} }) : (patient.menus || { day1: patient.menu || {} });
   
   const clinical = snapshot ? snapshot.clinical : calculateClinicalData({
     weight: targetDetails?.weight,
     height: targetDetails?.height,
     sex: targetDetails?.gender || 'female',
     manualPi: targetDetails?.manualPi,
+    manualPa: targetDetails?.manualPa,
     manualPc: targetDetails?.manualPc
   });
 
@@ -48,6 +84,15 @@ export default function ClinicalReport() {
     frutas: { color: '#BA55D3', name: 'Frutas' },
     lacteos: { color: '#1E90FF', name: 'Lácteos' },
     grasas: { color: '#FFD700', name: 'Grasas' }
+  };
+
+  const gNamesShort = {
+    cereales: 'Cer',
+    proteinas: 'Prot',
+    vegetales: 'Veg',
+    frutas: 'Frut',
+    lacteos: 'Lác',
+    grasas: 'Gras'
   };
 
   const handlePrint = () => {
@@ -70,7 +115,8 @@ export default function ClinicalReport() {
           date: new Date().toISOString(),
           details: { ...patient.details },
           measurements: { ...patient.measurements },
-          menu: { ...patient.menu },
+          menu: patient.menus?.day1 || patient.menu || {},
+          menus: patient.menus ? { ...patient.menus } : { day1: patient.menu || {} },
           clinical: { imc: clinical.imc, profile: clinical.profile, pi: clinical.pi },
           nextAppDate: nextApp?.date || null
         };
@@ -86,8 +132,19 @@ export default function ClinicalReport() {
 
   return (
     <div className="report-container" style={{ background: '#f5f5f5', minHeight: '100vh', padding: '40px 0', paddingBottom: '100px' }}>
-      {/* Estilos para Impresión */}
+      {/* Estilos para Impresión y Pantalla */}
       <style dangerouslySetInnerHTML={{ __html: `
+        .letter-page {
+          background: white !important;
+          width: 215.9mm !important;
+          min-height: 279.4mm !important;
+          box-shadow: 0 12px 36px rgba(0,0,0,0.12) !important;
+          margin: 0 auto !important;
+          position: relative !important;
+          box-sizing: border-box !important;
+          border-radius: 8px !important;
+          overflow: hidden !important;
+        }
         @media print {
           .no-print, nav, footer:not(.report-footer), .tab-bar, #tab-bar { display: none !important; }
           body { background: white !important; margin: 0 !important; padding: 0 !important; }
@@ -99,6 +156,7 @@ export default function ClinicalReport() {
             width: 215.9mm !important; 
             height: 279.4mm !important;
             padding: 0 !important;
+            border-radius: 0 !important;
             print-color-adjust: exact !important;
             -webkit-print-color-adjust: exact !important;
             page-break-after: always;
@@ -284,67 +342,107 @@ export default function ClinicalReport() {
                </div>
             </div>
           )}
-
-          {/* PLAN DE MENÚ DINÁMICO SEGÚN PACIENTE */}
+          {/* PLAN DE MENÚ DINÁMICO SEGÚN PACIENTE EN 2 FILAS */}
           <div style={{ border: '2px solid var(--primary)', borderRadius: '12px', background: 'white', overflow: 'hidden', marginBottom: '25px', pageBreakInside: 'avoid' }}>
-             <h3 style={{ margin: '0', background: 'var(--primary)', color: 'white', padding: '10px', fontSize: '1rem', fontWeight: '900', textAlign: 'center', textTransform: 'uppercase' }}>PLAN DE MENÚ ESTIMADO</h3>
+             <h3 style={{ margin: '0', background: 'var(--primary)', color: 'white', padding: '10px', fontSize: '0.85rem', fontWeight: '900', textAlign: 'center', textTransform: 'uppercase' }}>PLAN DE MENÚ ESTIMADO</h3>
              <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
                 <thead>
                    <tr style={{ background: 'var(--card-green-light)', color: 'var(--primary)' }}>
-                      {[
-                        { key: 'desayuno', label: 'DESAYUNO' },
-                        { key: 'meriendaAM', label: 'MER. AM', active: ['3+1', '3+2', '3+3'].includes(patient.mealPlan) },
-                        { key: 'almuerzo', label: 'ALMUERZO' },
-                        { key: 'meriendaPM', label: 'MER. PM', active: ['3+2', '3+3'].includes(patient.mealPlan) },
-                        { key: 'cena', label: 'CENA' },
-                        { key: 'snackNoche', label: 'S. NOCHE', active: patient.mealPlan === '3+3' }
-                      ].filter(m => m.active !== false).map(meal => (
-                        <th key={meal.key} style={{ padding: '10px 5px', fontSize: '0.65rem', fontWeight: '900', border: '1px solid var(--primary)' }}>
+                      <th style={{ padding: '8px 5px', fontSize: '0.62rem', fontWeight: '900', border: '1px solid var(--primary)', width: '68px', textAlign: 'center' }}>
+                         DÍA
+                      </th>
+                      {(MEAL_PLANS[targetDetails?.mealPlan] || MEAL_PLANS['3+2 snacks']).map(meal => (
+                        <th key={meal.key} style={{ padding: '8px 4px', fontSize: '0.62rem', fontWeight: '900', border: '1px solid var(--primary)', textAlign: 'center' }}>
                            {meal.label}
                         </th>
                       ))}
                    </tr>
                 </thead>
                 <tbody>
-                   {Array.from({ length: Math.max(...Object.values(targetMenu || {}).map(m => m.selectedFoods?.length || 0), 1) }).map((_, rowIdx) => (
-                      <tr key={rowIdx}>
-                         {[
-                            { key: 'desayuno' },
-                            { key: 'meriendaAM', active: ['3+1', '3+2', '3+3'].includes(patient.mealPlan) },
-                            { key: 'almuerzo' },
-                            { key: 'meriendaPM', active: ['3+2', '3+3'].includes(patient.mealPlan) },
-                            { key: 'cena' },
-                            { key: 'snackNoche', active: patient.mealPlan === '3+3' }
-                         ].filter(m => m.active !== false).map(meal => {
-                            const food = targetMenu?.[meal.key]?.selectedFoods?.[rowIdx];
-                            return (
-                               <td key={meal.key} style={{ padding: '8px 6px', border: '1px solid var(--primary)', verticalAlign: 'top', height: '60px' }}>
-                                  {food ? (
-                                     <div style={{ fontSize: '0.62rem', borderLeft: `3px solid ${foodGroups[food.groupKey]?.color || '#333'}`, paddingLeft: '4px', lineHeight: '1.2' }}>
-                                        <p style={{ margin: '0 0 2px 0', fontWeight: '900', color: foodGroups[food.groupKey]?.color }}>{food.portion}</p>
-                                        <p style={{ margin: 0, fontWeight: '700', color: '#111' }}>{food.name}</p>
-                                     </div>
-                                  ) : (
-                                    <div style={{ opacity: 0.05, fontSize: '0.5rem', textAlign: 'center' }}>-</div>
-                                  )}
-                               </td>
-                            );
-                         })}
-                      </tr>
-                   ))}
+                   {/* FILA DÍA 1 */}
+                   <tr>
+                      <td style={{ padding: '10px 5px', border: '1px solid var(--primary)', textAlign: 'center', background: 'rgba(29, 81, 45, 0.08)', fontWeight: '900', fontSize: '0.7rem', color: 'var(--primary)' }}>
+                        ☀️ DÍA 1
+                      </td>
+                      {(MEAL_PLANS[targetDetails?.mealPlan] || MEAL_PLANS['3+2 snacks']).map(meal => {
+                         const mealData = targetMenus?.day1?.[meal.key] || targetMenu?.[meal.key] || {};
+                         const portions = mealData.portions || {};
+                         const activeP = Object.entries(portions)
+                           .filter(([_, val]) => parseFloat(val) > 0)
+                           .map(([k, val]) => `${val} ${gNamesShort[k] || k}`)
+                           .join(' | ');
+
+                         return (
+                            <td key={meal.key} style={{ padding: '8px 6px', border: '1px solid var(--primary)', verticalAlign: 'top', minHeight: '90px' }}>
+                               {activeP && (
+                                 <p style={{ margin: '0 0 4px 0', fontSize: '0.52rem', fontWeight: '850', color: 'var(--primary)', opacity: 0.8, background: 'rgba(29, 81, 45, 0.05)', padding: '2px', borderRadius: '4px', textAlign: 'center' }}>
+                                   {activeP}
+                                 </p>
+                               )}
+                               {mealData.selectedFoods?.length > 0 ? (
+                                 <div style={{ fontSize: '0.6rem', color: '#111', lineHeight: '1.25' }}>
+                                    {mealData.selectedFoods.map((f, idx) => (
+                                      <div key={idx} style={{ marginBottom: '2.5px', borderLeft: `2.5px solid ${foodGroups[f.groupKey]?.color || '#333'}`, paddingLeft: '4.5px' }}>
+                                        {f.qty && f.qty !== 1 ? `${f.qty.toString().replace('.0', '')}x ` : ''}{f.name}
+                                      </div>
+                                    ))}
+                                 </div>
+                               ) : (
+                                 <div style={{ opacity: 0.15, fontSize: '0.5rem', textAlign: 'center', marginTop: '10px' }}>-</div>
+                               )}
+                            </td>
+                         );
+                      })}
+                   </tr>
+
+                   {/* FILA DÍA 2 */}
+                   <tr>
+                      <td style={{ padding: '10px 5px', border: '1px solid var(--primary)', textAlign: 'center', background: '#F9FBE7', fontWeight: '900', fontSize: '0.7rem', color: '#827717' }}>
+                        🌙 DÍA 2
+                      </td>
+                      {(MEAL_PLANS[targetDetails?.mealPlan] || MEAL_PLANS['3+2 snacks']).map(meal => {
+                         const mealData = targetMenus?.day2?.[meal.key] || {};
+                         const portions = mealData.portions || {};
+                         const activeP = Object.entries(portions)
+                           .filter(([_, val]) => parseFloat(val) > 0)
+                           .map(([k, val]) => `${val} ${gNamesShort[k] || k}`)
+                           .join(' | ');
+
+                         return (
+                            <td key={meal.key} style={{ padding: '8px 6px', border: '1px solid var(--primary)', verticalAlign: 'top', minHeight: '90px' }}>
+                               {activeP && (
+                                 <p style={{ margin: '0 0 4px 0', fontSize: '0.52rem', fontWeight: '850', color: '#558B2F', opacity: 0.8, background: 'rgba(175, 180, 43, 0.08)', padding: '2px', borderRadius: '4px', textAlign: 'center' }}>
+                                   {activeP}
+                                 </p>
+                               )}
+                               {mealData.selectedFoods?.length > 0 ? (
+                                 <div style={{ fontSize: '0.6rem', color: '#111', lineHeight: '1.25' }}>
+                                    {mealData.selectedFoods.map((f, idx) => (
+                                      <div key={idx} style={{ marginBottom: '2.5px', borderLeft: `2.5px solid ${foodGroups[f.groupKey]?.color || '#333'}`, paddingLeft: '4.5px' }}>
+                                        {f.qty && f.qty !== 1 ? `${f.qty.toString().replace('.0', '')}x ` : ''}{f.name}
+                                      </div>
+                                    ))}
+                                 </div>
+                               ) : (
+                                 <div style={{ opacity: 0.15, fontSize: '0.5rem', textAlign: 'center', marginTop: '10px' }}>-</div>
+                               )}
+                            </td>
+                         );
+                      })}
+                   </tr>
                 </tbody>
              </table>
           </div>
 
-          <div style={{ marginTop: '20px', background: 'rgba(255,255,255,0.8)', border: '1px dashed var(--accent)', padding: '12px', borderRadius: '8px' }}>
+          <div style={{ marginTop: '20px', background: 'rgba(255,255,255,0.8)', border: '1px dashed var(--accent)', padding: '12px', borderRadius: '8px', pageBreakInside: 'avoid' }}>
              <h4 style={{ fontSize: '0.7rem', fontWeight: '900', color: 'var(--accent)', marginBottom: '6px', textTransform: 'uppercase' }}>Observaciones del Especialista</h4>
              <div style={{ fontSize: '0.75rem', lineHeight: '1.4', color: '#444' }}>
                {targetDetails?.notes || 'Seguir las indicaciones generales discutidas en consulta.'}
              </div>
           </div>
 
-          <footer style={{ position: 'absolute', bottom: '2cm', left: '1.5cm', right: '1.5cm', textAlign: 'center' }}>
-             <div style={{ display: 'inline-block', borderTop: '1px solid #333', padding: '8px 40px' }}>
+          <footer style={{ marginTop: '40px', textAlign: 'center', pageBreakInside: 'avoid', zIndex: 5, position: 'relative' }}>
+             <div style={{ display: 'inline-block', borderTop: '1px solid #333', padding: '8px 50px' }}>
                 <p style={{ margin: 0, fontWeight: '900', fontSize: '0.85rem' }}>Lic. en Nutrición y Dietética</p>
                 <p style={{ margin: 0, fontSize: '0.65rem', opacity: 0.6 }}>Registro Profesional / Matrícula</p>
              </div>

@@ -23,15 +23,21 @@ export const calculateClinicalData = (patient, measurements = {}) => {
 
   const pi = patient.manualPi ? parseFloat(patient.manualPi) : calculatedPi;
 
+  // Peso Ajustado (PA)
+  let calculatedPa = pi + (0.25 * (weight - pi));
+  let pa = 0;
+  if (profile === 'SOBREPESO' || profile.startsWith('OBESIDAD')) {
+    pa = patient.manualPa ? parseFloat(patient.manualPa) : calculatedPa;
+  } else {
+    pa = patient.manualPa ? parseFloat(patient.manualPa) : 0;
+  }
+
   // Peso de Cálculo (PC)
   let calculatedPc = weight;
-  let pa = 0;
-
-  if (profile === 'BAJO PESO' || profile === 'SOBREPESO') {
+  if (profile === 'BAJO PESO') {
     calculatedPc = pi;
-  } else if (profile.startsWith('OBESIDAD')) {
-    pa = pi + (0.25 * (weight - pi));
-    calculatedPc = pa;
+  } else if (profile === 'SOBREPESO' || profile.startsWith('OBESIDAD')) {
+    calculatedPc = pa > 0 ? pa : calculatedPa;
   }
 
   const pc = patient.manualPc ? parseFloat(patient.manualPc) : calculatedPc;
@@ -44,26 +50,29 @@ export const calculateClinicalData = (patient, measurements = {}) => {
   const cadera = parseFloat(measurements?.CADERA) || 0;
 
   if (cintura > 0 && cuello > 0 && heightCm > 0) {
-    if (sex === 'male' || sex === 'h' || sex === 'm') {
-      const isActuallyMale = sex === 'male' || sex === 'h';
-      if (isActuallyMale) {
-        // Hombres: %GC = 495 / (1.0324 - 0.19077 * log10(cintura - cuello) + 0.15456 * log10(altura)) - 450
+    const isMale = sex === 'male' || sex === 'h' || sex === 'hombre' || sex === 'm' || sex === 'masculino';
+    if (isMale) {
+      // Hombres: %GC = 495 / (1.0324 - 0.19077 * log10(cintura - cuello) + 0.15456 * log10(altura)) - 450
+      if ((cintura - cuello) > 0) {
         const valLog1 = Math.log10(cintura - cuello);
         const valLog2 = Math.log10(heightCm);
         const denom = 1.0324 - 0.19077 * valLog1 + 0.15456 * valLog2;
         gc = denom > 0 ? (495 / denom) - 450 : 0;
-      } else {
-        // Mujeres: %GC = 495 / (1.29579 - 0.35004 * log10(cintura + cadera - cuello) + 0.22100 * log10(altura)) - 450
-        if (cadera > 0 && (cintura + cadera - cuello) > 0) {
-          const valLog1 = Math.log10(cintura + cadera - cuello);
-          const valLog2 = Math.log10(heightCm);
-          const denom = 1.29579 - 0.35004 * valLog1 + 0.22100 * valLog2;
-          gc = denom > 0 ? (495 / denom) - 450 : 0;
-        }
+      }
+    } else {
+      // Mujeres: %GC = 495 / (1.29579 - 0.35004 * log10(cintura + cadera - cuello) + 0.22100 * log10(altura)) - 450
+      if (cadera > 0 && (cintura + cadera - cuello) > 0) {
+        const valLog1 = Math.log10(cintura + cadera - cuello);
+        const valLog2 = Math.log10(heightCm);
+        const denom = 1.29579 - 0.35004 * valLog1 + 0.22100 * valLog2;
+        gc = denom > 0 ? (495 / denom) - 450 : 0;
       }
     }
     if (gc < 0) gc = 0;
-    grasaMagra = weight * (1 - gc / 100);
+    
+    if (gc > 0) {
+      grasaMagra = weight - (weight * (gc / 100));
+    }
   }
 
   return {
@@ -73,8 +82,34 @@ export const calculateClinicalData = (patient, measurements = {}) => {
     pa: pa > 0 ? pa.toFixed(1) : '—',
     pc: pc.toFixed(1),
     gc: gc > 0 ? gc.toFixed(1) : '—',
-    grasaMagra: grasaMagra > 0 ? grasaMagra.toFixed(1) : '—'
+    grasaMagra: grasaMagra > 0 ? grasaMagra.toFixed(1) : '—',
+    suggestedPi: calculatedPi.toFixed(1),
+    suggestedPa: calculatedPa > 0 ? calculatedPa.toFixed(1) : '—',
+    suggestedPc: calculatedPc.toFixed(1)
   };
+};
+
+export const suggestPortionsFromMacros = (targetProt, targetCho, targetFat) => {
+  const lacteos = 1;    // Siempre suele ser 1 lácteo
+  const vegetales = 2;  // Siempre suele ser 2 vegetales
+  const frutas = 2;     // Basado en frutas moderadas por defecto
+
+  // Cálculo de CHO de base
+  const choBase = lacteos * 12 + vegetales * 5 + frutas * 15;
+  const remainingCho = Math.max(0, targetCho - choBase);
+  const cereales = Math.round(remainingCho / 15);
+
+  // Cálculo de Proteína de base
+  const protBase = lacteos * 8 + vegetales * 2 + cereales * 2;
+  const remainingProt = Math.max(0, targetProt - protBase);
+  const proteinas = Math.round(remainingProt / 7);
+
+  // Cálculo de Grasa de base
+  const fatBase = lacteos * 5 + proteinas * 3;
+  const remainingFat = Math.max(0, targetFat - fatBase);
+  const grasas = Math.round(remainingFat / 5);
+
+  return { cereales, proteinas, vegetales, frutas, lacteos, grasas };
 };
 
 export const DISTRIBUTION_TEMPLATES = {
