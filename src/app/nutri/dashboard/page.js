@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Users, Plus, Search, ChevronRight, Activity, Calendar } from 'lucide-react';
 import Link from 'next/link';
+import { getPatients } from '@/lib/patients';
 
 export default function NutriDashboard() {
   const { user, logout } = useAuth();
@@ -11,16 +12,11 @@ export default function NutriDashboard() {
   const [patients, setPatients] = useState([]);
 
   useEffect(() => {
-    const savedPatients = localStorage.getItem('nutri_patients');
-    if (savedPatients) {
-      const parsed = JSON.parse(savedPatients);
-      // Evitar duplicados si ya están en el estado inicial
-      setPatients(prev => {
-        const existingIds = prev.map(p => p.id);
-        const uniqueNext = parsed.filter(p => !existingIds.includes(p.id));
-        return [...prev, ...uniqueNext];
-      });
-    }
+    const loadPatients = async () => {
+      const data = await getPatients();
+      setPatients(data);
+    };
+    loadPatients();
   }, []);
 
   const getDietaryAnomalyCount = (patientId) => {

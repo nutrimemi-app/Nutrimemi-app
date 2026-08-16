@@ -4,6 +4,7 @@ import { ArrowLeft, UserPlus, Link as LinkIcon, Check, Copy } from 'lucide-react
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useUI } from '@/context/UIContext';
+import { createPatient } from '@/lib/patients';
 
 export default function NewPatient() {
   const { showToast } = useUI();
@@ -50,30 +51,19 @@ export default function NewPatient() {
     return age;
   };
 
-  const age = calculateAge(formData.birthDate);  const savePatient = (e, mode) => {
+  const age = calculateAge(formData.birthDate);
+
+  const savePatient = async (e, mode) => {
     e.preventDefault();
-    const patientId = Math.floor(Math.random() * 10000);
-    
-    const newPatient = {
-      id: patientId,
-      name: formData.name,
-      goal: 'Nuevo Paciente',
-      status: 'Activo',
-      lastSeen: 'Hoy',
-      details: { ...formData, age },
-      history: [],
-      reports: [],
-      measurements: {},
-      menu: {}
-    };
-
-    const existingPatients = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
-    localStorage.setItem('nutri_patients', JSON.stringify([...existingPatients, newPatient]));
-
-    if (mode === 'presencial') {
-      router.push(`/nutri/patient/${patientId}`);
-    } else {
-      setLinkGenerated(`${window.location.origin}/paciente/${patientId}`);
+    try {
+      const created = await createPatient(formData);
+      if (mode === 'presencial') {
+        router.push(`/nutri/patient/${created.id}`);
+      } else {
+        setLinkGenerated(`${window.location.origin}/paciente/${created.id}`);
+      }
+    } catch (err) {
+      showToast('Error al crear paciente. Asegúrate de tener conexión a internet.', 'error');
     }
   };
 
