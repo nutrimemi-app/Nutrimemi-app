@@ -2,9 +2,10 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Activity, Printer, Calendar, Save, History, Camera, FileText, BookOpen, BarChart2 } from 'lucide-react';
+import { ArrowLeft, Activity, Printer, Calendar, Save, History, Camera, FileText, BookOpen, BarChart2, MessageCircle } from 'lucide-react';
 import { useUI } from '@/context/UIContext';
 import { calculateClinicalData, getBodyFatProfile, suggestPortionsFromMacros } from '@/utils/calculationUtils';
+import { getAnthropometricIconSrc } from '@/utils/anthropometricIcon';
 
 const MEAL_PLANS = {
   '2 comidas': [
@@ -652,6 +653,11 @@ export default function PatientFile() {
                 </Link>
               );
             })()}
+            {patient.details?.phone && (
+              <a href={`https://wa.me/${patient.details.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" style={{ flex: 1, textDecoration: 'none', background: '#25D366', color: 'white', padding: '14px', borderRadius: '16px', fontWeight: '900', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', border: '1.5px solid #128C7E' }}>
+                <MessageCircle size={18} /> WhatsApp
+              </a>
+            )}
             <Link href={`/nutri/patient/${patient.id}/report`} style={{ flex: 1, textDecoration: 'none', background: 'white', color: 'var(--primary)', padding: '14px', borderRadius: '16px', fontWeight: '900', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', border: '1.5px solid var(--primary)' }}>
               <Printer size={18} /> Informe Imprimible
             </Link>
@@ -1369,7 +1375,7 @@ export default function PatientFile() {
             ) : gender === 'female' ? (
               <div style={{ position: 'relative', height: '340px', width: '160px' }}>
                 <img 
-                  src={`/ICONO ANTROPOMETRIA FEMENINO/FEMENINO_${clinical.profile === 'BAJO PESO' ? 'BAJO PESO' : clinical.profile === 'NORMOPESO' ? 'NORMOPESO' : clinical.profile?.includes('OBESIDAD II') || clinical.profile?.includes('OBESIDAD III') ? 'OBESIDAD II,III' : clinical.profile?.includes('OBESIDAD') ? 'OBESIDAD' : 'SOBRE PESO'}.svg`} 
+                  src={getAnthropometricIconSrc(gender, clinical.profile)} 
                   alt={clinical.profile} 
                   style={{ position: 'absolute', height: '100%', width: '100%', objectFit: 'contain' }} 
                 />
@@ -1390,7 +1396,7 @@ export default function PatientFile() {
             ) : (
               <div style={{ position: 'relative', height: '340px', width: '160px' }}>
                 <img 
-                  src={`/ICONO ANTROPOMETRIA MASCULINO/MASCULINO_${clinical.profile === 'BAJO PESO' ? 'BAJO PESO' : clinical.profile === 'NORMOPESO' ? 'NORMO PESO' : clinical.profile?.includes('OBESIDAD') ? 'OBESIDAD' : 'SOBRE PESO'}.svg`} 
+                  src={getAnthropometricIconSrc(gender, clinical.profile)} 
                   alt={clinical.profile} 
                   style={{ position: 'absolute', height: '100%', width: '100%', objectFit: 'contain' }} 
                 />

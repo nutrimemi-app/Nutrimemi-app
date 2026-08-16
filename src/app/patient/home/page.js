@@ -2,8 +2,11 @@
 import { useAuth } from '@/context/AuthContext';
 import { useState, useEffect } from 'react';
 import TabBar from '@/components/patient/TabBar';
-import { Activity, Calendar, ChefHat, Droplets, TrendingUp } from 'lucide-react';
+import { Activity, Calendar, ChefHat, Droplets, TrendingUp, Clock } from 'lucide-react';
 import Link from 'next/link';
+import { getPatientByEmail } from '@/lib/patients';
+import { calculateClinicalData } from '@/utils/calculationUtils';
+import { getAnthropometricIconSrc } from '@/utils/anthropometricIcon';
 
 function PieChart({ cho, prot, fat, total }) {
   const size = 140;
@@ -69,23 +72,25 @@ export default function PatientHome() {
   const [todayLog, setTodayLog] = useState(null);
 
   useEffect(() => {
-    if (!user?.email) return;
-    const patients = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
-    const found = patients.find(p => p.email === user.email);
-    if (found) {
-      setData(found);
-      // Próxima cita
-      const apps = JSON.parse(localStorage.getItem('nutri_appointments') || '[]');
-      const next = apps
-        .filter(a => a.patientId == found.id && new Date(a.date) >= new Date())
-        .sort((a, b) => new Date(a.date) - new Date(b.date))[0];
-      setNextApp(next || null);
-      // Log de hoy
-      const today = new Date().toISOString().split('T')[0];
-      const logs = JSON.parse(localStorage.getItem(`daily_log_${found.id}`) || '[]');
-      const todayEntry = logs.find(l => l.date === today);
-      setTodayLog(todayEntry || null);
+    async function loadPatient() {
+      if (!user?.email) return;
+      const found = await getPatientByEmail(user.email);
+      if (found) {
+        setData(found);
+        // Próxima cita
+        const apps = JSON.parse(localStorage.getItem('nutri_appointments') || '[]');
+        const next = apps
+          .filter(a => a.patientId == found.id && new Date(a.date) >= new Date(new Date().setHours(0,0,0,0)))
+          .sort((a, b) => new Date(a.date) - new Date(b.date))[0];
+        setNextApp(next || null);
+        // Log de hoy
+        const today = new Date().toISOString().split('T')[0];
+        const logs = JSON.parse(localStorage.getItem(`daily_log_${found.id}`) || '[]');
+        const todayEntry = logs.find(l => l.date === today);
+        setTodayLog(todayEntry || null);
+      }
     }
+    loadPatient();
   }, [user]);
 
   // Macros del plan
@@ -126,22 +131,76 @@ export default function PatientHome() {
     localStorage.setItem(hydrKey, next.toString());
   };
 
+  const renderCountdown = () => {
+    if (!nextApp) {
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', opacity: 0.6 }}>
+          <Calendar size={16} />
+          <span style={{ fontSize: '0.8rem', fontWeight: '700' }}>Sin citas programadas</span>
+        </div>
+      );
+    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const appDate = new Date(nextApp.date);
+    // Para compensar la zona horaria al parsear YYYY-MM-DD
+    appDate.setMinutes(appDate.getMinutes() + appDate.getTimezoneOffset());
+    
+    const diffTime = Math.abs(appDate - today);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) {
+      return (
+        <div style={{ background: '#FFEBEE', color: '#B71C1C', padding: '6px 12px', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '8px', display: 'inline-flex' }}>
+          <Clock size={16} />
+          <span style={{ fontSize: '0.8rem', fontWeight: '900' }}>¡Tu cita es Hoy a las {nextApp.time}!</span>
+        </div>
+      );
+    }
+    
+    return (
+      <div style={{ background: 'rgba(203,188,30,0.1)', color: 'var(--accent)', padding: '6px 12px', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '8px', display: 'inline-flex' }}>
+        <Calendar size={16} />
+        <span style={{ fontSize: '0.8rem', fontWeight: '900' }}>Faltan {diffDays} {diffDays === 1 ? 'día' : 'días'} para tu control</span>
+      </div>
+    );
+  };
+
+  const getClinicalProfile = () => {
+    if (!data?.details?.weight || !data?.details?.height) return null;
+    const clinical = calculateClinicalData(
+      parseFloat(data.details.weight),
+      parseFloat(data.details.height) / 100,
+      parseFloat(data.details.waist || 0),
+      parseFloat(data.details.hip || 0),
+      parseFloat(data.details.neck || 0),
+      data.details.gender,
+      data.details.age
+    );
+    return clinical;
+  };
+
+  const clinicalData = getClinicalProfile();
+  const avatarSrc = clinicalData ? getAnthropometricIconSrc(data?.details?.gender, clinicalData.profile) : null;
+
   return (
     <div style={{ padding: '20px', paddingBottom: '100px' }} className="fade-in">
       {/* HEADER */}
       <header style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <p style={{ opacity: 0.55, fontSize: '0.85rem', fontWeight: '700' }}>Bienvenido de nuevo,</p>
-          <h2 style={{ fontSize: '1.6rem', color: 'var(--text-primary)', fontWeight: '900' }}>
-            {user?.name?.split(' ')[0] || 'Paciente'}
+          <h2 style={{ fontSize: '1.6rem', color: 'var(--text-primary)', fontWeight: '900', marginBottom: '8px' }}>
+            {data?.name?.split(' ')[0] || user?.name?.split(' ')[0] || 'Paciente'}
           </h2>
-          {data?.details?.isPediatric && (
-            <span style={{ background: '#E3F2FD', color: '#0D47A1', fontSize: '0.65rem', fontWeight: '900', padding: '2px 10px', borderRadius: '20px' }}>
-              Paciente Pediátrico
-            </span>
-          )}
+          {renderCountdown()}
         </div>
-        <img src="/logo.png" alt="Logo" style={{ height: '36px', opacity: 0.8 }} />
+        {avatarSrc ? (
+          <div style={{ width: '50px', height: '100px', position: 'relative' }}>
+             <img src={avatarSrc} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+          </div>
+        ) : (
+          <img src="/logo.png" alt="Logo" style={{ height: '36px', opacity: 0.8 }} />
+        )}
       </header>
 
       {/* META DIARIA + GRÁFICA TORTA */}
@@ -249,19 +308,7 @@ export default function PatientHome() {
         })}
       </div>
 
-      {/* PRÓXIMA CITA */}
-      {nextApp && (
-        <div className="glass-panel" style={{ marginTop: '16px', padding: '16px', background: 'rgba(203,188,30,0.08)', border: '1px solid var(--accent)', borderRadius: '20px', display: 'flex', gap: '16px', alignItems: 'center' }}>
-          <Calendar size={24} color="var(--accent)" />
-          <div>
-            <p style={{ fontWeight: '900', fontSize: '0.9rem' }}>Próxima cita</p>
-            <p style={{ fontSize: '0.8rem', color: 'var(--accent)', fontWeight: '700' }}>
-              {nextApp.date.split('-').reverse().join('/')} a las {nextApp.time}
-            </p>
-            <p style={{ fontSize: '0.75rem', opacity: 0.6 }}>{nextApp.type}</p>
-          </div>
-        </div>
-      )}
+      {/* PRÓXIMA CITA - Removida porque se pasó arriba */}
 
       <TabBar />
     </div>

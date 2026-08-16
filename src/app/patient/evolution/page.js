@@ -3,28 +3,35 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import TabBar from '@/components/patient/TabBar';
 import { TrendingUp, TrendingDown, Scale, Ruler } from 'lucide-react';
+import { getPatientByEmail } from '@/lib/patients';
 
 export default function PatientEvolution() {
   const { user } = useAuth();
   const [patient, setPatient] = useState(null);
-  const [metric, setMetric] = useState('weight'); // 'weight' o 'height' para percentiles
+  const [metric, setMetric] = useState('weight'); // 'weight' o 'height' para percentiles, u otras medidas
 
   useEffect(() => {
-    if (!user?.email) return;
-    const patients = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
-    const found = patients.find(p => p.email === user.email);
-    if (found) setPatient(found);
+    async function load() {
+      if (!user?.email) return;
+      const found = await getPatientByEmail(user.email);
+      if (found) setPatient(found);
+    }
+    load();
   }, [user]);
 
   const history = patient?.history || [];
   const current = patient?.details || {};
 
-  // Construir serie de pesos para el mini-gráfico
+  // Construir serie de datos para gráficos y tabla
   const all = [
     ...history.map(h => ({
       date: h.date,
       weight: parseFloat(h.details?.weight || 0),
       height: parseFloat(h.details?.height || 0),
+      waist: parseFloat(h.details?.waist || 0),
+      hip: parseFloat(h.details?.hip || 0),
+      neck: parseFloat(h.details?.neck || 0),
+      fat: parseFloat(h.details?.fat || 0),
       imc: parseFloat(h.imc || 0),
       age: parseFloat(h.details?.age || patient?.details?.age || 0),
     })),
@@ -32,6 +39,10 @@ export default function PatientEvolution() {
       date: new Date().toISOString().split('T')[0],
       weight: parseFloat(current.weight || 0),
       height: parseFloat(current.height || 0),
+      waist: parseFloat(current.waist || 0),
+      hip: parseFloat(current.hip || 0),
+      neck: parseFloat(current.neck || 0),
+      fat: parseFloat(current.fat || 0),
       imc: (() => {
         const w = parseFloat(current.weight);
         const h = parseFloat(current.height) / 100;
@@ -41,18 +52,26 @@ export default function PatientEvolution() {
     }
   ].filter(e => e.weight > 0);
 
-  const maxW = Math.max(...all.map(e => e.weight), 1);
-  const minW = Math.min(...all.map(e => e.weight)) * 0.92;
+  const getMetricVal = (entry) => entry[metric] || 0;
+  const activeSeries = all.map(e => ({ date: e.date, val: getMetricVal(e) })).filter(e => e.val > 0);
+  
+  const maxV = activeSeries.length ? Math.max(...activeSeries.map(e => e.val), 1) : 1;
+  const minV = activeSeries.length ? Math.min(...activeSeries.map(e => e.val)) * 0.92 : 0;
 
-  const firstWeight = all[0]?.weight || 0;
-  const lastWeight  = all[all.length - 1]?.weight || 0;
-  const diff = firstWeight > 0 ? (lastWeight - firstWeight).toFixed(1) : null;
+  const firstVal = activeSeries[0]?.val || 0;
+  const lastVal  = activeSeries[activeSeries.length - 1]?.val || 0;
+  const diff = firstVal > 0 ? (lastVal - firstVal).toFixed(1) : null;
+
+  const hasWaist = all.some(e => e.waist > 0);
+  const hasHip = all.some(e => e.hip > 0);
+  const hasNeck = all.some(e => e.neck > 0);
+  const hasFat = all.some(e => e.fat > 0);
 
   return (
     <div style={{ padding: '20px', paddingBottom: '100px' }} className="fade-in">
       <header style={{ marginBottom: '24px' }}>
         <h2 style={{ fontSize: '1.6rem', fontWeight: '900', color: 'var(--text-primary)' }}>Mi Evolución</h2>
-        <p style={{ opacity: 0.55, fontSize: '0.85rem' }}>Historial de pesos y tallas en cada control</p>
+        <p style={{ opacity: 0.55, fontSize: '0.85rem' }}>Historial de pesos y medidas en cada control</p>
       </header>
 
       {/* Resumen rápido */}
@@ -61,26 +80,43 @@ export default function PatientEvolution() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             {parseFloat(diff) <= 0 ? <TrendingDown size={28} /> : <TrendingUp size={28} />}
             <div>
-              <p style={{ fontSize: '0.8rem', opacity: 0.8 }}>Variación total desde el inicio</p>
+              <p style={{ fontSize: '0.8rem', opacity: 0.8 }}>Variación total desde el inicio ({metric})</p>
               <p style={{ fontSize: '2rem', fontWeight: '900', lineHeight: 1 }}>
-                {parseFloat(diff) > 0 ? '+' : ''}{diff} kg
+                {parseFloat(diff) > 0 ? '+' : ''}{diff} {metric === 'fat' ? '%' : (metric === 'weight' ? 'kg' : 'cm')}
               </p>
             </div>
           </div>
         </div>
       )}
 
-      {/* Mini gráfico de barras de peso (Solo Adultos) */}
-      {!current.isPediatric && all.length > 1 && (
+      {/* Gráfico Genérico de Medidas */}
+      {!current.isPediatric && activeSeries.length > 1 && (
         <div className="glass-panel" style={{ padding: '20px', marginBottom: '20px', background: 'white' }}>
-          <p style={{ fontSize: '0.65rem', fontWeight: '900', opacity: 0.5, letterSpacing: '1px', marginBottom: '12px' }}>CURVA DE PESO</p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <p style={{ fontSize: '0.65rem', fontWeight: '900', opacity: 0.5, letterSpacing: '1px' }}>CURVA DE EVOLUCIÓN</p>
+          </div>
+          
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', overflowX: 'auto', paddingBottom: '8px' }}>
+            {[{id: 'weight', label: 'Peso'}, {id: 'waist', label: 'Cintura', show: hasWaist}, {id: 'hip', label: 'Cadera', show: hasHip}, {id: 'neck', label: 'Cuello', show: hasNeck}, {id: 'fat', label: '% Grasa', show: hasFat}]
+              .filter(m => m.show !== false)
+              .map(m => (
+                <button key={m.id} onClick={() => setMetric(m.id)} style={{
+                  padding: '6px 12px', borderRadius: '12px', border: 'none', fontWeight: '800', fontSize: '0.75rem', cursor: 'pointer',
+                  background: metric === m.id ? 'var(--primary)' : 'rgba(0,0,0,0.05)',
+                  color: metric === m.id ? 'white' : '#666'
+                }}>
+                  {m.label}
+                </button>
+            ))}
+          </div>
+
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: '6px', height: '100px', paddingBottom: '24px', position: 'relative', borderBottom: '2px solid rgba(0,0,0,0.06)' }}>
-            {all.map((e, i) => {
-              const h = Math.max(8, ((e.weight - minW) / (maxW - minW)) * 80);
-              const isLast = i === all.length - 1;
+            {activeSeries.map((e, i) => {
+              const h = Math.max(8, ((e.val - minV) / (maxV - minV)) * 80);
+              const isLast = i === activeSeries.length - 1;
               return (
                 <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
-                  <span style={{ fontSize: '0.55rem', fontWeight: '900', color: isLast ? 'var(--text-primary)' : '#888', marginBottom: '2px' }}>{e.weight}</span>
+                  <span style={{ fontSize: '0.55rem', fontWeight: '900', color: isLast ? 'var(--text-primary)' : '#888', marginBottom: '2px' }}>{e.val}</span>
                   <div style={{ width: '100%', height: `${h}px`, background: isLast ? 'var(--card-green)' : 'rgba(29,81,45,0.2)', borderRadius: '4px 4px 0 0', minHeight: '8px', transition: 'height 0.4s' }} />
                   <span style={{ position: 'absolute', bottom: '-20px', fontSize: '0.5rem', opacity: 0.5, whiteSpace: 'nowrap' }}>
                     {new Date(e.date + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
@@ -187,7 +223,6 @@ export default function PatientEvolution() {
               val: metric === 'weight' ? entry.weight : entry.height
             })).sort((a,b) => a.age - b.age);
 
-            // Generar strings de path d
             const p15Path = whoData.map((d, i) => `${i === 0 ? 'M' : 'L'} ${getX(d.age)} ${getY(d.p15)}`).join(' ');
             const p50Path = whoData.map((d, i) => `${i === 0 ? 'M' : 'L'} ${getX(d.age)} ${getY(d.p50)}`).join(' ');
             const p85Path = whoData.map((d, i) => `${i === 0 ? 'M' : 'L'} ${getX(d.age)} ${getY(d.p85)}`).join(' ');
@@ -196,30 +231,25 @@ export default function PatientEvolution() {
             return (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 <svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} style={{ overflow: 'visible' }}>
-                  {/* Grid Lines */}
                   {gridLines.map(gl => (
                     <g key={gl}>
                       <line x1={paddingLeft} y1={getY(gl)} x2={w - paddingRight} y2={getY(gl)} stroke="#f0f0f0" strokeDasharray="3" />
                       <text x={paddingLeft - 6} y={getY(gl) + 3} fontSize="8" opacity="0.4" textAnchor="end">{gl}{metric === 'weight' ? 'kg' : 'cm'}</text>
                     </g>
                   ))}
-                  {/* Age labels */}
                   {[2, 4, 6, 8, 10, 12, 14, 15].map(a => (
                     <text key={a} x={getX(a)} y={h - 10} fontSize="8" opacity="0.4" textAnchor="middle">{a}a</text>
                   ))}
                   <text x={paddingLeft + chartW / 2} y={h} fontSize="8" opacity="0.5" textAnchor="middle" fontWeight="bold">Edad del Paciente (Años)</text>
 
-                  {/* WHO curves */}
                   <path d={p15Path} fill="none" stroke="#FF8A65" strokeWidth="1.5" strokeDasharray="2 2" />
                   <path d={p50Path} fill="none" stroke="#81C784" strokeWidth="2" />
                   <path d={p85Path} fill="none" stroke="#E57373" strokeWidth="1.5" strokeDasharray="2 2" />
 
-                  {/* Labels for curves */}
                   <text x={getX(15) + 4} y={getY(whoData[whoData.length - 1].p15) + 3} fontSize="7" fill="#FF8A65" fontWeight="bold">p15</text>
                   <text x={getX(15) + 4} y={getY(whoData[whoData.length - 1].p50) + 3} fontSize="7" fill="#81C784" fontWeight="bold">p50 (Med)</text>
                   <text x={getX(15) + 4} y={getY(whoData[whoData.length - 1].p85) + 3} fontSize="7" fill="#E57373" fontWeight="bold">p85</text>
 
-                  {/* Patient Line & Points */}
                   {patientPath && <path d={patientPath} fill="none" stroke="var(--primary)" strokeWidth="2.5" />}
                   {patientPoints.map((pt, idx) => (
                     <circle key={idx} cx={getX(pt.age)} cy={getY(pt.val)} r="4" fill="var(--primary)" stroke="white" strokeWidth="1.5" />
@@ -253,8 +283,8 @@ export default function PatientEvolution() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
               <thead>
                 <tr style={{ background: 'rgba(29,81,45,0.05)' }}>
-                  {['Fecha', 'Peso (kg)', 'Talla (cm)', 'IMC'].map(h => (
-                    <th key={h} style={{ padding: '10px 8px', textAlign: 'left', fontSize: '0.65rem', fontWeight: '900', opacity: 0.5 }}>{h}</th>
+                  {['Fecha', 'Peso', 'Cintura', 'Cadera', 'Cuello', '% Grasa', 'IMC'].map(h => (
+                    <th key={h} style={{ padding: '10px 8px', textAlign: 'left', fontSize: '0.65rem', fontWeight: '900', opacity: 0.5, whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -263,12 +293,14 @@ export default function PatientEvolution() {
                   const isFirst = i === 0;
                   return (
                     <tr key={i} style={{ borderBottom: '1px solid rgba(0,0,0,0.05)', background: isFirst ? 'rgba(29,81,45,0.04)' : 'white' }}>
-                      <td style={{ padding: '12px 8px', fontWeight: isFirst ? '900' : '700', color: isFirst ? 'var(--text-primary)' : '#333' }}>
-                        {new Date(e.date + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}
-                        {isFirst && <span style={{ marginLeft: '6px', fontSize: '0.6rem', background: 'var(--text-primary)', color: 'white', padding: '1px 6px', borderRadius: '10px' }}>HOY</span>}
+                      <td style={{ padding: '12px 8px', fontWeight: isFirst ? '900' : '700', color: isFirst ? 'var(--text-primary)' : '#333', whiteSpace: 'nowrap' }}>
+                        {new Date(e.date + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
                       </td>
                       <td style={{ padding: '12px 8px', fontWeight: '900' }}>{e.weight}</td>
-                      <td style={{ padding: '12px 8px' }}>{e.height || '--'}</td>
+                      <td style={{ padding: '12px 8px' }}>{e.waist || '--'}</td>
+                      <td style={{ padding: '12px 8px' }}>{e.hip || '--'}</td>
+                      <td style={{ padding: '12px 8px' }}>{e.neck || '--'}</td>
+                      <td style={{ padding: '12px 8px' }}>{e.fat || '--'}</td>
                       <td style={{ padding: '12px 8px', fontWeight: '700' }}>{e.imc || '--'}</td>
                     </tr>
                   );
@@ -278,7 +310,7 @@ export default function PatientEvolution() {
           </div>
         ) : (
           <div style={{ textAlign: 'center', padding: '40px', opacity: 0.4 }}>
-            <Ruler size={36} style={{ marginBottom: '10px' }} />
+            <Ruler size={36} style={{ marginBottom: '10px', margin: '0 auto' }} />
             <p style={{ fontWeight: '700' }}>Aún no hay controles registrados.</p>
             <p style={{ fontSize: '0.8rem' }}>Los datos aparecerán aquí después de cada consulta.</p>
           </div>

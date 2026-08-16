@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import TabBar from '@/components/patient/TabBar';
 import { ChefHat, BookOpen, CheckCircle, Info } from 'lucide-react';
+import { getPatientByEmail } from '@/lib/patients';
 
 const FOOD_GROUPS = [
   { key: 'cereales',  name: 'Cereales',  color: '#E07B00', bg: '#FFF3E0', dot: '#FFA500' },
@@ -28,10 +29,12 @@ export default function PatientMenu() {
   const [tab, setTab] = useState('plan'); // 'plan' | 'menu'
 
   useEffect(() => {
-    if (!user?.email) return;
-    const patients = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
-    const found = patients.find(p => p.email === user.email);
-    if (found) setPatient(found);
+    async function load() {
+      if (!user?.email) return;
+      const found = await getPatientByEmail(user.email);
+      if (found) setPatient(found);
+    }
+    load();
   }, [user]);
 
   const menu = patient?.menu || {};

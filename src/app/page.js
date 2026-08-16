@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import Link from 'next/link';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -124,8 +125,28 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div style={{ marginTop: '40px', fontSize: '0.9rem', opacity: 0.6, fontWeight: '700', color: 'var(--text-primary)' }}>
+        <div style={{ marginTop: '24px', fontSize: '0.9rem', opacity: 0.6, fontWeight: '700', color: 'var(--text-primary)' }}>
           ¿Olvidaste tu contraseña?
+        </div>
+
+        <div style={{ marginTop: '32px', width: '100%', borderTop: '1px solid rgba(29, 81, 45, 0.1)', paddingTop: '24px' }}>
+          <p style={{ fontSize: '0.9rem', color: 'var(--text-primary)', marginBottom: '12px', opacity: 0.8, fontWeight: '700' }}>¿Eres un paciente nuevo?</p>
+          <Link href="/paciente/register" style={{ 
+            display: 'block',
+            width: '100%', 
+            padding: '16px',
+            borderRadius: '20px',
+            fontSize: '1rem',
+            fontWeight: '900',
+            background: 'white',
+            border: '2px solid var(--action)',
+            color: 'var(--action)',
+            textDecoration: 'none',
+            cursor: 'pointer',
+            transition: 'transform 0.2s'
+          }}>
+            Crear Perfil de Paciente
+          </Link>
         </div>
       </div>
     </main>

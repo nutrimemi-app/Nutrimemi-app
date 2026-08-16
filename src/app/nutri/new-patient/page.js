@@ -10,6 +10,7 @@ export default function NewPatient() {
   const { showToast } = useUI();
   const [formData, setFormData] = useState({
     name: '',
+    email: '',
     ci: '',
     phone: '',
     birthDate: '',
@@ -92,6 +93,17 @@ export default function NewPatient() {
             style={{ marginBottom: '4px' }}
             value={formData.name}
             onChange={(e) => setFormData({...formData, name: e.target.value})}
+            required
+          />
+
+          <label style={{ fontSize: '0.85rem', opacity: 0.6, marginBottom: '8px', display: 'block', marginTop: '12px' }}>Correo Electrónico</label>
+          <input 
+            type="email" 
+            placeholder="ejemplo@correo.com" 
+            className="input-field"
+            style={{ marginBottom: '4px' }}
+            value={formData.email}
+            onChange={(e) => setFormData({...formData, email: e.target.value})}
             required
           />
 

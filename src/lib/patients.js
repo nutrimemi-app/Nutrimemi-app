@@ -23,6 +23,7 @@ const mapDbToUI = (dbPatient) => {
     lastSeen: dbPatient.updated_at ? new Date(dbPatient.updated_at).toLocaleDateString() : 'Hoy',
     details: {
       name: dbPatient.name,
+      email: dbPatient.email,
       ci: dbPatient.ci,
       phone: dbPatient.phone,
       birthDate: dbPatient.birth_date,
@@ -93,9 +94,43 @@ export const getPatientById = async (id) => {
   return mapped;
 };
 
+export const getPatientByEmail = async (email) => {
+  const { data: patient, error: patientError } = await supabase
+    .from('patients')
+    .select('*')
+    .eq('email', email)
+    .single();
+
+  if (patientError || !patient) {
+    console.error('Error fetching patient by email:', patientError);
+    return null;
+  }
+
+  const mapped = mapDbToUI(patient);
+
+  const { data: history } = await supabase
+    .from('patient_history_entries')
+    .select('entry')
+    .eq('patient_id', patient.id)
+    .order('created_at', { ascending: false });
+    
+  if (history) mapped.history = history.map(h => h.entry);
+
+  const { data: reports } = await supabase
+    .from('patient_reports')
+    .select('snapshot')
+    .eq('patient_id', patient.id)
+    .order('created_at', { ascending: false });
+
+  if (reports) mapped.reports = reports.map(r => r.snapshot);
+
+  return mapped;
+};
+
 export const createPatient = async (formData) => {
   const newPatient = {
     name: formData.name,
+    email: formData.email || null,
     ci: formData.ci,
     phone: formData.phone,
     birth_date: formData.birthDate || null,
@@ -136,6 +171,7 @@ export const updatePatient = async (id, partialData) => {
   
   if (partialData.details) {
     if (partialData.details.name !== undefined) dbUpdate.name = partialData.details.name;
+    if (partialData.details.email !== undefined) dbUpdate.email = partialData.details.email;
     if (partialData.details.ci !== undefined) dbUpdate.ci = partialData.details.ci;
     if (partialData.details.phone !== undefined) dbUpdate.phone = partialData.details.phone;
     if (partialData.details.birthDate !== undefined) dbUpdate.birth_date = partialData.details.birthDate;
