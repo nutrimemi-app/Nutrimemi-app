@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useUI } from '@/context/UIContext';
 import { loadFoods } from '@/data/defaultFoods';
 import { calculateClinicalData, DISTRIBUTION_TEMPLATES } from '@/utils/calculationUtils';
+import { supabase } from '@/lib/supabaseClient';
 
 const EXCHANGE_VALUES = {
   cereales: { prot: 2, fat: 0, cho: 15, kcal: 70 },
@@ -108,8 +109,17 @@ export default function ManageMenu() {
     const customFoods = JSON.parse(localStorage.getItem('nutri_custom_foods') || '[]');
     setFoodDB([...defaultFoods, ...customFoods]);
     
-    const savedRecipes = JSON.parse(localStorage.getItem('nutri_custom_dishes') || '[]');
-    setCustomRecipes(savedRecipes);
+    const fetchRecipes = async () => {
+      const { data, error } = await supabase.from('custom_recipes').select('*');
+      if (data && !error) {
+        setCustomRecipes(data);
+      } else {
+        console.error('Error cargando recetas:', error);
+        const savedRecipes = JSON.parse(localStorage.getItem('nutri_custom_dishes') || '[]');
+        setCustomRecipes(savedRecipes);
+      }
+    };
+    fetchRecipes();
 
     const found = savedPatients.find(p => p.id === parseInt(params.id));
     if (found) {
@@ -826,7 +836,7 @@ export default function ManageMenu() {
                         style={{ flex: 1, padding: '4px 8px', fontSize: '0.7rem', borderRadius: '6px', border: '1px solid #eee' }} 
                       />
                       <button 
-                        onClick={() => {
+                        onClick={async () => {
                           const name = recipeNames[meal.key];
                           if (!name) return showToast('Escribe un nombre para guardar la receta', 'warning');
                           
@@ -841,11 +851,19 @@ export default function ManageMenu() {
                           };
                           
                           const newRecipe = { name, portions: recipePortions };
+                          
+                          const { error } = await supabase.from('custom_recipes').insert([newRecipe]);
+                          
+                          if (error) {
+                            showToast('Error al guardar en la nube', 'error');
+                            console.error(error);
+                            return;
+                          }
+
                           const updatedRecipes = [...customRecipes, newRecipe];
-                          localStorage.setItem('nutri_custom_dishes', JSON.stringify(updatedRecipes));
                           setCustomRecipes(updatedRecipes);
                           setRecipeNames({...recipeNames, [meal.key]: ''});
-                          showToast(`Receta "${name}" guardada con éxito`, 'success');
+                          showToast(`Receta "${name}" guardada con éxito en la nube`, 'success');
                         }}
                         style={{ background: '#1D512D', color: 'white', border: 'none', padding: '6px 12px', fontSize: '0.7rem', fontWeight: '800', borderRadius: '6px', cursor: 'pointer' }}
                       >
