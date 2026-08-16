@@ -146,7 +146,8 @@ export const createPatient = async (formData) => {
     meal_plan: formData.mealPlan || '3+2 snacks',
     tags: formData.tags || [],
     goal: 'Nuevo Paciente',
-    status: 'Activo'
+    status: 'Activo',
+    password: formData.password || null
   };
 
   const { data, error } = await supabase

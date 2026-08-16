@@ -8,10 +8,10 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const { login } = useAuth();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (email && password) {
-      login(email, password);
+      await login(email, password);
     }
   };
 

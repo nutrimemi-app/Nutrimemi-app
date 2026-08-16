@@ -16,7 +16,8 @@ export default function PatientSelfRegister() {
     ci: '',
     phone: '',
     birthDate: '',
-    gender: 'female'
+    gender: 'female',
+    password: ''
   });
 
   const [loading, setLoading] = useState(false);
@@ -140,6 +141,17 @@ export default function PatientSelfRegister() {
               </select>
             </div>
           </div>
+
+          <label style={{ fontSize: '0.85rem', opacity: 0.6, marginBottom: '8px', display: 'block', marginTop: '12px' }}>Contraseña</label>
+          <input 
+            type="password" 
+            placeholder="Crea una contraseña (mínimo 6 caracteres)" 
+            className="input-field"
+            value={formData.password}
+            onChange={(e) => setFormData({...formData, password: e.target.value})}
+            required
+            minLength={6}
+          />
 
           <button 
             type="submit" 

@@ -2,6 +2,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUI } from './UIContext';
+import { supabase } from '@/lib/supabaseClient';
 
 const AuthContext = createContext();
 
@@ -19,26 +20,33 @@ export function AuthProvider({ children }) {
     } catch (e) {}
   }, []);
 
-  const login = (email, password) => {
+  const login = async (email, password) => {
     const emailClean = email.trim().toLowerCase();
     const passClean = password.trim();
 
-    // Limpiar sesión anterior
     try { localStorage.removeItem('nutri_user'); } catch (e) {}
 
-    // Lógica de roles
+    // Nutricionista
     if (emailClean === 'meme' && passClean === '123') {
       const userData = { email: emailClean, role: 'Nutricionista', name: 'Lic. Salomé' };
       setUser(userData);
       localStorage.setItem('nutri_user', JSON.stringify(userData));
       router.push('/nutri/dashboard');
-    } else if (passClean === '123') {
-      const savedPatients = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
-      const registeredPatient = savedPatients.find(p => p.email === emailClean);
+      return;
+    }
+
+    // Buscar paciente en Supabase
+    const { data: patient, error } = await supabase
+      .from('patients')
+      .select('name, email, password')
+      .eq('email', emailClean)
+      .single();
+
+    if (patient && patient.password === passClean) {
       const userData = { 
         email: emailClean, 
         role: 'Paciente', 
-        name: registeredPatient ? registeredPatient.name : 'Paciente Premium' 
+        name: patient.name 
       };
       setUser(userData);
       localStorage.setItem('nutri_user', JSON.stringify(userData));
