@@ -44,6 +44,8 @@ const mapDbToUI = (dbPatient) => {
     reports: [], 
     measurements: dbPatient.measurements || {},
     menu: dbPatient.menu || {},
+    dietForm: dbPatient.menu?.dietForm || {},
+    formulas: dbPatient.menu?.formulas || {},
     onboardingAnswers: dbPatient.onboarding_answers || {}
   };
 };
@@ -174,7 +176,16 @@ export const updatePatient = async (id, partialData) => {
   }
 
   if (partialData.measurements !== undefined) dbUpdate.measurements = partialData.measurements;
-  if (partialData.menu !== undefined) dbUpdate.menu = partialData.menu;
+  
+  if (partialData.menu !== undefined || partialData.dietForm !== undefined || partialData.formulas !== undefined) {
+    // Para no romper el esquema de DB, guardamos dietForm y formulas dentro del JSONB de menu
+    dbUpdate.menu = {
+      ...(partialData.menu || {}),
+      dietForm: partialData.dietForm !== undefined ? partialData.dietForm : undefined,
+      formulas: partialData.formulas !== undefined ? partialData.formulas : undefined
+    };
+  }
+
   if (partialData.onboardingAnswers !== undefined) dbUpdate.onboarding_answers = partialData.onboardingAnswers;
 
   dbUpdate.updated_at = new Date().toISOString();

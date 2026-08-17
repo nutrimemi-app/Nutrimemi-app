@@ -12,15 +12,39 @@ export function usePatient(id) {
       return;
     }
 
-    setStatus('loading');
+    // 1. Caché Optimista
+    try {
+      const cachedPatients = JSON.parse(localStorage.getItem('cached_patients') || '[]');
+      const cachedPatient = cachedPatients.find(p => p.id === id);
+      if (cachedPatient) {
+        setPatient(cachedPatient);
+        setStatus('ready');
+      } else {
+        setStatus('loading');
+      }
+    } catch (e) {
+      setStatus('loading');
+    }
+
+    // 2. Fetch fresco en background
     getPatientById(id)
       .then(found => {
         if (!active) return;
         if (found) {
           setPatient(found);
           setStatus('ready');
+          
+          // Actualizar caché
+          try {
+            const cachedPatients = JSON.parse(localStorage.getItem('cached_patients') || '[]');
+            const updatedCache = cachedPatients.some(p => p.id === id) 
+              ? cachedPatients.map(p => p.id === id ? found : p)
+              : [...cachedPatients, found];
+            localStorage.setItem('cached_patients', JSON.stringify(updatedCache));
+          } catch(e) {}
         } else {
-          setStatus('not-found');
+          // Si no había nada en caché y no se encontró
+          if (status !== 'ready') setStatus('not-found');
         }
       })
       .catch(() => {

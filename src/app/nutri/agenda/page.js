@@ -4,6 +4,8 @@ import { ArrowLeft, Calendar as CalendarIcon, Clock, User, Trash2, Plus, X, Sear
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useUI } from '@/context/UIContext';
+import { getAppointments, createAppointment, updateAppointment, deleteAppointment as deleteApptApi } from '@/lib/appointments';
+import { getPatients } from '@/lib/patients';
 
 export default function NutriAgenda() {
   const router = useRouter();
@@ -25,11 +27,33 @@ export default function NutriAgenda() {
   });
 
   useEffect(() => {
-    // Cargar pacientes y citas de localStorage
-    const savedPatients = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
-    const savedAppointments = JSON.parse(localStorage.getItem('nutri_appointments') || '[]');
-    setPatients(savedPatients);
-    setAppointments(savedAppointments.sort((a, b) => new Date(a.date + ' ' + a.time) - new Date(b.date + ' ' + b.time)));
+    const loadData = async () => {
+      // 1. Cargar caché rápido para UX si existe
+      try {
+        const cachedPatients = JSON.parse(localStorage.getItem('cached_patients') || '[]');
+        const cachedAppts = JSON.parse(localStorage.getItem('cached_appointments') || '[]');
+        if (cachedPatients.length) setPatients(cachedPatients);
+        if (cachedAppts.length) setAppointments(cachedAppts);
+      } catch (e) {}
+
+      // 2. Fetch fresh data
+      try {
+        const [freshPatients, freshAppts] = await Promise.all([
+          getPatients(),
+          getAppointments()
+        ]);
+        
+        setPatients(freshPatients);
+        setAppointments(freshAppts);
+        
+        // Update Cache
+        localStorage.setItem('cached_patients', JSON.stringify(freshPatients));
+        localStorage.setItem('cached_appointments', JSON.stringify(freshAppts));
+      } catch (err) {
+        console.error('Error fetching fresh agenda data:', err);
+      }
+    };
+    loadData();
   }, []);
 
   // Funciones de Calendario
@@ -82,40 +106,53 @@ export default function NutriAgenda() {
     return days;
   };
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
     if (!formData.patientId || !formData.date || !formData.time) return showToast('Llene todos los campos', 'error');
 
-    const patient = patients.find(p => p.id === parseInt(formData.patientId));
-    const newAppointment = {
+    const patient = patients.find(p => p.id == formData.patientId);
+    const apptData = {
       ...formData,
-      id: formData.id || Date.now(),
       patientName: patient?.name || 'Desconocido'
     };
 
-    let updated;
-    if (formData.id) {
-      updated = appointments.map(a => a.id === formData.id ? newAppointment : a);
-    } else {
-      updated = [...appointments, newAppointment];
-    }
+    try {
+      let savedAppt;
+      if (formData.id) {
+        savedAppt = await updateAppointment(formData.id, apptData);
+      } else {
+        savedAppt = await createAppointment(apptData);
+      }
 
-    const sorted = updated.sort((a, b) => new Date(a.date + ' ' + a.time) - new Date(b.date + ' ' + b.time));
-    setAppointments(sorted);
-    localStorage.setItem('nutri_appointments', JSON.stringify(sorted));
-    setShowModal(false);
-    resetForm();
+      const updated = formData.id 
+        ? appointments.map(a => a.id === formData.id ? savedAppt : a)
+        : [...appointments, savedAppt];
+
+      const sorted = updated.sort((a, b) => new Date(a.date + ' ' + a.time) - new Date(b.date + ' ' + b.time));
+      setAppointments(sorted);
+      localStorage.setItem('cached_appointments', JSON.stringify(sorted));
+      setShowModal(false);
+      resetForm();
+      showToast('Cita guardada', 'success');
+    } catch (err) {
+      showToast('Error al guardar cita', 'error');
+    }
   };
 
-  const deleteAppointment = (id) => {
+  const handleDeleteAppointment = (id) => {
     showConfirm(
       "Eliminar Cita",
       "¿Estás seguro de que deseas cancelar esta cita? Esta acción no se puede deshacer.",
-      () => {
-        const updated = appointments.filter(a => a.id !== id);
-        setAppointments(updated);
-        localStorage.setItem('nutri_appointments', JSON.stringify(updated));
-        showToast("Cita eliminada correctamente", "success");
+      async () => {
+        try {
+          await deleteApptApi(id);
+          const updated = appointments.filter(a => a.id !== id);
+          setAppointments(updated);
+          localStorage.setItem('cached_appointments', JSON.stringify(updated));
+          showToast("Cita eliminada correctamente", "success");
+        } catch(err) {
+          showToast("Error al eliminar", "error");
+        }
       }
     );
   };
@@ -251,7 +288,7 @@ export default function NutriAgenda() {
                     📲 Recordar
                   </button>
                   <button onClick={() => openEdit(app)} className="btn-secondary" style={{ padding: '8px', borderRadius: '8px' }}>Editar</button>
-                  <button onClick={() => deleteAppointment(app.id)} style={{ background: '#fff0f0', color: '#cc0000', border: 'none', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}>
+                  <button onClick={() => handleDeleteAppointment(app.id)} style={{ background: '#fff0f0', color: '#cc0000', border: 'none', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}>
                     <Trash2 size={18} />
                   </button>
                 </div>

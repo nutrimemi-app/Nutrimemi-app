@@ -104,11 +104,11 @@ export default function ClinicalReport() {
     .filter(a => a.patientId == patient.id && new Date(a.date) >= new Date())
     .sort((a, b) => new Date(a.date) - new Date(b.date))[0];
 
-  const handleSaveReport = () => {
+  const handleSaveReport = async () => {
     showConfirm(
       "Guardar Informe",
       "¿Deseas guardar una copia inmutable de este informe en el expediente del paciente para poder re-imprimirlo en el futuro?",
-      () => {
+      async () => {
         const newReport = {
           id: Date.now(),
           date: new Date().toISOString(),
@@ -120,11 +120,22 @@ export default function ClinicalReport() {
           nextAppDate: nextApp?.date || null
         };
 
-        const updatedPatient = { ...patient, reports: [...(patient.reports || []), newReport] };
-        const savedPatients = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
-        localStorage.setItem('nutri_patients', JSON.stringify(savedPatients.map(p => p.id === patient.id ? updatedPatient : p)));
-        setPatient(updatedPatient);
-        showToast('¡Informe guardado en el expediente!', 'success');
+        try {
+          // Guardar en Supabase usando api
+          const { addReport } = await import('@/lib/patients');
+          await addReport(patient.id, newReport);
+
+          const updatedPatient = { ...patient, reports: [...(patient.reports || []), newReport] };
+          
+          // Actualizar caché optimista local
+          const savedPatients = JSON.parse(localStorage.getItem('cached_patients') || '[]');
+          localStorage.setItem('cached_patients', JSON.stringify(savedPatients.map(p => p.id === patient.id ? updatedPatient : p)));
+          
+          setPatient(updatedPatient);
+          showToast('¡Informe guardado en el expediente!', 'success');
+        } catch (err) {
+          showToast('Error al guardar el informe', 'error');
+        }
       }
     );
   };
@@ -135,7 +146,8 @@ export default function ClinicalReport() {
       <style dangerouslySetInnerHTML={{ __html: `
         .letter-page {
           background: white !important;
-          width: 215.9mm !important;
+          width: 100% !important;
+          max-width: 215.9mm !important;
           min-height: 279.4mm !important;
           box-shadow: 0 12px 36px rgba(0,0,0,0.12) !important;
           margin: 0 auto !important;
@@ -143,6 +155,15 @@ export default function ClinicalReport() {
           box-sizing: border-box !important;
           border-radius: 8px !important;
           overflow: hidden !important;
+        }
+        table {
+          width: 100% !important;
+          max-width: 100% !important;
+          table-layout: fixed;
+          word-wrap: break-word;
+        }
+        td, th {
+          word-break: break-word;
         }
         @media print {
           .no-print, nav, footer:not(.report-footer), .tab-bar, #tab-bar { display: none !important; }

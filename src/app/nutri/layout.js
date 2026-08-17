@@ -4,17 +4,17 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Activity } from 'lucide-react';
 
-export default function PatientAppLayout({ children }) {
+export default function NutriLayout({ children }) {
   const { user, mounted } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (mounted && (!user || user.role !== 'Paciente')) {
+    if (mounted && (!user || user.role !== 'Nutricionista')) {
       router.replace('/');
     }
   }, [user, mounted, router]);
 
-  if (!mounted || !user || user.role !== 'Paciente') {
+  if (!mounted || !user || user.role !== 'Nutricionista') {
     return (
       <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-main)' }}>
         <Activity className="spin" size={40} style={{ color: 'var(--accent)', marginBottom: '16px' }} />
@@ -23,16 +23,5 @@ export default function PatientAppLayout({ children }) {
     );
   }
 
-  return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'var(--bg-primary)',
-      maxWidth: '500px',
-      margin: '0 auto',
-      position: 'relative',
-      overflowX: 'hidden'
-    }}>
-      {children}
-    </div>
-  );
+  return children;
 }

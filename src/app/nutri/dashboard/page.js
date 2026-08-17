@@ -10,13 +10,14 @@ export default function NutriDashboard() {
   const { user, logout } = useAuth();
   const { showConfirm, showToast } = useUI();
   const [searchTerm, setSearchTerm] = useState('');
-
   const [patients, setPatients] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const loadPatients = async () => {
       const data = await getPatients();
       setPatients(data);
+      setIsLoading(false);
     };
     loadPatients();
   }, []);
@@ -152,7 +153,12 @@ export default function NutriDashboard() {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {filteredPatients.length === 0 ? (
+        {isLoading ? (
+          <div style={{ textAlign: 'center', padding: '40px', opacity: 0.5 }}>
+            <Activity className="spin" size={40} style={{ margin: '0 auto 16px', color: 'var(--accent)' }} />
+            <p style={{ fontWeight: '700' }}>Cargando pacientes...</p>
+          </div>
+        ) : filteredPatients.length === 0 ? (
           <p style={{ textAlign: 'center', opacity: 0.5, marginTop: '20px' }}>No se encontraron pacientes registrados.</p>
         ) : (
           filteredPatients.map((p) => (

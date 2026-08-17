@@ -327,8 +327,11 @@ export default function PatientFile() {
     };
 
     setPatient(updatedPatient);
-    const saved = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
-    localStorage.setItem('nutri_patients', JSON.stringify(saved.map(p => p.id === patient.id ? updatedPatient : p)));
+    // Sincronizar con Supabase de forma asíncrona sin bloquear la UI
+    updatePatient(patient.id, updatedPatient).catch(err => {
+      console.error('Error sincronizando con base de datos', err);
+      // Opcional: showToast('Error guardando en la nube', 'error');
+    });
   };
 
   const handlePhotoUpload = (e) => {
