@@ -152,3 +152,16 @@ h1, h2, h3 {
 .fade-in {
   animation: fadeIn 0.4s ease-out forwards;
 }
+
+/* Responsive Grids */
+.responsive-grid-4-2 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+@media (max-width: 600px) {
+  .responsive-grid-4-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

@@ -200,18 +200,14 @@ export default function ManageMenu() {
         }
         
         if (found.menus) {
-          setMenus(found.menus);
+          setMenus({
+            day1: { ...initialMenuStructure, ...(found.menus.day1 || {}) },
+            day2: { ...initialMenuStructure, ...(found.menus.day2 || {}) }
+          });
         } else if (found.menu) {
           setMenus({
-            day1: found.menu,
-            day2: {
-              desayuno: { time: '08:00', selectedFoods: [], portions: {} },
-              meriendaAM: { time: '10:30', selectedFoods: [], portions: {} },
-              almuerzo: { time: '13:00', selectedFoods: [], portions: {} },
-              meriendaPM: { time: '16:30', selectedFoods: [], portions: {} },
-              cena: { time: '19:30', selectedFoods: [], portions: {} },
-              snackNoche: { time: '21:00', selectedFoods: [], portions: {} }
-            }
+            day1: { ...initialMenuStructure, ...found.menu },
+            day2: { ...initialMenuStructure }
           });
         }
         
@@ -709,7 +705,7 @@ export default function ManageMenu() {
                 </button>
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 80px), 1fr))', gap: '12px' }}>
+            <div className="responsive-grid-4-2">
               {[
                 { label: 'CALORÍAS', key: 'kcal', prevKey: 'rct' },
                 { label: 'PROT (g)', key: 'prot', prevKey: 'prot' },
@@ -755,7 +751,7 @@ export default function ManageMenu() {
                 </div>
              </div>
 
-             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
+             <div className="responsive-grid-4-2">
                 {['cho', 'prot', 'fat'].map(macro => {
                    const isNegative = liveCalc.remaining[macro] < 0;
                    return (
