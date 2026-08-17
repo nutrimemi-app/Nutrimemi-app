@@ -722,7 +722,7 @@ export default function ManageMenu() {
                     <p style={{ fontSize: '0.55rem', fontWeight: '900', opacity: 0.5, marginBottom: '4px' }}>{m.label}</p>
                     <input type="text" value={formulas[m.key]} onChange={e => setFormulas({...formulas, [m.key]: e.target.value})} style={{ width: '100%', padding: '6px', borderRadius: '8px', border: '1px solid #ddd', textAlign: 'center', fontSize: '0.8rem', fontWeight: '900' }} />
                     <p style={{ fontSize: '0.9rem', fontWeight: '900', marginTop: '6px', marginBottom: '2px' }}>
-                      {totals[m.key].toFixed(0)} <span style={{ opacity: 0.3, fontSize: '0.6rem' }}>/ {evalFormula(formulas[m.key]).toFixed(0)}</span>
+                      {totals[m.key].toFixed(0)} <span style={{ opacity: 0.3, fontSize: '0.6rem' }}>/ {(evalFormula(formulas[m.key]) || 0).toFixed(0)}</span>
                     </p>
                     {previousControl && (
                       <p style={{ fontSize: '0.65rem', color: 'var(--primary)', fontWeight: 'bold' }}>
@@ -798,7 +798,7 @@ export default function ManageMenu() {
                     {['kcal', 'prot', 'cho', 'fat'].map(f => (
                       <input key={f} type="text" placeholder={f.toUpperCase()} value={mealCalculators[meal.key][f]} onChange={e => setMealCalculators({...mealCalculators, [meal.key]: {...mealCalculators[meal.key], [f]: e.target.value}})} style={{ width: '100%', padding: '4px', fontSize: '0.65rem', borderRadius: '4px', border: '1px solid #ddd' }} />
                     ))}
-                    <button onClick={() => autoFillPortions(meal.key, { kcal: evalFormula(mealCalculators[meal.key].kcal), prot: evalFormula(mealCalculators[meal.key].prot), cho: evalFormula(mealCalculators[meal.key].cho), fat: evalFormula(mealCalculators[meal.key].fat) })} style={{ gridColumn: 'span 4', background: 'var(--primary)', color: 'white', border: 'none', padding: '6px', fontSize: '0.7rem', fontWeight: '900', borderRadius: '4px' }}>Distribuir Porciones</button>
+                    <button onClick={() => autoFillPortions(meal.key, { kcal: evalFormula(mealCalculators[meal.key].kcal) || 0, prot: evalFormula(mealCalculators[meal.key].prot) || 0, cho: evalFormula(mealCalculators[meal.key].cho) || 0, fat: evalFormula(mealCalculators[meal.key].fat) || 0 })} style={{ gridColumn: 'span 4', background: 'var(--primary)', color: 'white', border: 'none', padding: '6px', fontSize: '0.7rem', fontWeight: '900', borderRadius: '4px' }}>Distribuir Porciones</button>
                   </div>
                 )}
 

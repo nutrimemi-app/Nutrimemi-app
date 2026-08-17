@@ -183,46 +183,50 @@ export default function NutriDashboard() {
               <Calendar size={18} /> Agenda
             </button>
           </Link>
+        </div>
 
-          <Link href="/nutri/foods" style={{ textDecoration: 'none' }}>
+        {/* Botones de Nuevo Paciente y Mis Alimentos compartiendo fila */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '12px' }}>
+          <Link href="/nutri/new-patient" style={{ textDecoration: 'none' }}>
             <button className="glass-panel" style={{ 
-              padding: '12px 16px', 
+              width: '100%',
+              height: '100%',
+              padding: '14px', 
               borderRadius: '16px', 
               display: 'flex', 
               alignItems: 'center', 
+              justifyContent: 'center',
+              gap: '8px', 
+              background: 'var(--action)', 
+              color: 'white',
+              border: 'none',
+              fontWeight: '900',
+              fontSize: '0.9rem',
+              boxShadow: '0 8px 20px rgba(253, 158, 20, 0.2)'
+            }}>
+              <Plus size={18} /> NUEVO PACIENTE
+            </button>
+          </Link>
+
+          <Link href="/nutri/foods" style={{ textDecoration: 'none' }}>
+            <button className="glass-panel" style={{ 
+              width: '100%',
+              height: '100%',
+              padding: '14px', 
+              borderRadius: '16px', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
               gap: '8px', 
               background: 'white',
               fontWeight: '900',
               fontSize: '0.9rem',
-              whiteSpace: 'nowrap',
               border: '2px solid rgba(0,0,0,0.05)'
             }}>
                Mis Alimentos
             </button>
           </Link>
         </div>
-
-        {/* Botón de Nuevo Paciente en su propia fila */}
-        <Link href="/nutri/new-patient" style={{ textDecoration: 'none' }}>
-          <button className="glass-panel" style={{ 
-            width: '100%',
-            marginTop: '12px',
-            padding: '16px', 
-            borderRadius: '16px', 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            gap: '12px', 
-            background: 'var(--action)', 
-            color: 'white',
-            border: 'none',
-            fontWeight: '900',
-            fontSize: '1rem',
-            boxShadow: '0 8px 20px rgba(253, 158, 20, 0.2)'
-          }}>
-            <Plus size={20} /> NUEVO PACIENTE
-          </button>
-        </Link>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
