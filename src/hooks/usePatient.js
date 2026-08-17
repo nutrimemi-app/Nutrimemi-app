@@ -47,6 +47,22 @@ export function usePatientByEmail(email) {
     }
 
     setStatus('loading');
+    
+    if (email === 'paciente') {
+      const mockPatient = {
+        id: 'test-patient-id',
+        name: 'Paciente de Prueba',
+        email: 'paciente',
+        details: { gender: 'female', weight: 65, height: 165 },
+        formulas: { kcal: 1800, prot: 100, cho: 180, fat: 75 },
+        dietForm: {},
+        measurements: {}
+      };
+      setPatient(mockPatient);
+      setStatus('ready');
+      return;
+    }
+
     getPatientByEmail(email)
       .then(found => {
         if (!active) return;
