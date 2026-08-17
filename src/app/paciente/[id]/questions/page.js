@@ -1,11 +1,13 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { getPatientById, updatePatient } from '@/lib/patients';
+import { updatePatient } from '@/lib/patients';
+import { usePatient } from '@/hooks/usePatient';
 
 export default function QuestionsPage() {
   const params = useParams();
   const router = useRouter();
+  const { patient, status } = usePatient(params.id);
   const [step, setStep] = useState(1);
   const [answers, setAnswers] = useState({
     favFood: '',
@@ -18,14 +20,10 @@ export default function QuestionsPage() {
   });
 
   useEffect(() => {
-    const loadPatient = async () => {
-      const found = await getPatientById(params.id);
-      if (found && found.onboardingAnswers) {
-        setAnswers(prev => ({ ...prev, ...found.onboardingAnswers }));
-      }
-    };
-    loadPatient();
-  }, [params.id]);
+    if (patient && patient.onboardingAnswers) {
+      setAnswers(prev => ({ ...prev, ...patient.onboardingAnswers }));
+    }
+  }, [patient]);
 
   const mealOptions = [
     { id: 'a', label: '2 comidas principales' },
@@ -47,6 +45,14 @@ export default function QuestionsPage() {
       }
     }
   };
+
+  if (status === 'loading') return <div style={{ padding: '40px', textAlign: 'center', fontWeight: 'bold' }}>Cargando...</div>;
+  if (status === 'not-found' || status === 'error') return (
+    <div style={{ padding: '40px', textAlign: 'center' }}>
+      <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1d512d', marginBottom: '16px' }}>Link Inválido</h2>
+      <p style={{ opacity: 0.8 }}>Este link ya no es válido, no existe o ha expirado. Por favor, contacta a tu nutricionista.</p>
+    </div>
+  );
 
   return (
     <div style={{ 

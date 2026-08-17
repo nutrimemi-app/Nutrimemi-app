@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { Activity, Calendar, User, History, Camera, Upload } from 'lucide-react';
-import { getPatientById, updatePatient } from '@/lib/patients';
+import { updatePatient } from '@/lib/patients';
+import { usePatient } from '@/hooks/usePatient';
 
 const MEAL_PLANS = {
   '2 comidas': [
@@ -130,7 +131,7 @@ const displayCalculatedPortion = (food, targetVal) => {
 
 export default function PatientDashboard() {
   const params = useParams();
-  const [patient, setPatient] = useState(null);
+  const { patient, status, setPatient } = usePatient(params.id);
   const [activeTip, setActiveTip] = useState(null);
   const [activeTool, setActiveTool] = useState(null); // 'palma', 'tazas', 'cucharas'
   const [selectedExchangeMeal, setSelectedExchangeMeal] = useState('');
@@ -139,14 +140,6 @@ export default function PatientDashboard() {
   // Estados para la carga de fotos del paciente
   const [photoFile, setPhotoFile] = useState(null);
   const [photoLabel, setPhotoLabel] = useState('Frente');
-
-  useEffect(() => {
-    const loadPatient = async () => {
-      const found = await getPatientById(params.id);
-      if (found) setPatient(found);
-    };
-    loadPatient();
-  }, [params.id]);
 
   const handlePatientPhotoUpload = (e) => {
     e.preventDefault();
@@ -235,7 +228,15 @@ export default function PatientDashboard() {
 
   const activeMenu = patient ? (patient.menus?.[activeDay] || (activeDay === 'day1' ? patient.menu : {})) : {};
 
-  if (!patient) return <div style={{ padding: '40px', textAlign: 'center' }}>Cargando tu plan...</div>;
+  const activeDayKey = activeDay === 'day1' ? 'Menú Día 1' : 'Menú Día 2';
+
+  if (status === 'loading') return <div style={{ padding: '40px', textAlign: 'center' }}>Cargando tu plan...</div>;
+  if (status === 'not-found' || status === 'error') return (
+    <div style={{ padding: '40px', textAlign: 'center' }}>
+      <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1d512d', marginBottom: '16px' }}>Link Inválido</h2>
+      <p style={{ opacity: 0.8 }}>Este link ya no es válido, no existe o ha expirado. Por favor, contacta a tu nutricionista.</p>
+    </div>
+  );
 
   return (
     <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto', color: '#1d512d' }}>

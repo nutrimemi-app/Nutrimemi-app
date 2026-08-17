@@ -1,12 +1,13 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { getPatientById, updatePatient } from '@/lib/patients';
+import { updatePatient } from '@/lib/patients';
+import { usePatient } from '@/hooks/usePatient';
 
 export default function MeasurementsPage() {
   const params = useParams();
   const router = useRouter();
-  const [patient, setPatient] = useState(null);
+  const { patient, status } = usePatient(params.id);
   const [measurements, setMeasurements] = useState({
     CUELLO: '',
     BRAZO: '',
@@ -19,17 +20,10 @@ export default function MeasurementsPage() {
   });
 
   useEffect(() => {
-    const loadPatient = async () => {
-      const found = await getPatientById(params.id);
-      if (found) {
-        setPatient(found);
-        if (found.measurements) {
-          setMeasurements({ ...measurements, ...found.measurements });
-        }
-      }
-    };
-    loadPatient();
-  }, [params.id]);
+    if (patient && patient.measurements) {
+      setMeasurements(prev => ({ ...prev, ...patient.measurements }));
+    }
+  }, [patient]);
 
   const measurementGuides = [
     { key: 'CUELLO', label: 'CUELLO', desc: 'medir en el punto medio del cuello' },
@@ -54,6 +48,14 @@ export default function MeasurementsPage() {
 
   const isFemale = patient?.gender === 'Femenino';
   const themeColor = isFemale ? '#FF6B6B' : '#4D96FF'; // Rosa o Azul
+
+  if (status === 'loading') return <div style={{ padding: '40px', textAlign: 'center', fontWeight: 'bold' }}>Cargando...</div>;
+  if (status === 'not-found' || status === 'error') return (
+    <div style={{ padding: '40px', textAlign: 'center' }}>
+      <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: themeColor, marginBottom: '16px' }}>Link Inválido</h2>
+      <p style={{ opacity: 0.8 }}>Este link ya no es válido, no existe o ha expirado. Por favor, contacta a tu nutricionista.</p>
+    </div>
+  );
 
   return (
     <div style={{ 
