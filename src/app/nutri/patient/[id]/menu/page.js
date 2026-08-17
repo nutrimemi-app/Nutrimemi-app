@@ -81,6 +81,54 @@ const suggestRecipesForPortions = (portions) => {
   return `🍽️ Idea de plato sugerido: Arma el plato combinando: ${parts.join(', ')}.`;
 };
 
+export const MEAL_PLANS = {
+  '2 comidas': [
+    { title: 'Almuerzo', key: 'almuerzo' },
+    { title: 'Cena', key: 'cena' },
+  ],
+  '3 comidas': [
+    { title: 'Desayuno', key: 'desayuno' },
+    { title: 'Almuerzo', key: 'almuerzo' },
+    { title: 'Cena', key: 'cena' },
+  ],
+  '3+1 snacks': [
+    { title: 'Desayuno', key: 'desayuno' },
+    { title: 'Almuerzo', key: 'almuerzo' },
+    { title: 'Merienda PM', key: 'meriendaPM' },
+    { title: 'Cena', key: 'cena' },
+  ],
+  '3+2 snacks': [
+    { title: 'Desayuno', key: 'desayuno' },
+    { title: 'Merienda AM', key: 'meriendaAM' },
+    { title: 'Almuerzo', key: 'almuerzo' },
+    { title: 'Merienda PM', key: 'meriendaPM' },
+    { title: 'Cena', key: 'cena' },
+  ],
+  '3+3 snacks': [
+    { title: 'Desayuno', key: 'desayuno' },
+    { title: 'Merienda AM', key: 'meriendaAM' },
+    { title: 'Almuerzo', key: 'almuerzo' },
+    { title: 'Merienda PM', key: 'meriendaPM' },
+    { title: 'Cena', key: 'cena' },
+    { title: 'Snack Nocturno', key: 'snackNoche' },
+  ],
+  '2+2 snacks': [
+    { title: 'Desayuno', key: 'desayuno' },
+    { title: 'Merienda AM', key: 'meriendaAM' },
+    { title: 'Almuerzo', key: 'almuerzo' },
+    { title: 'Cena', key: 'cena' },
+  ],
+};
+
+export const foodGroups = [
+  { name: 'Cereales', color: '#FFA500', key: 'cereales' },
+  { name: 'Proteínas', color: '#FF0000', key: 'proteinas' },
+  { name: 'Vegetales', color: '#228B22', key: 'vegetales' },
+  { name: 'Frutas', color: '#BA55D3', key: 'frutas' },
+  { name: 'Lácteos', color: '#1E90FF', key: 'lacteos' },
+  { name: 'Grasas', color: '#FFD700', key: 'grasas' }
+];
+
 export default function ManageMenu() {
   const params = useParams();
   const router = useRouter();
@@ -94,6 +142,8 @@ export default function ManageMenu() {
   const [mealPlanKey, setMealPlanKey] = useState('3+2 snacks');
   const [lacteosTipo, setLacteosTipo] = useState('bajaGrasa1');
   const [proteinasTipo, setProteinasTipo] = useState('magra');
+
+  const mealTypes = MEAL_PLANS[mealPlanKey] || MEAL_PLANS['3+2 snacks'];
 
   const getExchangeGroup = (group) => {
     if (group === 'lacteos') return EXCHANGE_VALUES.lacteos.variantes[lacteosTipo];
@@ -560,56 +610,6 @@ export default function ManageMenu() {
     });
     return used;
   };
-
-  const MEAL_PLANS = {
-    '2 comidas': [
-      { title: 'Almuerzo', key: 'almuerzo' },
-      { title: 'Cena', key: 'cena' },
-    ],
-    '3 comidas': [
-      { title: 'Desayuno', key: 'desayuno' },
-      { title: 'Almuerzo', key: 'almuerzo' },
-      { title: 'Cena', key: 'cena' },
-    ],
-    '3+1 snacks': [
-    { title: 'Desayuno', key: 'desayuno' },
-    { title: 'Almuerzo', key: 'almuerzo' },
-    { title: 'Merienda PM', key: 'meriendaPM' },
-    { title: 'Cena', key: 'cena' },
-  ],
-  '3+2 snacks': [
-      { title: 'Desayuno', key: 'desayuno' },
-      { title: 'Merienda AM', key: 'meriendaAM' },
-      { title: 'Almuerzo', key: 'almuerzo' },
-      { title: 'Merienda PM', key: 'meriendaPM' },
-      { title: 'Cena', key: 'cena' },
-    ],
-    '3+3 snacks': [
-      { title: 'Desayuno', key: 'desayuno' },
-      { title: 'Merienda AM', key: 'meriendaAM' },
-      { title: 'Almuerzo', key: 'almuerzo' },
-      { title: 'Merienda PM', key: 'meriendaPM' },
-      { title: 'Cena', key: 'cena' },
-      { title: 'Snack Nocturno', key: 'snackNoche' },
-    ],
-    '2+2 snacks': [
-      { title: 'Desayuno', key: 'desayuno' },
-      { title: 'Merienda AM', key: 'meriendaAM' },
-      { title: 'Almuerzo', key: 'almuerzo' },
-      { title: 'Cena', key: 'cena' },
-    ],
-  };
-
-  const mealTypes = MEAL_PLANS[mealPlanKey] || MEAL_PLANS['3+2 snacks'];
-
-  const foodGroups = [
-    { name: 'Cereales', color: '#FFA500', key: 'cereales' },
-    { name: 'Proteínas', color: '#FF0000', key: 'proteinas' },
-    { name: 'Vegetales', color: '#228B22', key: 'vegetales' },
-    { name: 'Frutas', color: '#BA55D3', key: 'frutas' },
-    { name: 'Lácteos', color: '#1E90FF', key: 'lacteos' },
-    { name: 'Grasas', color: '#FFD700', key: 'grasas' }
-  ];
 
   if (!patient) return <div style={{ padding: '20px' }}>Cargando datos del paciente...</div>;
 

@@ -279,7 +279,7 @@ export default function ClinicalReport() {
                <p style={{ fontSize: '0.85rem', fontWeight: '700' }}>{patient.name}</p>
             </div>
             <div>
-               <p style={{ fontSize: '0.6rem', fontWeight: '800', opacity: 0.4, marginBottom: '2px' }}>DNI / CÉDULA</p>
+               <p style={{ fontSize: '0.6rem', fontWeight: '800', opacity: 0.4, marginBottom: '2px' }}>C.I. / CÉDULA</p>
                <p style={{ fontSize: '0.85rem', fontWeight: '700' }}>{patient.details?.ci || 'N/A'}</p>
             </div>
             <div>

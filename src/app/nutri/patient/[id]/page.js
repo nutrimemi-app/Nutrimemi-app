@@ -263,15 +263,14 @@ export default function PatientFile() {
   if (!patient) return null;
 
   // Adaptar datos para el utilitario
-  const patientDataForCalc = {
+  const clinical = patient ? calculateClinicalData({
     weight: patient.details?.weight,
     height: patient.details?.height,
-    sex: gender,
+    sex: patient.details?.gender || 'female',
     manualPi: patient.details?.manualPi,
     manualPa: patient.details?.manualPa,
     manualPc: patient.details?.manualPc
-  };
-  const clinical = calculateClinicalData(patientDataForCalc, patient.measurements || {});
+  }, patient.measurements) : null;
 
   const addTag = () => {
     if (currentTag && !patient.details.tags?.includes(currentTag)) {
@@ -546,7 +545,7 @@ export default function PatientFile() {
                 Tutor: {patient.details?.tutorName || 'N/A'} | Tlf: {patient.details?.tutorPhone || 'N/A'} | Edad: {patient.details?.age || '--'} años
               </p>
             ) : (
-              <p style={{ fontSize: '0.85rem', opacity: 0.6, fontWeight: '700' }}>DNI: {patient.details?.ci} | Tel: {patient.details?.phone} | Edad: {patient.details?.age || '--'} años</p>
+              <p style={{ fontSize: '0.85rem', opacity: 0.6, fontWeight: '700' }}>C.I.: {patient.details?.ci} | Tel: {patient.details?.phone} | Edad: {patient.details?.age || '--'} años</p>
             )}
           </div>
         </div>
@@ -631,7 +630,7 @@ export default function PatientFile() {
              <h3 style={{ fontSize: '1.4rem', fontWeight: '900', color: getProfileColor(clinical.profile) }}>{clinical.profile}</h3>
              <Activity size={24} color={getProfileColor(clinical.profile)} />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px', textAlign: 'center', alignItems: 'center' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', textAlign: 'center', alignItems: 'center' }}>
             <div>
               <p style={{ fontSize: '0.6rem', fontWeight: '800', opacity: 0.5, marginBottom: '4px' }}>IMC REAL</p>
               <p style={{ fontSize: '1.1rem', fontWeight: '900', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{clinical.imc}</p>
@@ -643,25 +642,6 @@ export default function PatientFile() {
             <div>
               <p style={{ fontSize: '0.6rem', fontWeight: '800', opacity: 0.5, marginBottom: '4px' }}>P. IDEAL</p>
               <p style={{ fontSize: '1.1rem', fontWeight: '900', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{clinical.pi} kg</p>
-            </div>
-            <div>
-              <p style={{ fontSize: '0.6rem', fontWeight: '800', opacity: 0.5, marginBottom: '4px' }}>% GRASA (GC)</p>
-              <div style={{ height: '36px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                <p style={{ fontSize: '1rem', fontWeight: '900', color: '#EF5350', margin: 0 }}>
-                  {clinical.gc !== '—' ? `${clinical.gc}%` : '—'}
-                </p>
-                {clinical.gc !== '—' && (
-                  <span style={{ fontSize: '0.5rem', fontWeight: '900', color: '#B71C1C', opacity: 0.8, textTransform: 'uppercase', lineHeight: 1, marginTop: '2px' }}>
-                    {getBodyFatProfile(gender, patient.details?.age || 30, clinical.gc)}
-                  </span>
-                )}
-              </div>
-            </div>
-            <div>
-              <p style={{ fontSize: '0.6rem', fontWeight: '800', opacity: 0.5, marginBottom: '4px' }}>G. MAGRA</p>
-              <p style={{ fontSize: '1.1rem', fontWeight: '900', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#66BB6A' }}>
-                {clinical.grasaMagra !== '—' ? `${clinical.grasaMagra}kg` : '—'}
-              </p>
             </div>
           </div>
           
@@ -912,7 +892,7 @@ export default function PatientFile() {
             )}
 
             {/* Listado de Alimentos por comida */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '250px', overflowY: 'auto', paddingRight: '4px', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'visible', paddingRight: '4px', marginBottom: '16px' }}>
               {['Desayuno', 'Merienda AM', 'Almuerzo', 'Merienda PM', 'Cena', 'Colación Nocturna'].map(meal => {
                 const entries = savedR24h[meal] || [];
                 if (entries.length === 0) return null;
@@ -1260,6 +1240,27 @@ export default function PatientFile() {
 
         <div style={{ textAlign: 'center', marginBottom: '20px' }}>
           <p style={{ fontSize: '1.1rem', fontWeight: '700' }}>IMC: {clinical.imc} kG/mts2 ({clinical.profile})</p>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '10px' }}>
+            <div>
+              <p style={{ fontSize: '0.65rem', fontWeight: '800', opacity: 0.6, marginBottom: '2px' }}>% GRASA (GC)</p>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <p style={{ fontSize: '1.1rem', fontWeight: '900', color: '#EF5350', margin: 0 }}>
+                  {clinical.gc !== '—' ? `${clinical.gc}%` : '—'}
+                </p>
+                {clinical.gc !== '—' && (
+                  <span style={{ fontSize: '0.55rem', fontWeight: '900', color: '#B71C1C', opacity: 0.8, textTransform: 'uppercase', lineHeight: 1, marginTop: '2px' }}>
+                    {getBodyFatProfile(gender, patient.details?.age || 30, clinical.gc)}
+                  </span>
+                )}
+              </div>
+            </div>
+            <div>
+              <p style={{ fontSize: '0.65rem', fontWeight: '800', opacity: 0.6, marginBottom: '2px' }}>G. MAGRA</p>
+              <p style={{ fontSize: '1.1rem', fontWeight: '900', color: '#66BB6A', margin: 0 }}>
+                {clinical.grasaMagra !== '—' ? `${clinical.grasaMagra}kg` : '—'}
+              </p>
+            </div>
+          </div>
         </div>
 
         <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
@@ -1360,26 +1361,26 @@ export default function PatientFile() {
               )}
             </div>
           </div>
-          <div style={{ flex: 1.2, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ flex: 1.2, display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {measurements.map((m) => (
-              <div key={m.label} style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '4px' }}>
+              <div key={m.label} style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '8px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <p style={{ fontSize: '0.7rem', fontWeight: '800', fontFamily: 'Belinda, sans-serif', cursor: 'pointer', color: '#111', textTransform: 'uppercase' }} onClick={() => setFocusedMeasurement(m.label)}>{m.label}</p>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <p style={{ fontSize: '0.7rem', fontWeight: '800', fontFamily: 'Belinda, sans-serif', cursor: 'pointer', color: '#111', textTransform: 'uppercase', marginRight: '16px' }} onClick={() => setFocusedMeasurement(m.label)}>{m.label}</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <input
                       id={`input-${m.label}`}
                       type="number"
                       placeholder="0"
                       defaultValue={patient.measurements?.[m.label] || ''}
                       style={{
-                        width: '45px',
+                        width: '60px',
                         background: 'rgba(0,0,0,0.05)',
                         border: '1px solid rgba(0,0,0,0.1)',
-                        borderRadius: '4px',
-                        padding: '4px',
+                        borderRadius: '6px',
+                        padding: '8px 8px',
                         color: '#111',
-                        fontSize: '0.8rem',
-                        fontWeight: '600',
+                        fontSize: '0.85rem',
+                        fontWeight: '700',
                         textAlign: 'right'
                       }}
                       onFocus={() => setFocusedMeasurement(m.label)}
@@ -1391,10 +1392,10 @@ export default function PatientFile() {
                         setFocusedMeasurement(null);
                       }}
                     />
-                    <span style={{ fontSize: '0.6rem' }}>cm</span>
+                    <span style={{ fontSize: '0.65rem' }}>cm</span>
                   </div>
                 </div>
-                <p style={{ fontSize: '0.5rem', opacity: 0.6, marginTop: '2px' }}>{m.desc}</p>
+                <p style={{ fontSize: '0.5rem', opacity: 0.6, marginTop: '4px' }}>{m.desc}</p>
               </div>
             ))}
           </div>
