@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import TabBar from '@/components/patient/TabBar';
+
 import { Plus, Trash2, Search, ChevronDown, ChevronUp } from 'lucide-react';
 
 // ──────────────────────────────────────────────
@@ -440,7 +440,7 @@ export default function DailyLog() {
         </div>
       )}
 
-      <TabBar />
+
     </div>
   );
 }

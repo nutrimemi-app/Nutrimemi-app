@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import TabBar from '@/components/patient/TabBar';
+
 import { ChefHat, BookOpen, CheckCircle, Info } from 'lucide-react';
 import { usePatientByEmail } from '@/hooks/usePatient';
 
@@ -289,7 +289,7 @@ export default function PatientMenu() {
         </div>
       )}
 
-      <TabBar />
+
     </div>
   );
 }

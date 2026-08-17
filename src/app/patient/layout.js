@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Activity } from 'lucide-react';
 
+import TabBar from '@/components/patient/TabBar';
+
 export default function PatientAppLayout({ children }) {
   const { user, mounted } = useAuth();
   const router = useRouter();
@@ -33,6 +35,7 @@ export default function PatientAppLayout({ children }) {
       overflowX: 'hidden'
     }}>
       {children}
+      <TabBar />
     </div>
   );
 }

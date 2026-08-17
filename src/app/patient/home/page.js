@@ -1,7 +1,7 @@
 'use client';
 import { useAuth } from '@/context/AuthContext';
 import { useState, useEffect } from 'react';
-import TabBar from '@/components/patient/TabBar';
+
 import { Activity, Calendar, ChefHat, Droplets, TrendingUp, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { usePatientByEmail } from '@/hooks/usePatient';
@@ -313,7 +313,7 @@ export default function PatientHome() {
 
       {/* PRÓXIMA CITA - Removida porque se pasó arriba */}
 
-      <TabBar />
+
     </div>
   );
 }

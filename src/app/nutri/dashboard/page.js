@@ -115,72 +115,69 @@ export default function NutriDashboard() {
         
         {/* Contenedor de Botones de Acción */}
         <div style={{ 
-          display: 'flex', 
-          gap: '12px', 
-          overflowX: 'auto', 
-          paddingBottom: '8px',
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none'
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(3, 1fr)', 
+          gap: '8px', 
+          marginBottom: '12px'
         }}>
           {/* Botones de Vista (Pacientes vs Directorio) */}
           <button 
             onClick={() => setActiveView('fichas')}
             className="glass-panel" 
             style={{ 
-              padding: '12px 16px', 
+              padding: '12px 6px', 
               borderRadius: '16px', 
               display: 'flex', 
               alignItems: 'center', 
-              gap: '8px', 
+              justifyContent: 'center',
+              gap: '6px', 
               background: activeView === 'fichas' ? 'var(--text-primary)' : 'white',
               color: activeView === 'fichas' ? 'white' : 'var(--text-primary)',
               fontWeight: '900',
-              fontSize: '0.9rem',
-              whiteSpace: 'nowrap',
+              fontSize: '0.8rem',
               border: activeView === 'fichas' ? 'none' : '2px solid rgba(0,0,0,0.05)'
             }}
           >
-             <Users size={18} /> Fichas
+             <Users size={16} /> Fichas
           </button>
 
           <button 
             onClick={() => setActiveView('directorio')}
             className="glass-panel" 
             style={{ 
-              padding: '12px 16px', 
+              padding: '12px 6px', 
               borderRadius: '16px', 
               display: 'flex', 
               alignItems: 'center', 
-              gap: '8px', 
+              justifyContent: 'center',
+              gap: '6px', 
               background: activeView === 'directorio' ? 'var(--text-primary)' : 'white',
               color: activeView === 'directorio' ? 'white' : 'var(--text-primary)',
               fontWeight: '900',
-              fontSize: '0.9rem',
-              whiteSpace: 'nowrap',
+              fontSize: '0.8rem',
               border: activeView === 'directorio' ? 'none' : '2px solid rgba(0,0,0,0.05)'
             }}
           >
-             <FileText size={18} /> Directorio
+             <FileText size={16} /> Directorio
           </button>
 
-          <div style={{ width: '2px', background: 'rgba(0,0,0,0.05)', margin: '0 4px' }} />
-
           {/* Botones de Enlaces */}
-          <Link href="/nutri/agenda" style={{ textDecoration: 'none' }}>
+          <Link href="/nutri/agenda" style={{ textDecoration: 'none', display: 'flex' }}>
             <button className="glass-panel" style={{ 
-              padding: '12px 16px', 
+              width: '100%',
+              padding: '12px 6px', 
               borderRadius: '16px', 
               display: 'flex', 
               alignItems: 'center', 
-              gap: '8px', 
+              justifyContent: 'center',
+              gap: '6px', 
               background: 'var(--card-yellow)', 
               color: 'white',
               border: 'none',
               fontWeight: '900',
-              fontSize: '0.9rem',
-              whiteSpace: 'nowrap'
+              fontSize: '0.8rem'
             }}>
-              <Calendar size={18} /> Agenda
+              <Calendar size={16} /> Agenda
             </button>
           </Link>
         </div>

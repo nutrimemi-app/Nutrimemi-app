@@ -154,8 +154,6 @@ export default function PatientFile() {
   const [newPhotoFile, setNewPhotoFile] = useState('');
   const [selectedPhotosForComp, setSelectedPhotosForComp] = useState([]);
   const [showComparisonModal, setShowComparisonModal] = useState(false);
-  const [controlData, setControlData] = useState('');
-  const [showControlModal, setShowControlModal] = useState(false);
   const [localPctLip, setLocalPctLip] = useState('30');
   const [focusedMeasurement, setFocusedMeasurement] = useState('');
   const [editingAnswers, setEditingAnswers] = useState('');
@@ -515,87 +513,6 @@ export default function PatientFile() {
     );
   };
 
-  const startFollowUp = () => {
-    if (!patient) return;
-    setControlData({
-      weight: patient.details?.weight || '',
-      rct: patient.dietForm?.rct || '',
-      notes: '',
-      CINTURA: patient.measurements?.CINTURA || '',
-      CADERA: patient.measurements?.CADERA || '',
-      CUELLO: patient.measurements?.CUELLO || '',
-      BRAZO: patient.measurements?.BRAZO || '',
-      TORSO: patient.measurements?.TORSO || '',
-      GLÚTEOS: patient.measurements?.GLÚTEOS || '',
-      MUSLO: patient.measurements?.MUSLO || '',
-      PANTORRILLA: patient.measurements?.PANTORRILLA || '',
-      manualPi: patient.details?.manualPi || '',
-      manualPa: patient.details?.manualPa || '',
-      manualPc: patient.details?.manualPc || ''
-    });
-    setShowControlModal(true);
-  };
-
-  const handleSaveFollowUp = (e) => {
-    e.preventDefault();
-    if (!patient) return;
-
-    // 1. Archivar estado actual en historial
-    const pastEntry = {
-      id: Date.now(),
-      date: new Date().toISOString().split('T')[0],
-      details: { ...patient.details },
-      measurements: { ...patient.measurements },
-      dietForm: { ...patient.dietForm },
-      imc: clinical.imc,
-      profile: clinical.profile,
-      menus: patient.menu || null
-    };
-
-    // 2. Definir nuevos valores activos
-    const updatedDetails = {
-      ...patient.details,
-      weight: parseFloat(controlData.weight) || patient.details?.weight,
-      manualPi: controlData.manualPi !== '' ? parseFloat(controlData.manualPi) : patient.details?.manualPi,
-      manualPa: controlData.manualPa !== '' ? parseFloat(controlData.manualPa) : patient.details?.manualPa,
-      manualPc: controlData.manualPc !== '' ? parseFloat(controlData.manualPc) : patient.details?.manualPc,
-      notes: controlData.notes || patient.details?.notes
-    };
-
-    const updatedMeasurements = {
-      CUELLO: controlData.CUELLO !== '' ? parseFloat(controlData.CUELLO) : patient.measurements?.CUELLO,
-      BRAZO: controlData.BRAZO !== '' ? parseFloat(controlData.BRAZO) : patient.measurements?.BRAZO,
-      TORSO: controlData.TORSO !== '' ? parseFloat(controlData.TORSO) : patient.measurements?.TORSO,
-      CINTURA: controlData.CINTURA !== '' ? parseFloat(controlData.CINTURA) : patient.measurements?.CINTURA,
-      CADERA: controlData.CADERA !== '' ? parseFloat(controlData.CADERA) : patient.measurements?.CADERA,
-      GLÚTEOS: controlData.GLÚTEOS !== '' ? parseFloat(controlData.GLÚTEOS) : patient.measurements?.GLÚTEOS,
-      MUSLO: controlData.MUSLO !== '' ? parseFloat(controlData.MUSLO) : patient.measurements?.MUSLO,
-      PANTORRILLA: controlData.PANTORRILLA !== '' ? parseFloat(controlData.PANTORRILLA) : patient.measurements?.PANTORRILLA
-    };
-
-    const updatedDietForm = {
-      ...patient.dietForm,
-      rct: controlData.rct !== '' ? controlData.rct : patient.dietForm?.rct
-    };
-
-    // 3. Compilar paciente actualizado
-    const updatedPatient = {
-      ...patient,
-      details: updatedDetails,
-      measurements: updatedMeasurements,
-      dietForm: updatedDietForm,
-      history: [...(patient.history || []), pastEntry]
-    };
-
-    // 4. Guardar y redirigir
-    savePatientUpdate(updatedPatient);
-    setShowControlModal(false);
-    showToast("¡Consulta de control guardada con éxito!", "success");
-
-    // Redirección directa al planificador con flag de control
-    window.location.href = `/nutri/patient/${patient.id}/menu?control=true`;
-  };
-
   const measurements = [
     { label: 'CUELLO', desc: 'Base del cuello', guide: 'Pasa la cinta métrica horizontalmente por debajo de la laringe (nuez de Adán).' },
     { label: 'BRAZO', desc: 'Punto medio (Relajado)', guide: 'Brazo extendido y relajado. Mide en el punto medio entre el hombro (acromion) y el codo.' },
@@ -635,43 +552,43 @@ export default function PatientFile() {
         </div>
         
         {/* Fila de Acciones Reorganizada */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
-          <div style={{ display: 'flex', gap: '10px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: '8px' }}>
             {(() => {
               const appointments = JSON.parse(localStorage.getItem('nutri_appointments') || '[]');
               const myNext = appointments.find(a => a.patientId == patient.id && new Date(a.date) >= new Date());
               return myNext ? (
-                <Link href="/nutri/agenda" style={{ flex: 1, textDecoration: 'none', background: 'var(--card-yellow-light)', color: 'var(--accent)', padding: '14px', borderRadius: '16px', fontSize: '0.8rem', fontWeight: '900', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', border: '1px solid var(--accent)' }}>
-                  <Calendar size={18} /> {myNext.date.split('-').reverse().join('/')}
+                <Link href="/nutri/agenda" style={{ textDecoration: 'none', background: 'var(--card-yellow-light)', color: 'var(--accent)', padding: '12px 8px', borderRadius: '16px', fontSize: '0.75rem', fontWeight: '900', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', border: '1px solid var(--accent)', textAlign: 'center' }}>
+                  <Calendar size={16} /> {myNext.date.split('-').reverse().join('/')}
                 </Link>
               ) : (
-                <Link href="/nutri/agenda" style={{ flex: 1, textDecoration: 'none', background: 'rgba(0,0,0,0.05)', color: '#666', padding: '14px', borderRadius: '16px', fontSize: '0.8rem', fontWeight: '900', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', border: '1px solid rgba(0,0,0,0.1)' }}>
-                  <Calendar size={18} /> Programar Cita
+                <Link href="/nutri/agenda" style={{ textDecoration: 'none', background: 'rgba(0,0,0,0.05)', color: '#666', padding: '12px 8px', borderRadius: '16px', fontSize: '0.75rem', fontWeight: '900', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', border: '1px solid rgba(0,0,0,0.1)', textAlign: 'center' }}>
+                  <Calendar size={16} /> Programar Cita
                 </Link>
               );
             })()}
             {patient.details?.phone && (
-              <a href={`https://wa.me/${patient.details.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" style={{ flex: 1, textDecoration: 'none', background: '#25D366', color: 'white', padding: '14px', borderRadius: '16px', fontWeight: '900', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', border: '1.5px solid #128C7E' }}>
-                <MessageCircle size={18} /> WhatsApp
+              <a href={`https://wa.me/${patient.details.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', background: '#25D366', color: 'white', padding: '12px 8px', borderRadius: '16px', fontWeight: '900', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', border: '1.5px solid #128C7E', textAlign: 'center' }}>
+                <MessageCircle size={16} /> WhatsApp
               </a>
             )}
-            <Link href={`/nutri/patient/${patient.id}/report`} style={{ flex: 1, textDecoration: 'none', background: 'white', color: 'var(--primary)', padding: '14px', borderRadius: '16px', fontWeight: '900', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', border: '1.5px solid var(--primary)' }}>
-              <Printer size={18} /> Informe Imprimible
+            <Link href={`/nutri/patient/${patient.id}/report`} style={{ textDecoration: 'none', background: 'white', color: 'var(--primary)', padding: '12px 8px', borderRadius: '16px', fontWeight: '900', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', border: '1.5px solid var(--primary)', textAlign: 'center' }}>
+              <Printer size={16} /> Informe Imprimible
             </Link>
           </div>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <Link href={`/nutri/patient/${patient.id}/menu`} className="btn-primary" style={{ textDecoration: 'none', padding: '16px', borderRadius: '16px', fontWeight: '900', fontSize: '0.85rem', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', flex: 2, boxShadow: '0 8px 20px rgba(29, 81, 45, 0.2)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: '8px' }}>
+            <Link href={`/nutri/patient/${patient.id}/menu`} className="btn-primary" style={{ textDecoration: 'none', padding: '12px 8px', borderRadius: '16px', fontWeight: '900', fontSize: '0.8rem', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', boxShadow: '0 8px 20px rgba(29, 81, 45, 0.2)' }}>
               Menú y Dietética
             </Link>
-            <Link href={`/nutri/patient/${patient.id}/reminder`} style={{ textDecoration: 'none', flex: 1.5, background: 'var(--card-yellow-light)', border: '1.5px solid var(--accent)', color: 'var(--text-primary)', padding: '16px', borderRadius: '16px', fontWeight: '900', fontSize: '0.8rem', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+            <Link href={`/nutri/patient/${patient.id}/reminder`} style={{ textDecoration: 'none', background: 'var(--card-yellow-light)', border: '1.5px solid var(--accent)', color: 'var(--text-primary)', padding: '12px 8px', borderRadius: '16px', fontWeight: '900', fontSize: '0.8rem', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
               <History size={16} /> R24H
             </Link>
-            <Link href={`/nutri/patient/${patient.id}/food-log`} style={{ textDecoration: 'none', flex: 1.2, background: '#FFEBEE', border: '1.5px solid #EF5350', color: '#B71C1C', padding: '16px', borderRadius: '16px', fontWeight: '900', fontSize: '0.8rem', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+            <Link href={`/nutri/patient/${patient.id}/food-log`} style={{ textDecoration: 'none', background: '#FFEBEE', border: '1.5px solid #EF5350', color: '#B71C1C', padding: '12px 8px', borderRadius: '16px', fontWeight: '900', fontSize: '0.8rem', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
               <BookOpen size={16} /> Bitácora
             </Link>
           </div>
           <button 
-            onClick={startFollowUp}
+            onClick={() => router.push(`/nutri/patient/${patient.id}/control`)}
             className="btn-secondary" 
             style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '16px', borderRadius: '16px', fontSize: '0.85rem', fontWeight: '900', cursor: 'pointer', boxShadow: 'var(--shadow-subtle)' }}
           >
@@ -1106,96 +1023,100 @@ export default function PatientFile() {
         </div>
 
         {/* Tabla interactiva */}
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', marginBottom: '20px' }}>
-          <thead>
-            <tr style={{ borderBottom: '2px solid rgba(0,0,0,0.08)', textAlign: 'left' }}>
-              <th style={{ padding: '8px', fontWeight: '900', color: 'var(--primary)' }}>GRUPO</th>
-              <th style={{ padding: '8px', fontWeight: '900', color: 'var(--primary)', textAlign: 'center', width: '80px' }}>%</th>
-              <th style={{ padding: '8px', fontWeight: '900', color: 'var(--primary)', textAlign: 'right' }}>KCAL</th>
-              <th style={{ padding: '8px', fontWeight: '900', color: 'var(--primary)', textAlign: 'right' }}>GRAMOS</th>
-              <th style={{ padding: '8px', fontWeight: '900', color: 'var(--primary)', textAlign: 'right' }}>Gr x Kg de Peso</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(() => {
-              const rct = parseFloat(patient.dietForm?.rct) || 1700;
+        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', marginBottom: '20px', minWidth: '320px' }}>
+            <thead>
+              <tr style={{ borderBottom: '2px solid rgba(0,0,0,0.08)', textAlign: 'left' }}>
+                <th style={{ padding: '8px', fontWeight: '900', color: 'var(--primary)' }}>GRUPO</th>
+                <th style={{ padding: '8px', fontWeight: '900', color: 'var(--primary)', textAlign: 'center', width: '65px' }}>%</th>
+                <th style={{ padding: '8px', fontWeight: '900', color: 'var(--primary)', textAlign: 'right' }}>KCAL</th>
+                <th style={{ padding: '8px', fontWeight: '900', color: 'var(--primary)', textAlign: 'right' }}>GR</th>
+                <th style={{ padding: '8px', fontWeight: '900', color: 'var(--primary)', textAlign: 'right' }}>GR/KG</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(() => {
+                const rct = parseFloat(patient.dietForm?.rct) || 1700;
 
-              const getSuggestedPct = (key) => {
-                const prof = clinical?.profile ? clinical.profile.toUpperCase() : 'NORMOPESO';
-                if (prof === 'BAJO PESO') {
-                  return key === 'pctProt' ? 18 : key === 'pctCho' ? 50 : 32;
-                } else if (prof === 'SOBREPESO' || prof.startsWith('OBESIDAD')) {
-                  return key === 'pctProt' ? 20 : key === 'pctCho' ? 55 : 25;
-                } else {
-                  return key === 'pctProt' ? 15 : key === 'pctCho' ? 55 : 30;
-                }
-              };
-              const sugProt = getSuggestedPct('pctProt');
-              const sugCho = getSuggestedPct('pctCho');
-              const sugLip = getSuggestedPct('pctLip');
+                const getSuggestedPct = (key) => {
+                  const prof = clinical?.profile ? clinical.profile.toUpperCase() : 'NORMOPESO';
+                  if (prof === 'BAJO PESO') {
+                    return key === 'pctProt' ? 18 : key === 'pctCho' ? 50 : 32;
+                  } else if (prof === 'SOBREPESO' || prof.startsWith('OBESIDAD')) {
+                    return key === 'pctProt' ? 20 : key === 'pctCho' ? 55 : 25;
+                  } else {
+                    return key === 'pctProt' ? 15 : key === 'pctCho' ? 55 : 30;
+                  }
+                };
+                const sugProt = getSuggestedPct('pctProt');
+                const sugCho = getSuggestedPct('pctCho');
+                const sugLip = getSuggestedPct('pctLip');
 
-              const pctProt = (patient.dietForm?.pctProt !== undefined && patient.dietForm?.pctProt !== null && patient.dietForm?.pctProt !== '') ? parseFloat(patient.dietForm.pctProt) : sugProt;
-              const pctCho = (patient.dietForm?.pctCho !== undefined && patient.dietForm?.pctCho !== null && patient.dietForm?.pctCho !== '') ? parseFloat(patient.dietForm.pctCho) : sugCho;
-              const pctLip = Math.max(0, 100 - pctProt - pctCho);
-              const w = parseFloat(clinical.pc) || 70;
+                const pctProt = (patient.dietForm?.pctProt !== undefined && patient.dietForm?.pctProt !== null && patient.dietForm?.pctProt !== '') ? parseFloat(patient.dietForm.pctProt) : sugProt;
+                const pctCho = (patient.dietForm?.pctCho !== undefined && patient.dietForm?.pctCho !== null && patient.dietForm?.pctCho !== '') ? parseFloat(patient.dietForm.pctCho) : sugCho;
+                const pctLip = Math.max(0, 100 - pctProt - pctCho);
+                const w = parseFloat(clinical.pc) || 70;
 
-              const rows = [
-                { name: 'PROTEÍNA', pct: pctProt, isInput: true, divider: 4, key: 'pctProt' },
-                { name: 'CHO', pct: pctCho, isInput: true, divider: 4, key: 'pctCho' },
-                { name: 'LÍPIDOS', pct: pctLip, isInput: false, divider: 9, key: 'pctLip' },
-              ];
+                const rows = [
+                  { name: 'PROTEÍNA', pct: pctProt, isInput: true, divider: 4, key: 'pctProt' },
+                  { name: 'CHO', pct: pctCho, isInput: true, divider: 4, key: 'pctCho' },
+                  { name: 'LÍPIDOS', pct: pctLip, isInput: false, divider: 9, key: 'pctLip' },
+                ];
 
-              return (
-                <>
-                  {rows.map((row, idx) => {
-                    const rowKcal = rct * (row.pct / 100);
-                    const rowGrams = rowKcal / row.divider;
-                    const rowGramsPerKg = rowGrams / w;
+                return (
+                  <>
+                    {rows.map((row, idx) => {
+                      const rowKcal = rct * (row.pct / 100);
+                      const rowGrams = rowKcal / row.divider;
+                      const rowGramsPerKg = rowGrams / w;
 
-                    return (
-                      <tr key={idx} style={{ borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
-                        <td style={{ padding: '10px 8px', fontWeight: '700' }}>{row.name}</td>
-                        <td style={{ padding: '10px 8px', textAlign: 'center' }}>
-                          {row.isInput ? (
-                            <input
-                              type="number"
-                              value={row.key === 'pctProt' ? (localPctProt !== '' ? localPctProt : pctProt) : (localPctCho !== '' ? localPctCho : pctCho)}
-                              onChange={(e) => {
-                                const valStr = e.target.value;
-                                if (row.key === 'pctProt') {
-                                  setLocalPctProt(valStr);
-                                } else if (row.key === 'pctCho') {
-                                  setLocalPctCho(valStr);
-                                }
-                                const val = parseFloat(valStr) || 0;
-                                const updatedDietForm = { ...patient.dietForm, [row.key]: val };
-                                const updatedPatient = { ...patient, dietForm: updatedDietForm };
-                                savePatientUpdate(updatedPatient);
-                              }}
-                              style={{ width: '55px', padding: '4px', border: '1px solid #ddd', borderRadius: '4px', textAlign: 'center', fontSize: '0.8rem', fontWeight: '800' }}
-                            />
-                          ) : (
-                            <span style={{ fontSize: '0.8rem', fontWeight: '800', opacity: 0.6 }}>{row.pct}%</span>
-                          )}
-                        </td>
-                        <td style={{ padding: '10px 8px', textAlign: 'right', fontWeight: '600' }}>{rowKcal.toFixed(0)} kcal</td>
-                        <td style={{ padding: '10px 8px', textAlign: 'right', fontWeight: '750', color: 'var(--primary)' }}>{rowGrams.toFixed(1)}g</td>
-                        <td style={{ padding: '10px 8px', textAlign: 'right', fontWeight: '700' }}>{rowGramsPerKg.toFixed(2)} g/kg</td>
-                      </tr>
-                    );
-                  })}
-                  <tr style={{ background: 'rgba(29, 81, 45, 0.05)', fontWeight: '900' }}>
-                    <td style={{ padding: '12px 8px' }}>TOTAL</td>
-                    <td style={{ padding: '12px 8px', textAlign: 'center' }}>{(pctProt + pctCho + pctLip).toFixed(1)}%</td>
-                    <td style={{ padding: '12px 8px', textAlign: 'right' }}>{rct} kcal</td>
-                    <td style={{ padding: '12px 8px', textAlign: 'right' }}>-</td>
-                    <td style={{ padding: '12px 8px', textAlign: 'right' }}>-</td>
-                  </tr>
-                </>
-              );
-            })()}
-          </tbody>
-        </table>
+                      return (
+                        <tr key={idx} style={{ borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
+                          <td style={{ padding: '10px 4px', fontWeight: '700' }}>{row.name}</td>
+                          <td style={{ padding: '10px 4px', textAlign: 'center' }}>
+                            {row.isInput ? (
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <input
+                                  type="number"
+                                  value={row.key === 'pctProt' ? (localPctProt !== '' ? localPctProt : pctProt) : (localPctCho !== '' ? localPctCho : pctCho)}
+                                  onChange={(e) => {
+                                    const valStr = e.target.value;
+                                    if (row.key === 'pctProt') {
+                                      setLocalPctProt(valStr);
+                                    } else if (row.key === 'pctCho') {
+                                      setLocalPctCho(valStr);
+                                    }
+                                    const val = parseFloat(valStr) || 0;
+                                    const updatedDietForm = { ...patient.dietForm, [row.key]: val };
+                                    const updatedPatient = { ...patient, dietForm: updatedDietForm };
+                                    savePatientUpdate(updatedPatient);
+                                  }}
+                                  style={{ width: '45px', padding: '4px', border: '1px solid #ddd', borderRadius: '4px', textAlign: 'center', fontSize: '0.8rem', fontWeight: '800' }}
+                                />
+                              </div>
+                            ) : (
+                              <span style={{ fontSize: '0.8rem', fontWeight: '800', opacity: 0.6 }}>{row.pct}%</span>
+                            )}
+                          </td>
+                          <td style={{ padding: '10px 4px', textAlign: 'right', fontWeight: '600' }}>{rowKcal.toFixed(0)}</td>
+                          <td style={{ padding: '10px 4px', textAlign: 'right', fontWeight: '750', color: 'var(--primary)' }}>{rowGrams.toFixed(1)}</td>
+                          <td style={{ padding: '10px 4px', textAlign: 'right', fontWeight: '700' }}>{rowGramsPerKg.toFixed(2)}</td>
+                        </tr>
+                      );
+                    })}
+                    <tr style={{ background: 'rgba(29, 81, 45, 0.05)', fontWeight: '900' }}>
+                      <td style={{ padding: '12px 4px' }}>TOTAL</td>
+                      <td style={{ padding: '12px 4px', textAlign: 'center' }}>{(pctProt + pctCho + pctLip).toFixed(1)}%</td>
+                      <td style={{ padding: '12px 4px', textAlign: 'right' }}>{rct}</td>
+                      <td style={{ padding: '12px 4px', textAlign: 'right' }}>-</td>
+                      <td style={{ padding: '12px 4px', textAlign: 'right' }}>-</td>
+                    </tr>
+                  </>
+                );
+              })()}
+            </tbody>
+          </table>
+        </div>
 
         {/* Caja de sugerencia de raciones de intercambio */}
         {(() => {
@@ -1576,6 +1497,59 @@ export default function PatientFile() {
           ))}
         </div>
       </section>
+
+      {/* Historial de Controles */}
+      {patient.history && patient.history.length > 0 && (
+        <section className="glass-panel" style={{ padding: '24px', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h4 style={{ color: 'var(--text-primary)', fontSize: '1.2rem', fontWeight: '900' }}>HISTORIAL DE CONTROLES</h4>
+            <span style={{ fontSize: '0.75rem', fontWeight: '800', background: 'var(--card-green-light)', color: 'var(--primary)', padding: '4px 10px', borderRadius: '12px' }}>
+              {patient.history.length} Sesiones
+            </span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {[...patient.history].reverse().map((entry, idx) => (
+              <details key={entry.id} style={{ background: 'rgba(0,0,0,0.02)', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.05)' }}>
+                <summary style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', fontWeight: '900', color: 'var(--text-primary)', fontSize: '0.9rem', outline: 'none' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ background: 'var(--primary)', color: 'white', padding: '2px 8px', borderRadius: '8px', fontSize: '0.7rem' }}>#{patient.history.length - idx}</span>
+                    {entry.date}
+                  </div>
+                  <div style={{ fontSize: '0.8rem', opacity: 0.6, fontWeight: '700' }}>
+                    Peso: {entry.details?.weight || '--'} kg | IMC: {entry.imc || '--'}
+                  </div>
+                </summary>
+                <div style={{ padding: '0 16px 16px 16px', borderTop: '1px solid rgba(0,0,0,0.05)', marginTop: '8px', paddingTop: '16px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '12px', marginBottom: '16px' }}>
+                    <div style={{ background: 'white', padding: '10px', borderRadius: '8px', boxShadow: 'var(--shadow-subtle)' }}>
+                      <p style={{ fontSize: '0.65rem', opacity: 0.5, fontWeight: '800', marginBottom: '4px', margin: 0 }}>PERFIL CLÍNICO</p>
+                      <p style={{ fontSize: '0.85rem', fontWeight: '900', color: 'var(--primary)', margin: 0 }}>{entry.profile || '--'}</p>
+                    </div>
+                    <div style={{ background: 'white', padding: '10px', borderRadius: '8px', boxShadow: 'var(--shadow-subtle)' }}>
+                      <p style={{ fontSize: '0.65rem', opacity: 0.5, fontWeight: '800', marginBottom: '4px', margin: 0 }}>RCT / DIETA</p>
+                      <p style={{ fontSize: '0.85rem', fontWeight: '900', color: 'var(--accent)', margin: 0 }}>{entry.dietForm?.rct || '--'} Kcal</p>
+                    </div>
+                    <div style={{ background: 'white', padding: '10px', borderRadius: '8px', boxShadow: 'var(--shadow-subtle)' }}>
+                      <p style={{ fontSize: '0.65rem', opacity: 0.5, fontWeight: '800', marginBottom: '4px', margin: 0 }}>CINTURA</p>
+                      <p style={{ fontSize: '0.85rem', fontWeight: '900', margin: 0 }}>{entry.measurements?.CINTURA || '--'} cm</p>
+                    </div>
+                    <div style={{ background: 'white', padding: '10px', borderRadius: '8px', boxShadow: 'var(--shadow-subtle)' }}>
+                      <p style={{ fontSize: '0.65rem', opacity: 0.5, fontWeight: '800', marginBottom: '4px', margin: 0 }}>CADERA</p>
+                      <p style={{ fontSize: '0.85rem', fontWeight: '900', margin: 0 }}>{entry.measurements?.CADERA || '--'} cm</p>
+                    </div>
+                  </div>
+                  {entry.notes && (
+                    <div style={{ background: 'white', padding: '12px', borderRadius: '8px', borderLeft: '3px solid var(--accent)' }}>
+                      <p style={{ fontSize: '0.65rem', opacity: 0.5, fontWeight: '800', marginBottom: '6px', margin: 0 }}>NOTAS DE EVOLUCIÓN</p>
+                      <p style={{ fontSize: '0.85rem', margin: 0, fontStyle: 'italic', lineHeight: '1.4' }}>"{entry.notes}"</p>
+                    </div>
+                  )}
+                </div>
+              </details>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Galería de Fotos de Evolución */}
       <section className="glass-panel" style={{ padding: '24px', marginBottom: '20px' }}>
@@ -2114,184 +2088,6 @@ export default function PatientFile() {
         </Link>
       </div>
     </div>
-
-      {/* MODAL DE NUEVA CONSULTA DE CONTROL Y EVOLUCIÓN */}
-      {showControlModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0, 0, 0, 0.4)',
-          backdropFilter: 'blur(8px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 99999,
-          padding: '20px'
-        }}>
-          <div style={{
-            background: 'white',
-            borderRadius: '28px',
-            maxWidth: '700px',
-            width: '100%',
-            maxHeight: '90vh',
-            overflowY: 'auto',
-            padding: '28px',
-            boxShadow: '0 24px 50px rgba(0,0,0,0.15)',
-            border: '1px solid rgba(0,0,0,0.05)',
-            position: 'relative'
-          }} className="scale-in">
-            
-            <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
-              <div>
-                <h3 style={{ fontSize: '1.4rem', fontWeight: '900', color: 'var(--text-primary)' }}>Nueva Consulta de Control</h3>
-                <p style={{ fontSize: '0.8rem', opacity: 0.6 }}>Registra el progreso del paciente y compara con la última sesión</p>
-              </div>
-              <button 
-                onClick={() => setShowControlModal(false)}
-                style={{ background: 'none', border: 'none', fontSize: '1.5rem', fontWeight: 'bold', cursor: 'pointer', opacity: 0.5 }}
-              >
-                ×
-              </button>
-            </header>
-
-            <form onSubmit={handleSaveFollowUp}>
-              {/* Comparación de peso y calorías principales */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', background: 'rgba(29, 81, 45, 0.05)', padding: '20px', borderRadius: '20px', marginBottom: '20px' }}>
-                <div>
-                  <p style={{ fontSize: '0.65rem', fontWeight: '900', opacity: 0.6 }}>1. PESO DE CONTROL (kg)</p>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
-                    <span style={{ fontSize: '0.75rem', opacity: 0.5 }}>Previo: {patient.details?.weight}kg</span>
-                    <input 
-                      type="number"
-                      step="0.1"
-                      required
-                      placeholder="Nuevo Peso"
-                      className="input-field"
-                      style={{ marginBottom: 0, padding: '8px 12px', fontSize: '0.9rem', width: '100%' }}
-                      value={controlData.weight}
-                      onChange={(e) => setControlData({...controlData, weight: e.target.value})}
-                    />
-                  </div>
-                  {controlData.weight && (
-                    <p style={{ fontSize: '0.7rem', fontWeight: '900', marginTop: '4px', color: parseFloat(controlData.weight) - parseFloat(patient.details?.weight) <= 0 ? 'var(--primary)' : '#EF5350' }}>
-                      Diferencia: {(parseFloat(controlData.weight) - parseFloat(patient.details?.weight)).toFixed(1)} kg
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <p style={{ fontSize: '0.65rem', fontWeight: '900', opacity: 0.6 }}>2. RCT DIETA PRESCRITA (kcal)</p>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
-                    <span style={{ fontSize: '0.75rem', opacity: 0.5 }}>Previo: {patient.dietForm?.rct || 1700} Kcal</span>
-                    <input 
-                      type="text"
-                      placeholder="Eej: 1600 Kcal"
-                      className="input-field"
-                      style={{ marginBottom: 0, padding: '8px 12px', fontSize: '0.9rem', width: '100%' }}
-                      value={controlData.rct}
-                      onChange={(e) => setControlData({...controlData, rct: e.target.value})}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Ajustes Manuales de Pesos clínicos en este control */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px', marginBottom: '20px' }}>
-                <div>
-                  <label style={{ fontSize: '0.75rem', fontWeight: '700', opacity: 0.6, display: 'block', marginBottom: '6px' }}>Peso Ideal Clínico (PI)</label>
-                  <input 
-                    type="number" 
-                    step="0.1"
-                    placeholder={`Calculado: ${clinical.pi} kg`}
-                    className="input-field"
-                    style={{ margin: 0 }}
-                    value={controlData.manualPi}
-                    onChange={(e) => setControlData({...controlData, manualPi: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <label style={{ fontSize: '0.75rem', fontWeight: '700', opacity: 0.6, display: 'block', marginBottom: '6px' }}>Peso Ajustado Clínico (PA)</label>
-                  <input 
-                    type="number" 
-                    step="0.1"
-                    placeholder={`Calculado: ${clinical.pa} kg`}
-                    className="input-field"
-                    style={{ margin: 0 }}
-                    value={controlData.manualPa || ''}
-                    onChange={(e) => setControlData({...controlData, manualPa: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <label style={{ fontSize: '0.75rem', fontWeight: '700', opacity: 0.6, display: 'block', marginBottom: '6px' }}>Peso de Cálculo (PC)</label>
-                  <input 
-                    type="number" 
-                    step="0.1"
-                    placeholder={`Calculado: ${clinical.pc} kg`}
-                    className="input-field"
-                    style={{ margin: 0 }}
-                    value={controlData.manualPc}
-                    onChange={(e) => setControlData({...controlData, manualPc: e.target.value})}
-                  />
-                </div>
-              </div>
-
-              {/* Grid 2 Columnas de Medidas Corporales */}
-              <h4 style={{ fontSize: '0.75rem', fontWeight: '900', opacity: 0.5, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '10px' }}>Medidas Antropométricas</h4>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 16px', background: 'rgba(0,0,0,0.01)', padding: '14px', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.03)', marginBottom: '20px' }}>
-                {measurements.map(m => (
-                  <div key={m.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'between', gap: '8px' }}>
-                    <span style={{ fontSize: '0.75rem', fontWeight: '800', width: '90px' }}>{m.label}</span>
-                    <span style={{ fontSize: '0.7rem', opacity: 0.4 }}>({patient.measurements?.[m.label] || '--'}cm)</span>
-                    <input 
-                      type="number"
-                      step="0.1"
-                      placeholder="Nuevo"
-                      className="input-field"
-                      style={{ marginBottom: 0, padding: '4px 8px', fontSize: '0.8rem', width: '70px', textAlign: 'center' }}
-                      value={controlData[m.label] || ''}
-                      onChange={(e) => setControlData({...controlData, [m.label]: e.target.value})}
-                    />
-                  </div>
-                ))}
-              </div>
-
-              {/* Notas de evolución en este control */}
-              <div style={{ marginBottom: '24px' }}>
-                <label style={{ fontSize: '0.75rem', fontWeight: '900', opacity: 0.6, display: 'block', marginBottom: '8px' }}>NOTAS DE CONTROL Y EVOLUCIÓN</label>
-                <textarea 
-                  placeholder="Ej: El paciente refiere adherencia al menú del 80%. Reporta mejoría en su digestión y energía. Aumentó su consumo hídrico a 8 vasos diarios..."
-                  className="input-field"
-                  style={{ height: '80px', padding: '12px', fontSize: '0.85rem' }}
-                  value={controlData.notes}
-                  onChange={(e) => setControlData({...controlData, notes: e.target.value})}
-                />
-              </div>
-
-              {/* Botón enviar */}
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <button 
-                  type="button" 
-                  onClick={() => setShowControlModal(false)}
-                  className="btn-secondary" 
-                  style={{ flex: 1, padding: '14px', borderRadius: '16px', fontWeight: '900' }}
-                >
-                  Cancelar
-                </button>
-                <button 
-                  type="submit" 
-                  className="btn-primary" 
-                  style={{ flex: 1.5, padding: '14px', borderRadius: '16px', fontWeight: '900' }}
-                >
-                  Guardar y Ajustar Menú →
-                </button>
-              </div>
-            </form>
-
-          </div>
-        </div>
-      )}
     </>
   );
 }

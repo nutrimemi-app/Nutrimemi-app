@@ -1,6 +1,6 @@
 'use client';
 import { useAuth } from '@/context/AuthContext';
-import TabBar from '@/components/patient/TabBar';
+
 import { MessageCircle, Settings, LogOut, Bell } from 'lucide-react';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 
@@ -80,7 +80,7 @@ export default function PatientProfile() {
         </button>
       </div>
 
-      <TabBar />
+
     </div>
   );
 }

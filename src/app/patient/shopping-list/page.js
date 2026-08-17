@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import TabBar from '@/components/patient/TabBar';
+
 import { ShoppingBag, CheckCircle2, ChevronRight, Calculator, Calendar } from 'lucide-react';
 
 export default function ShoppingList() {
@@ -268,7 +268,7 @@ export default function ShoppingList() {
       {step === 2 && renderStep2()}
       {step === 3 && renderStep3()}
 
-      <TabBar />
+
     </div>
   );
 }

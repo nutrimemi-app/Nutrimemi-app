@@ -21,11 +21,12 @@ export default function LoginPage() {
       flexDirection: 'column', 
       alignItems: 'center', 
       justifyContent: 'center', 
-      minHeight: '100vh',
+      height: '100dvh',
       width: '100%',
       backgroundColor: 'var(--bg-primary)',
-      padding: '20px',
-      boxSizing: 'border-box'
+      padding: '16px',
+      boxSizing: 'border-box',
+      overflow: 'hidden'
     }}>
       <div className="fade-in" style={{ 
         width: '100%', 
@@ -36,17 +37,17 @@ export default function LoginPage() {
         textAlign: 'center'
       }}>
         {/* Logo Imagen */}
-        <div style={{ marginBottom: '40px', width: '100%' }}>
+        <div style={{ marginBottom: '20px', width: '100%' }}>
           <img 
             src="/logo.png" 
             alt="Nutrimemi Logo" 
-            style={{ width: '100%', maxWidth: '240px', height: 'auto', margin: '0 auto', display: 'block' }}
+            style={{ width: '100%', maxWidth: '200px', height: 'auto', margin: '0 auto', display: 'block' }}
           />
         </div>
 
         <h1 style={{ 
-          marginBottom: '12px', 
-          fontSize: '2.2rem', 
+          marginBottom: '8px', 
+          fontSize: '2rem', 
           fontWeight: '900',
           color: 'var(--text-primary)',
           fontFamily: 'Belinda, sans-serif'
@@ -54,10 +55,10 @@ export default function LoginPage() {
           Bienvenido
         </h1>
         <p style={{ 
-          marginBottom: '40px', 
+          marginBottom: '24px', 
           opacity: 0.8, 
           fontWeight: '700',
-          fontSize: '1rem',
+          fontSize: '0.95rem',
           color: 'var(--text-primary)',
           lineHeight: '1.4'
         }}>
