@@ -42,10 +42,10 @@ function PieChart({ cho, prot, fat, total }) {
       <svg width={size} height={size}>
         {paths.map((p, i) => <path key={i} d={p.d} fill={p.color} />)}
         <circle cx={cx} cy={cy} r={r * 0.5} fill="var(--card-green)" />
-        <text x={cx} y={cy - 6} textAnchor="middle" fill="#333" fontSize="10" fontWeight="900">
+        <text x={cx} y={cy - 6} textAnchor="middle" fill="white" fontSize="10" fontWeight="900">
           {total.toFixed(0)}
         </text>
-        <text x={cx} y={cy + 8} textAnchor="middle" fill="#333" fontSize="8" opacity="0.8">kcal</text>
+        <text x={cx} y={cy + 8} textAnchor="middle" fill="white" fontSize="8" opacity="0.8">kcal</text>
       </svg>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
         {[
@@ -189,14 +189,14 @@ export default function PatientHome() {
     <div style={{ padding: '20px', paddingBottom: '100px' }} className="fade-in">
       {/* HEADER */}
       <header style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
+        <div style={{ flex: 1 }}>
           <p style={{ opacity: 0.55, fontSize: '0.85rem', fontWeight: '700' }}>Bienvenido de nuevo,</p>
           <h2 style={{ fontSize: '1.6rem', color: 'var(--text-primary)', fontWeight: '900', marginBottom: '8px' }}>
             {data?.name?.split(' ')[0] || user?.name?.split(' ')[0] || 'Paciente'}
           </h2>
           {renderCountdown()}
         </div>
-        <img src="/logo.png" alt="Logo" style={{ height: '36px', opacity: 0.8 }} />
+        <img src="/logo.png" alt="Logo" style={{ height: '56px', opacity: 0.9, objectFit: 'contain' }} />
       </header>
 
       {/* META DIARIA + AVATAR + ESTADO FÍSICO */}
@@ -206,9 +206,9 @@ export default function PatientHome() {
         padding: '24px', marginBottom: '16px', borderRadius: '24px',
         boxShadow: '0 8px 24px rgba(0,0,0,0.08)'
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', gap: '16px' }}>
           
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: '1 1 200px' }}>
             <p style={{ fontSize: '0.7rem', opacity: 0.7, fontWeight: '800', letterSpacing: '1px', color: 'var(--card-green)' }}>TU META DIARIA</p>
             <p style={{ fontSize: '2.2rem', fontWeight: '900', lineHeight: 1, marginBottom: '16px', color: 'var(--text-primary)' }}>{rct.toFixed(0)} <span style={{ fontSize: '1rem' }}>Kcal</span></p>
 
