@@ -138,6 +138,27 @@ export default function PatientFile() {
   const { showToast, showConfirm } = useUI();
   const { patient, setPatient, status } = usePatient(params.id);
   const [selectedExchangeMeal, setSelectedExchangeMeal] = useState('');
+  const [gender, setGender] = useState('female');
+  const [savedR24h, setSavedR24h] = useState(null);
+  const [savedR24hNotes, setSavedR24hNotes] = useState('');
+  const [localPctProt, setLocalPctProt] = useState('20');
+  const [localPctCho, setLocalPctCho] = useState('50');
+  const [currentTag, setCurrentTag] = useState('');
+  const [item, setItem] = useState('');
+  const [newPhotoFile, setNewPhotoFile] = useState('');
+  const [selectedPhotosForComp, setSelectedPhotosForComp] = useState([]);
+  const [showComparisonModal, setShowComparisonModal] = useState(false);
+  const [controlData, setControlData] = useState('');
+  const [showControlModal, setShowControlModal] = useState(false);
+  const [localPctLip, setLocalPctLip] = useState('30');
+  const [focusedMeasurement, setFocusedMeasurement] = useState('');
+  const [editingAnswers, setEditingAnswers] = useState('');
+  const [photoSessionFilter, setPhotoSessionFilter] = useState('');
+  const [newPhotoLabel, setNewPhotoLabel] = useState('');
+  const [newPhotoDate, setNewPhotoDate] = useState('');
+  const [previewDashboardOpen, setPreviewDashboardOpen] = useState('');
+  const [previewDay, setPreviewDay] = useState('');
+
 
   useEffect(() => {
     if (patient) {
