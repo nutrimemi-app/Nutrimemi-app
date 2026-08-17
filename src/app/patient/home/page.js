@@ -196,7 +196,7 @@ export default function PatientHome() {
           </h2>
           {renderCountdown()}
         </div>
-        <img src="/logo.png" alt="Logo" style={{ height: '56px', opacity: 0.9, objectFit: 'contain' }} />
+        <img src="/logo.png" alt="Logo" style={{ height: '96px', opacity: 0.9, objectFit: 'contain', margin: '-10px 0' }} />
       </header>
 
       {/* META DIARIA + AVATAR + ESTADO FÍSICO */}

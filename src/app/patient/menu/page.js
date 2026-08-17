@@ -27,6 +27,7 @@ export default function PatientMenu() {
   const { user } = useAuth();
   const { patient, status } = usePatientByEmail(user?.email);
   const [tab, setTab] = useState('plan'); // 'plan' | 'menu'
+  const [dayTab, setDayTab] = useState('DÍA 1');
 
   const menu = patient?.menu || {};
   const mealPlanKey = patient?.details?.mealPlan || '3+2 snacks';
@@ -171,10 +172,53 @@ export default function PatientMenu() {
       {/* ═══════ TAB: MENÚ EJEMPLO ═══════ */}
       {tab === 'menu' && (
         <div className="fade-in">
+          {/* Sub-tabs para Días */}
+          {(() => {
+            const daysSet = new Set();
+            mealsWithData.forEach(m => {
+              (menu[m.key]?.selectedFoods || []).forEach(f => {
+                const match = f.name.match(/^\[(DÍA\s+\d+)\]/i);
+                daysSet.add(match ? match[1].toUpperCase() : 'DÍA 1');
+              });
+            });
+            const availableDays = Array.from(daysSet).sort();
+            if (availableDays.length === 0) availableDays.push('DÍA 1');
+            
+            // Only show subtabs if there's more than 1 day
+            if (availableDays.length > 1) {
+              return (
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', overflowX: 'auto', paddingBottom: '4px' }}>
+                  {availableDays.map(d => (
+                    <button key={d} onClick={() => setDayTab(d)} style={{
+                      padding: '8px 16px', border: 'none', borderRadius: '20px', cursor: 'pointer', whiteSpace: 'nowrap',
+                      background: dayTab === d ? 'var(--card-green)' : 'rgba(29,81,45,0.08)',
+                      color: dayTab === d ? 'white' : 'var(--card-green)',
+                      fontWeight: '800', fontSize: '0.8rem', transition: 'all 0.2s'
+                    }}>
+                      {d}
+                    </button>
+                  ))}
+                </div>
+              );
+            }
+            return null;
+          })()}
+
           {mealsWithData.length > 0 ? mealsWithData.map(meal => {
             const d = menu[meal.key];
-            const foods = d?.selectedFoods || [];
+            const allFoods = d?.selectedFoods || [];
+            
+            const filteredFoods = allFoods.filter(f => {
+              const match = f.name.match(/^\[(DÍA\s+\d+)\]/i);
+              const itemDay = match ? match[1].toUpperCase() : 'DÍA 1';
+              return itemDay === dayTab;
+            });
+            
             const portions = d?.portions || {};
+            
+            // Si el meal no tiene raciones ni alimentos para este día específico, lo saltamos (opcional). 
+            // Si quieres mostrarlo igual para indicar que no hay comida de ese tipo hoy, lo dejamos.
+            
             return (
               <div key={meal.key} className="glass-panel" style={{ marginBottom: '12px', overflow: 'hidden', background: 'white' }}>
                 <div style={{ background: 'var(--card-green)', color: 'white', padding: '10px 16px', display: 'flex', justifyContent: 'space-between' }}>
@@ -200,8 +244,9 @@ export default function PatientMenu() {
 
                 {/* Alimentos */}
                 <div style={{ padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {foods.length > 0 ? foods.map(item => {
+                  {filteredFoods.length > 0 ? filteredFoods.map(item => {
                     const g = FOOD_GROUPS.find(g => g.key === item.groupKey) || FOOD_GROUPS[0];
+                    const cleanName = item.name.replace(/^\[DÍA\s+\d+\]\s*/i, '');
                     return (
                       <div key={item.instanceId || item.id} style={{
                         display: 'flex', alignItems: 'center', gap: '10px',
@@ -209,9 +254,8 @@ export default function PatientMenu() {
                         background: g.bg, borderLeft: `3px solid ${g.dot}`
                       }}>
                         <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: g.dot }} />
-                        <span style={{ fontWeight: '900', color: g.color, fontSize: '0.82rem' }}>{item.portion}</span>
-                        <span style={{ fontWeight: '700', fontSize: '0.85rem', color: '#333' }}>{item.name}</span>
-                        {item.qty > 1 && <span style={{ fontSize: '0.65rem', opacity: 0.5 }}>×{item.qty}</span>}
+                        <span style={{ fontWeight: '900', color: g.color, fontSize: '0.82rem' }}>{item.qty} {item.unit}</span>
+                        <span style={{ fontWeight: '700', fontSize: '0.85rem', color: '#333' }}>{cleanName}</span>
                       </div>
                     );
                   }) : (
