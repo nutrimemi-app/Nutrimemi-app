@@ -2,14 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useNutri } from '@/context/NutriContext';
-import { calculateClinicalData } from '@/utils/calculations';
-import { addHistoryEntry } from '@/lib/patients';
+import { calculateClinicalData } from '@/utils/calculationUtils';
+import { addHistoryEntry, getPatientById, updatePatient } from '@/lib/patients';
 
 export default function ControlPage({ params }) {
   const router = useRouter();
   const { id } = params;
-  const { patients, updatePatient } = useNutri();
   
   const [patient, setPatient] = useState(null);
   const [clinical, setClinical] = useState(null);
@@ -29,53 +27,43 @@ export default function ControlPage({ params }) {
   };
 
   useEffect(() => {
-    // Check if patient exists
-    const p = patients.find(p => p.id === id);
-    if (p) {
-      setPatient(p);
-      setClinical(calculateClinicalData(p));
-      setControlData({
-        weight: p.details?.weight || '',
-        rct: p.dietForm?.rct || '',
-        notes: '',
-        CINTURA: p.measurements?.CINTURA || '',
-        CADERA: p.measurements?.CADERA || '',
-        CUELLO: p.measurements?.CUELLO || '',
-        BRAZO: p.measurements?.BRAZO || '',
-        TORSO: p.measurements?.TORSO || '',
-        GLÚTEOS: p.measurements?.GLÚTEOS || '',
-        MUSLO: p.measurements?.MUSLO || '',
-        PANTORRILLA: p.measurements?.PANTORRILLA || '',
-        manualPi: p.details?.manualPi || '',
-        manualPa: p.details?.manualPa || '',
-        manualPc: p.details?.manualPc || ''
-      });
-    } else {
-        // Find in localstorage directly
-        const localPatients = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
-        const lp = localPatients.find(p => p.id === id);
-        if (lp) {
-            setPatient(lp);
-            setClinical(calculateClinicalData(lp));
-            setControlData({
-                weight: lp.details?.weight || '',
-                rct: lp.dietForm?.rct || '',
-                notes: '',
-                CINTURA: lp.measurements?.CINTURA || '',
-                CADERA: lp.measurements?.CADERA || '',
-                CUELLO: lp.measurements?.CUELLO || '',
-                BRAZO: lp.measurements?.BRAZO || '',
-                TORSO: lp.measurements?.TORSO || '',
-                GLÚTEOS: lp.measurements?.GLÚTEOS || '',
-                MUSLO: lp.measurements?.MUSLO || '',
-                PANTORRILLA: lp.measurements?.PANTORRILLA || '',
-                manualPi: lp.details?.manualPi || '',
-                manualPa: lp.details?.manualPa || '',
-                manualPc: lp.details?.manualPc || ''
-            });
-        }
-    }
-  }, [id, patients]);
+    const fetchPatientData = async () => {
+      const p = await getPatientById(id);
+      if (p) {
+        setPatient(p);
+        
+        // Calculate clinical data based on patient details
+        const clinData = calculateClinicalData({
+          weight: p.details?.weight,
+          height: p.details?.height,
+          sex: p.details?.gender || 'female',
+          manualPi: p.details?.manualPi,
+          manualPa: p.details?.manualPa,
+          manualPc: p.details?.manualPc
+        });
+        setClinical(clinData);
+
+        setControlData({
+          weight: p.details?.weight || '',
+          rct: p.dietForm?.rct || '',
+          notes: '',
+          CINTURA: p.measurements?.CINTURA || '',
+          CADERA: p.measurements?.CADERA || '',
+          CUELLO: p.measurements?.CUELLO || '',
+          BRAZO: p.measurements?.BRAZO || '',
+          TORSO: p.measurements?.TORSO || '',
+          GLÚTEOS: p.measurements?.GLÚTEOS || '',
+          MUSLO: p.measurements?.MUSLO || '',
+          PANTORRILLA: p.measurements?.PANTORRILLA || '',
+          manualPi: p.details?.manualPi || '',
+          manualPa: p.details?.manualPa || '',
+          manualPc: p.details?.manualPc || ''
+        });
+      }
+    };
+    
+    fetchPatientData();
+  }, [id]);
 
   if (!patient || !clinical) return <div style={{ padding: '40px', textAlign: 'center' }}>Cargando paciente...</div>;
 
