@@ -137,6 +137,7 @@ export default function PatientFile() {
   const params = useParams();
   const { showToast, showConfirm } = useUI();
   const { patient, setPatient, status } = usePatient(params.id);
+  const [selectedExchangeMeal, setSelectedExchangeMeal] = useState('');
 
   useEffect(() => {
     if (patient) {
