@@ -70,6 +70,16 @@ export default function PatientHome() {
   const { patient: data, status } = usePatientByEmail(user?.email);
   const [nextApp, setNextApp] = useState(null);
   const [todayLog, setTodayLog] = useState(null);
+  const [glasses, setGlasses] = useState(0);
+
+  const hydrKey = `hydration_${data?.id}_${new Date().toISOString().split('T')[0]}`;
+
+  useEffect(() => {
+    if (data?.id) {
+      const g = parseInt(localStorage.getItem(hydrKey) || '0');
+      setGlasses(g);
+    }
+  }, [data?.id, hydrKey]);
 
   useEffect(() => {
     if (data) {
@@ -115,14 +125,7 @@ export default function PatientHome() {
   })();
 
   // Consumo hídrico hoy
-  const hydrKey = `hydration_${data?.id}_${new Date().toISOString().split('T')[0]}`;
-  const [glasses, setGlasses] = useState(0);
-  useEffect(() => {
-    if (data?.id) {
-      const g = parseInt(localStorage.getItem(hydrKey) || '0');
-      setGlasses(g);
-    }
-  }, [data]);
+
 
   const addGlass = () => {
     const next = glasses + 1;
