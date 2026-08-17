@@ -1,8 +1,5 @@
-import { Outfit } from "next/font/google";
 import "./globals.css";
 import AppProviders from "@/components/AppProviders";
-
-const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
 
 export const metadata = {
   title: "Nutrimemi - Gestión de Nutrición",
@@ -26,10 +23,13 @@ export const viewport = {
 export default function RootLayout({ children }) {
   return (
     <html lang="es">
-      <body className={outfit.className}>
+      <body style={{ fontFamily: "'Outfit', sans-serif" }}>
         <AppProviders>
           {children}
         </AppProviders>
+        <div className="no-print" style={{position:'fixed', bottom:0, right:0, background:'black', color:'white', fontSize:'10px', padding:'2px', zIndex:9999, opacity: 0.5}}>
+          v4.0.0
+        </div>
       </body>
     </html>
   );
