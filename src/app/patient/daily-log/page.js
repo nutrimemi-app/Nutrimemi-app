@@ -169,11 +169,32 @@ export default function DailyLog() {
 
   const addEntry = (food) => {
     const q = parseFloat(qty[food.id] || 1);
-    const entry = { ...food, qty: q, entryId: Date.now() };
+    const time = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    const entry = { ...food, qty: q, entryId: Date.now(), time };
     const next = [...entries, entry];
     setEntries(next);
     saveEntries(next);
     setQty({ ...qty, [food.id]: 1 });
+  };
+
+  const [manualText, setManualText] = useState('');
+  const addManualEntry = () => {
+    if (!manualText.trim()) return;
+    const time = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    const entry = {
+      id: 'manual-' + Date.now(),
+      name: manualText.trim(),
+      qty: 1,
+      unit: 'porción',
+      groupKey: 'manual',
+      kcal: 0, prot: 0, cho: 0, fat: 0,
+      entryId: Date.now(),
+      time
+    };
+    const next = [...entries, entry];
+    setEntries(next);
+    saveEntries(next);
+    setManualText('');
   };
 
   const removeEntry = (entryId) => {
@@ -232,6 +253,7 @@ export default function DailyLog() {
         {[
           { id: 'standard', label: 'Comidas estándares' },
           { id: 'unusual',  label: 'Comidas no habituales' },
+          { id: 'manual',   label: 'Escribir manual' },
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} style={{
             flex: 1, padding: '9px 6px', border: 'none', borderRadius: '10px', cursor: 'pointer',
@@ -355,6 +377,39 @@ export default function DailyLog() {
         </div>
       )}
 
+      {/* ═══════ ESCRITURA MANUAL ═══════ */}
+      {tab === 'manual' && (
+        <div className="fade-in">
+          <div className="glass-panel" style={{ padding: '20px', background: 'white' }}>
+            <h3 style={{ fontSize: '0.9rem', fontWeight: '900', color: 'var(--text-primary)', marginBottom: '8px' }}>Escribe lo que comiste</h3>
+            <p style={{ fontSize: '0.75rem', opacity: 0.6, marginBottom: '16px' }}>Si no encuentras el alimento, descríbelo aquí y se guardará con la hora actual.</p>
+            
+            <input
+              type="text"
+              placeholder="Ej. Una empanada de queso y un café"
+              value={manualText}
+              onChange={(e) => setManualText(e.target.value)}
+              style={{
+                width: '100%', padding: '14px', borderRadius: '12px', border: '2px solid rgba(0,0,0,0.05)',
+                fontSize: '0.9rem', background: 'rgba(0,0,0,0.02)', outline: 'none', marginBottom: '12px'
+              }}
+            />
+            
+            <button
+              onClick={addManualEntry}
+              disabled={!manualText.trim()}
+              style={{
+                width: '100%', padding: '14px', borderRadius: '12px', border: 'none',
+                background: manualText.trim() ? 'var(--card-green)' : '#ccc', color: 'white',
+                fontWeight: '900', cursor: manualText.trim() ? 'pointer' : 'not-allowed', transition: 'all 0.2s'
+              }}
+            >
+              Agregar registro manual
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ═══════ LISTA DE LO CONSUMIDO HOY ═══════ */}
       {entries.length > 0 && (
         <div style={{ marginTop: '20px' }}>
@@ -369,9 +424,10 @@ export default function DailyLog() {
                   borderLeft: `3px solid ${g?.color || '#FF5E5E'}`
                 }}>
                   <div style={{ flex: 1 }}>
-                    <p style={{ fontWeight: '800', fontSize: '0.85rem', color: g?.color || '#FF5E5E' }}>{e.name}</p>
+                    <p style={{ fontWeight: '800', fontSize: '0.85rem', color: g?.color || '#333' }}>{e.name}</p>
                     <p style={{ fontSize: '0.7rem', opacity: 0.6 }}>
-                      ×{e.qty} · {(e.kcal * e.qty).toFixed(0)} kcal · CHO {(e.cho * e.qty).toFixed(0)}g
+                      {e.groupKey !== 'manual' ? `×${e.qty} · ${(e.kcal * e.qty).toFixed(0)} kcal` : 'Registro manual'} 
+                      {e.time ? ` · 🕒 ${e.time}` : ''}
                     </p>
                   </div>
                   <button onClick={() => removeEntry(e.entryId)} style={{ background: 'rgba(255,94,94,0.1)', border: 'none', borderRadius: '50%', width: '28px', height: '28px', cursor: 'pointer', color: '#FF5E5E', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

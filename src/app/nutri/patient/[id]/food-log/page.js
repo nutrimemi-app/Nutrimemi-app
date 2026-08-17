@@ -100,11 +100,15 @@ export default function PatientFoodLog() {
               {(log.entries || []).map((e, i) => (
                 <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', padding: '4px 0', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
                   <span style={{ fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    {e.groupKey === 'no_habitual' && <span style={{ fontSize: '0.6rem', background: '#FFEBEE', color: '#B71C1C', padding: '1px 5px', borderRadius: '6px', fontWeight: '900' }}>NO HAB.</span>}
+                    {e.groupKey === 'no_habitual' && <span style={{ fontSize: '0.55rem', background: '#FFEBEE', color: '#B71C1C', padding: '1px 5px', borderRadius: '6px', fontWeight: '900' }}>NO HAB.</span>}
+                    {e.groupKey === 'manual' && <span style={{ fontSize: '0.55rem', background: '#E3F2FD', color: '#0D47A1', padding: '1px 5px', borderRadius: '6px', fontWeight: '900' }}>MANUAL</span>}
+                    {e.time && <span style={{ fontSize: '0.65rem', opacity: 0.5, fontWeight: '800' }}>{e.time}</span>}
                     {e.name}
-                    {e.qty > 1 && <span style={{ opacity: 0.5 }}>×{e.qty}</span>}
+                    {e.qty > 1 && e.groupKey !== 'manual' && <span style={{ opacity: 0.5 }}>×{e.qty}</span>}
                   </span>
-                  <span style={{ opacity: 0.6, fontWeight: '700' }}>{(e.kcal * e.qty).toFixed(0)} kcal</span>
+                  <span style={{ opacity: 0.6, fontWeight: '700' }}>
+                    {e.groupKey !== 'manual' ? `${(e.kcal * e.qty).toFixed(0)} kcal` : ''}
+                  </span>
                 </div>
               ))}
             </div>
