@@ -68,6 +68,8 @@ function PieChart({ cho, prot, fat, total }) {
 export default function PatientHome() {
   const { user } = useAuth();
   const { patient: data, status } = usePatientByEmail(user?.email);
+  const [nextApp, setNextApp] = useState(null);
+  const [todayLog, setTodayLog] = useState(null);
 
   useEffect(() => {
     if (data) {
