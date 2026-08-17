@@ -1,8 +1,15 @@
+export const isMaleGender = (sex) => {
+  if (!sex) return false;
+  const s = sex.toLowerCase().trim();
+  return ['male', 'm', 'h', 'hombre', 'hombres', 'masculino'].includes(s);
+};
+
 export const calculateClinicalData = (patient, measurements = {}) => {
   const weight = parseFloat(patient.weight) || 0;
   const heightCm = parseFloat(patient.height) || 0;
   const heightM = heightCm / 100;
   const sex = (patient.sex || 'female').toLowerCase();
+  const isMale = isMaleGender(sex);
 
   const imc = heightM > 0 ? (weight / (heightM * heightM)) : 0;
   
@@ -18,7 +25,7 @@ export const calculateClinicalData = (patient, measurements = {}) => {
   // Mujeres: 45.5 + 2.3 * ((Talla / 2.54) - 60)
   // Hombres: 50.0 + 2.3 * ((Talla / 2.54) - 60)
   const inches = (heightCm / 2.54);
-  const baseWeight = sex === 'male' ? 50.0 : 45.5;
+  const baseWeight = isMale ? 50.0 : 45.5;
   let calculatedPi = heightCm > 152.4 ? (baseWeight + 2.3 * (inches - 60)) : baseWeight;
 
   const pi = patient.manualPi ? parseFloat(patient.manualPi) : calculatedPi;
@@ -50,7 +57,6 @@ export const calculateClinicalData = (patient, measurements = {}) => {
   const cadera = parseFloat(measurements?.CADERA) || 0;
 
   if (cintura > 0 && cuello > 0 && heightCm > 0) {
-    const isMale = sex === 'male' || sex === 'h' || sex === 'hombre' || sex === 'm' || sex === 'masculino';
     if (isMale) {
       // Hombres: %GC = 495 / (1.0324 - 0.19077 * log10(cintura - cuello) + 0.15456 * log10(altura)) - 450
       if ((cintura - cuello) > 0) {
@@ -124,7 +130,7 @@ export const getBodyFatProfile = (sex, age, gc) => {
   const val = parseFloat(gc);
   if (isNaN(val) || val <= 0) return '—';
 
-  const isMale = g === 'male' || g === 'h' || g === 'hombres';
+  const isMale = isMaleGender(g);
   if (!isMale) {
     // Mujeres
     if (a >= 15 && a <= 39) {

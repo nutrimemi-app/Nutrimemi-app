@@ -1126,13 +1126,13 @@ export default function PatientFile() {
 
               const pctProt = (patient.dietForm?.pctProt !== undefined && patient.dietForm?.pctProt !== null && patient.dietForm?.pctProt !== '') ? parseFloat(patient.dietForm.pctProt) : sugProt;
               const pctCho = (patient.dietForm?.pctCho !== undefined && patient.dietForm?.pctCho !== null && patient.dietForm?.pctCho !== '') ? parseFloat(patient.dietForm.pctCho) : sugCho;
-              const pctLip = (patient.dietForm?.pctLip !== undefined && patient.dietForm?.pctLip !== null && patient.dietForm?.pctLip !== '') ? parseFloat(patient.dietForm.pctLip) : sugLip;
+              const pctLip = Math.max(0, 100 - pctProt - pctCho);
               const w = parseFloat(clinical.pc) || 70;
 
               const rows = [
                 { name: 'PROTEÍNA', pct: pctProt, isInput: true, divider: 4, key: 'pctProt' },
                 { name: 'CHO', pct: pctCho, isInput: true, divider: 4, key: 'pctCho' },
-                { name: 'LÍPIDOS', pct: pctLip, isInput: true, divider: 9, key: 'pctLip' },
+                { name: 'LÍPIDOS', pct: pctLip, isInput: false, divider: 9, key: 'pctLip' },
               ];
 
               return (
@@ -1149,15 +1149,13 @@ export default function PatientFile() {
                           {row.isInput ? (
                             <input
                               type="number"
-                              value={row.key === 'pctProt' ? (localPctProt !== '' ? localPctProt : pctProt) : row.key === 'pctCho' ? (localPctCho !== '' ? localPctCho : pctCho) : (localPctLip !== '' ? localPctLip : pctLip)}
+                              value={row.key === 'pctProt' ? (localPctProt !== '' ? localPctProt : pctProt) : (localPctCho !== '' ? localPctCho : pctCho)}
                               onChange={(e) => {
                                 const valStr = e.target.value;
                                 if (row.key === 'pctProt') {
                                   setLocalPctProt(valStr);
                                 } else if (row.key === 'pctCho') {
                                   setLocalPctCho(valStr);
-                                } else {
-                                  setLocalPctLip(valStr);
                                 }
                                 const val = parseFloat(valStr) || 0;
                                 const updatedDietForm = { ...patient.dietForm, [row.key]: val };
