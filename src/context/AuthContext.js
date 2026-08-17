@@ -26,14 +26,32 @@ export function AuthProvider({ children }) {
 
     try { localStorage.removeItem('nutri_user'); } catch (e) {}
 
-    // Buscar paciente en Supabase (si existe el email, loguea como paciente sin revisar contraseña)
+    // Nutricionista (Master)
+    if (emailClean === 'meme' && passClean === '123') {
+      const userData = { email: emailClean, role: 'Nutricionista', name: 'Lic. Salomé' };
+      setUser(userData);
+      localStorage.setItem('nutri_user', JSON.stringify(userData));
+      router.push('/nutri/dashboard');
+      return;
+    }
+
+    // Paciente (Master/Prueba)
+    if (emailClean === 'paciente' && passClean === '123') {
+      const userData = { email: emailClean, role: 'Paciente', name: 'Paciente de Prueba' };
+      setUser(userData);
+      localStorage.setItem('nutri_user', JSON.stringify(userData));
+      router.push('/patient/home');
+      return;
+    }
+
+    // Buscar paciente real en Supabase
     const { data: patient, error } = await supabase
       .from('patients')
       .select('name, email, password')
       .eq('email', emailClean)
       .single();
 
-    if (patient) {
+    if (patient && patient.password === passClean) {
       const userData = { 
         email: emailClean, 
         role: 'Paciente', 
@@ -45,11 +63,7 @@ export function AuthProvider({ children }) {
       return;
     }
 
-    // Si no es un paciente, dejar entrar como Nutricionista con cualquier cosa
-    const userData = { email: emailClean || 'admin', role: 'Nutricionista', name: 'Lic. Salomé' };
-    setUser(userData);
-    localStorage.setItem('nutri_user', JSON.stringify(userData));
-    router.push('/nutri/dashboard');
+    showToast('Credenciales incorrectas', 'error');
   };
 
   const logout = () => {
