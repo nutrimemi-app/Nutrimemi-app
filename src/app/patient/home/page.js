@@ -42,10 +42,10 @@ function PieChart({ cho, prot, fat, total }) {
       <svg width={size} height={size}>
         {paths.map((p, i) => <path key={i} d={p.d} fill={p.color} />)}
         <circle cx={cx} cy={cy} r={r * 0.5} fill="var(--card-green)" />
-        <text x={cx} y={cy - 6} textAnchor="middle" fill="white" fontSize="10" fontWeight="900">
+        <text x={cx} y={cy - 6} textAnchor="middle" fill="#333" fontSize="10" fontWeight="900">
           {total.toFixed(0)}
         </text>
-        <text x={cx} y={cy + 8} textAnchor="middle" fill="white" fontSize="8" opacity="0.8">kcal</text>
+        <text x={cx} y={cy + 8} textAnchor="middle" fill="#333" fontSize="8" opacity="0.8">kcal</text>
       </svg>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
         {[
@@ -55,9 +55,9 @@ function PieChart({ cho, prot, fat, total }) {
         ].map(m => (
           <div key={m.label} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: m.color }} />
-            <span style={{ fontSize: '0.75rem', fontWeight: '900', color: 'white' }}>{m.label}</span>
-            <span style={{ fontSize: '0.85rem', fontWeight: '700', color: 'white' }}>{m.val.toFixed(0)}{m.unit}</span>
-            <span style={{ fontSize: '0.65rem', opacity: 0.6, color: 'white' }}>{m.kcal.toFixed(0)} kcal</span>
+            <span style={{ fontSize: '0.75rem', fontWeight: '900', color: '#333' }}>{m.label}</span>
+            <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#333' }}>{m.val.toFixed(0)}{m.unit}</span>
+            <span style={{ fontSize: '0.65rem', opacity: 0.6, color: '#333' }}>{m.kcal.toFixed(0)} kcal</span>
           </div>
         ))}
       </div>
@@ -196,67 +196,68 @@ export default function PatientHome() {
           </h2>
           {renderCountdown()}
         </div>
-        {avatarSrc ? (
-          <div style={{ width: '50px', height: '100px', position: 'relative' }}>
-             <img src={avatarSrc} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-          </div>
-        ) : (
-          <img src="/logo.png" alt="Logo" style={{ height: '36px', opacity: 0.8 }} />
-        )}
+        <img src="/logo.png" alt="Logo" style={{ height: '36px', opacity: 0.8 }} />
       </header>
 
-      {/* META DIARIA + GRÁFICA TORTA */}
+      {/* META DIARIA + AVATAR + ESTADO FÍSICO */}
       <section className="glass-panel" style={{
-        background: 'var(--card-green)', color: 'white',
+        background: data?.details?.gender === 'female' ? '#FFF0F5' : '#E6F2FF',
+        color: '#333',
         padding: '24px', marginBottom: '16px', borderRadius: '24px',
-        boxShadow: '0 8px 24px rgba(29,81,45,0.25)'
+        boxShadow: '0 8px 24px rgba(0,0,0,0.08)'
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <div>
-            <p style={{ fontSize: '0.7rem', opacity: 0.7, fontWeight: '800', letterSpacing: '1px' }}>TU META DIARIA</p>
-            <p style={{ fontSize: '2.2rem', fontWeight: '900', lineHeight: 1 }}>{rct.toFixed(0)} <span style={{ fontSize: '1rem' }}>Kcal</span></p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: '0.7rem', opacity: 0.7, fontWeight: '800', letterSpacing: '1px', color: 'var(--card-green)' }}>TU META DIARIA</p>
+            <p style={{ fontSize: '2.2rem', fontWeight: '900', lineHeight: 1, marginBottom: '16px', color: 'var(--text-primary)' }}>{rct.toFixed(0)} <span style={{ fontSize: '1rem' }}>Kcal</span></p>
+
+            {/* Gráfica de torta de macros del plan */}
+            {(protG > 0 || choG > 0 || fatG > 0) ? (
+              <PieChart cho={choG} prot={protG} fat={fatG} total={rct} />
+            ) : (
+              <p style={{ fontSize: '0.8rem', opacity: 0.6, padding: '10px 0' }}>
+                Fórmula no cargada.
+              </p>
+            )}
+
+            {/* Barra de progreso de kcal consumidas hoy */}
+            {todayKcal > 0 && (
+              <div style={{ marginTop: '16px', maxWidth: '200px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '0.7rem', opacity: 0.8, fontWeight: '700' }}>Consumido</span>
+                  <span style={{ fontSize: '0.7rem', opacity: 0.8, fontWeight: '700' }}>{todayKcal.toFixed(0)} / {rct.toFixed(0)}</span>
+                </div>
+                <div style={{ background: 'rgba(0,0,0,0.1)', borderRadius: '10px', height: '8px', overflow: 'hidden' }}>
+                  <div style={{ width: `${pct}%`, height: '100%', background: pct > 90 ? '#EF5350' : 'var(--accent)', borderRadius: '10px', transition: 'width 0.5s' }} />
+                </div>
+              </div>
+            )}
           </div>
-          <Activity size={32} opacity={0.3} />
+
+          <div style={{ width: '100px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            {avatarSrc && <img src={avatarSrc} alt="Avatar" style={{ width: '100%', objectFit: 'contain' }} />}
+          </div>
+
         </div>
 
-        {/* Gráfica de torta de macros del plan */}
-        {(protG > 0 || choG > 0 || fatG > 0) ? (
-          <PieChart cho={choG} prot={protG} fat={fatG} total={rct} />
-        ) : (
-          <p style={{ fontSize: '0.8rem', opacity: 0.6, textAlign: 'center', padding: '10px' }}>
-            Tu nutricionista aún no ha cargado tu fórmula dietética.
-          </p>
-        )}
-
-        {/* Barra de progreso de kcal consumidas hoy */}
-        {todayKcal > 0 && (
-          <div style={{ marginTop: '16px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <span style={{ fontSize: '0.7rem', opacity: 0.8, fontWeight: '700' }}>Consumido hoy</span>
-              <span style={{ fontSize: '0.7rem', opacity: 0.8, fontWeight: '700' }}>{todayKcal.toFixed(0)} / {rct.toFixed(0)} kcal</span>
-            </div>
-            <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: '10px', height: '8px', overflow: 'hidden' }}>
-              <div style={{ width: `${pct}%`, height: '100%', background: pct > 90 ? '#EF5350' : 'var(--accent)', borderRadius: '10px', transition: 'width 0.5s' }} />
-            </div>
+        {/* ESTADO FÍSICO */}
+        <div style={{ borderTop: '1px solid rgba(0,0,0,0.08)', paddingTop: '16px', marginTop: '8px' }}>
+          <p style={{ fontSize: '0.65rem', fontWeight: '900', opacity: 0.5, letterSpacing: '1px', marginBottom: '12px', textAlign: 'center' }}>PROGRESO DE MEDIDAS</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', textAlign: 'center', gap: '8px' }}>
+            {[
+              { label: 'Peso', value: data?.details?.weight ? `${data.details.weight} kg` : '--' },
+              { label: 'IMC', value: imc || '--' },
+              { label: 'M. Magra', value: clinicalData?.muscleMass ? `${clinicalData.muscleMass.toFixed(1)} kg` : '--' },
+            ].map(i => (
+              <div key={i.label} style={{ background: 'rgba(255,255,255,0.6)', padding: '10px 4px', borderRadius: '12px' }}>
+                <p style={{ fontSize: '0.65rem', opacity: 0.7, fontWeight: '800' }}>{i.label}</p>
+                <p style={{ fontSize: '1rem', fontWeight: '900', color: 'var(--text-primary)' }}>{i.value}</p>
+              </div>
+            ))}
           </div>
-        )}
-      </section>
-
-      {/* ESTADO FÍSICO */}
-      <section className="glass-panel" style={{ padding: '18px', marginBottom: '16px', background: 'white' }}>
-        <p style={{ fontSize: '0.65rem', fontWeight: '900', opacity: 0.5, letterSpacing: '1px', marginBottom: '12px' }}>MI ESTADO FÍSICO</p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', textAlign: 'center', gap: '8px' }}>
-          {[
-            { label: 'Peso', value: data?.details?.weight ? `${data.details.weight} kg` : '--' },
-            { label: 'Talla', value: data?.details?.height ? `${data.details.height} cm` : '--' },
-            { label: 'IMC', value: imc || '--' },
-          ].map(m => (
-            <div key={m.label} style={{ background: 'var(--bg-primary)', borderRadius: '12px', padding: '10px 6px' }}>
-              <p style={{ fontSize: '0.6rem', opacity: 0.5, fontWeight: '800', marginBottom: '4px' }}>{m.label}</p>
-              <p style={{ fontWeight: '900', fontSize: '1.1rem' }}>{m.value}</p>
-            </div>
-          ))}
         </div>
+
       </section>
 
       {/* CONSUMO HÍDRICO RÁPIDO */}
