@@ -28,6 +28,7 @@ export default function QuestionsPage() {
   const mealOptions = [
     { id: 'a', label: '2 comidas principales' },
     { id: 'b', label: '3 comidas principales' },
+    { id: 'f', label: '3 comidas principales + 1 snack' },
     { id: 'c', label: '3 comidas principales + 2 snacks' },
     { id: 'd', label: '3 comidas principales + 3 snacks' },
     { id: 'e', label: '2 comidas principales + 2 snacks' },

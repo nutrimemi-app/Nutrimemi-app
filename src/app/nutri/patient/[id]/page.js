@@ -19,6 +19,12 @@ const MEAL_PLANS = {
     { key: 'almuerzo', name: 'Almuerzo' },
     { key: 'cena', name: 'Cena' },
   ],
+  '3+1 snacks': [
+    { key: 'desayuno', name: 'Desayuno' },
+    { key: 'almuerzo', name: 'Almuerzo' },
+    { key: 'meriendaPM', name: 'Merienda PM' },
+    { key: 'cena', name: 'Cena' },
+  ],
   '3+2 snacks': [
     { key: 'desayuno', name: 'Desayuno' },
     { key: 'meriendaAM', name: 'Merienda AM' },
@@ -602,6 +608,7 @@ export default function PatientFile() {
   ];
 
   return (
+    <>
     <div style={{ padding: '20px', paddingBottom: '160px' }} className="fade-in">
       <header style={{ marginBottom: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
@@ -2106,6 +2113,7 @@ export default function PatientFile() {
           </button>
         </Link>
       </div>
+    </div>
 
       {/* MODAL DE NUEVA CONSULTA DE CONTROL Y EVOLUCIÓN */}
       {showControlModal && (
@@ -2284,6 +2292,6 @@ export default function PatientFile() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

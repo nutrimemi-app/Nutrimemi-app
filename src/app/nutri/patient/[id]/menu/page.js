@@ -9,11 +9,22 @@ import { supabase } from '@/lib/supabaseClient';
 import { getPatientById, updatePatient } from '@/lib/patients';
 
 const EXCHANGE_VALUES = {
-  cereales: { prot: 2, fat: 0, cho: 15, kcal: 70 },
-  proteinas: { prot: 7, fat: 3, cho: 0, kcal: 55 },
-  vegetales: { prot: 2, fat: 0, cho: 5, kcal: 25 },
+  lacteos: {
+    variantes: {
+      bajaGrasa1: { label: 'Baja en grasa (1%)', prot: 8, fat: 2.4, cho: 12, kcal: 102 },
+      entera: { label: 'Entera', prot: 8, fat: 8, cho: 12, kcal: 150 }
+    }
+  },
+  vegetales: { prot: 0, fat: 0, cho: 5, kcal: 25 },
   frutas: { prot: 0, fat: 0, cho: 15, kcal: 60 },
-  lacteos: { prot: 8, fat: 5, cho: 12, kcal: 120 },
+  cereales: { prot: 0, fat: 0, cho: 15, kcal: 70 },
+  proteinas: {
+    variantes: {
+      magra: { label: 'Magra', prot: 7, fat: 3, cho: 0, kcal: 55 },
+      semigorda: { label: 'Semi gorda', prot: 7, fat: 5, cho: 0, kcal: 75 },
+      gorda: { label: 'Gorda', prot: 7, fat: 8, cho: 0, kcal: 100 }
+    }
+  },
   grasas: { prot: 0, fat: 5, cho: 0, kcal: 45 }
 };
 
@@ -81,6 +92,14 @@ export default function ManageMenu() {
   const [formulas, setFormulas] = useState({ kcal: '', prot: '', cho: '', fat: '' });
   const [mealCalculators, setMealCalculators] = useState({});
   const [mealPlanKey, setMealPlanKey] = useState('3+2 snacks');
+  const [lacteosTipo, setLacteosTipo] = useState('bajaGrasa1');
+  const [proteinasTipo, setProteinasTipo] = useState('magra');
+
+  const getExchangeGroup = (group) => {
+    if (group === 'lacteos') return EXCHANGE_VALUES.lacteos.variantes[lacteosTipo];
+    if (group === 'proteinas') return EXCHANGE_VALUES.proteinas.variantes[proteinasTipo];
+    return EXCHANGE_VALUES[group];
+  };
   
   const initialMenuStructure = {
     desayuno: { time: '08:00', selectedFoods: [], portions: {} },
@@ -235,12 +254,12 @@ export default function ManageMenu() {
   const autoFillPortions = (mealKey, targets) => {
     let { kcal, prot, cho, fat } = targets;
     const newPortions = { cereales: 0, proteinas: 0, vegetales: 0, frutas: 0, lacteos: 0, grasas: 0 };
-    if (prot > 0) newPortions.proteinas = Math.floor(prot / EXCHANGE_VALUES.proteinas.prot);
+    if (prot > 0) newPortions.proteinas = Math.floor(prot / getExchangeGroup('proteinas').prot);
     if (cho > 0) {
-      newPortions.cereales = Math.floor((cho * 0.7) / EXCHANGE_VALUES.cereales.cho);
-      newPortions.frutas = Math.floor((cho * 0.3) / EXCHANGE_VALUES.frutas.cho);
+      newPortions.cereales = Math.floor((cho * 0.7) / getExchangeGroup('cereales').cho);
+      newPortions.frutas = Math.floor((cho * 0.3) / getExchangeGroup('frutas').cho);
     }
-    if (fat > 0) newPortions.grasas = Math.floor(fat / EXCHANGE_VALUES.grasas.fat);
+    if (fat > 0) newPortions.grasas = Math.floor(fat / getExchangeGroup('grasas').fat);
     newPortions.vegetales = 1;
 
     Object.entries(newPortions).forEach(([group, val]) => {
@@ -250,18 +269,37 @@ export default function ManageMenu() {
   };
 
   const getSuggestedPortions = () => {
-    const rctVal = evalFormula(formulas.kcal) || 1700;
-    const protGrams = evalFormula(formulas.prot) || 0;
-    const choGrams = evalFormula(formulas.cho) || 0;
-    const fatGrams = evalFormula(formulas.fat) || 0;
+    const targetProt = evalFormula(formulas.prot) || 0;
+    const targetCho = evalFormula(formulas.cho) || 0;
+    const targetFat = evalFormula(formulas.fat) || 0;
+
+    const exLacteos = getExchangeGroup('lacteos');
+    const exVeg = getExchangeGroup('vegetales');
+    const exFrutas = getExchangeGroup('frutas');
+    const exCer = getExchangeGroup('cereales');
+    const exProt = getExchangeGroup('proteinas');
+    const exGrasas = getExchangeGroup('grasas');
+
+    const lacteosPortions = 1;
+    const vegPortions = 2;
+
+    const remainingProt = targetProt - (lacteosPortions * exLacteos.prot + vegPortions * exVeg.prot);
+    const protPortions = Math.max(0, Math.floor(remainingProt / exProt.prot));
+
+    const remainingCho = targetCho - (lacteosPortions * exLacteos.cho + vegPortions * exVeg.cho);
+    const frutasPortions = Math.max(0, Math.floor((remainingCho * 0.3) / exFrutas.cho));
+    const cerealesPortions = Math.max(0, Math.floor((remainingCho * 0.7) / exCer.cho));
+
+    const remainingFat = targetFat - (lacteosPortions * exLacteos.fat + vegPortions * exVeg.fat + protPortions * exProt.fat);
+    const grasasPortions = Math.max(0, Math.floor(remainingFat / exGrasas.fat));
 
     return {
-      proteinas: Math.floor(protGrams / EXCHANGE_VALUES.proteinas.prot),
-      cereales: Math.floor((choGrams > 0 ? choGrams * 0.7 : 0) / EXCHANGE_VALUES.cereales.cho),
-      frutas: Math.floor((choGrams > 0 ? choGrams * 0.3 : 0) / EXCHANGE_VALUES.frutas.cho),
-      grasas: Math.floor(fatGrams / EXCHANGE_VALUES.grasas.fat),
-      vegetales: 2,
-      lacteos: 1
+      lacteos: lacteosPortions,
+      vegetales: vegPortions,
+      proteinas: protPortions,
+      frutas: frutasPortions,
+      cereales: cerealesPortions,
+      grasas: grasasPortions
     };
   };
 
@@ -275,11 +313,16 @@ export default function ManageMenu() {
        newPortions[m.key] = { cereales: 0, proteinas: 0, vegetales: 0, frutas: 0, lacteos: 0, grasas: 0 };
     });
 
-    if (mainMeals.length > 0) {
+    const hasSnacks = snackMeals.length > 0;
+    const hasMains = mainMeals.length > 0;
+
+    if (hasMains) {
        const p_main = Math.floor(suggested.proteinas / mainMeals.length);
        const g_main = Math.floor(suggested.grasas / mainMeals.length);
-       const v_main = 1;
-       const c_main = Math.max(1, Math.floor((suggested.cereales * 0.6) / mainMeals.length));
+       const v_main = Math.max(1, Math.floor(suggested.vegetales / Math.max(1, mainMeals.filter(m => m === 'almuerzo' || m === 'cena').length)));
+       
+       const cerealesRatio = hasSnacks ? 0.6 : 1.0;
+       const c_main = Math.max(0, Math.floor((suggested.cereales * cerealesRatio) / mainMeals.length));
 
        mainMeals.forEach(m => {
           newPortions[m].proteinas = p_main;
@@ -287,18 +330,35 @@ export default function ManageMenu() {
           newPortions[m].cereales = c_main;
           if (m === 'almuerzo' || m === 'cena') newPortions[m].vegetales = v_main;
        });
+
+       if (!hasSnacks) {
+          const f_main = Math.floor(suggested.frutas / mainMeals.length);
+          const l_main = Math.floor(suggested.lacteos / mainMeals.length) || (suggested.lacteos > 0 ? 1 : 0);
+          mainMeals.forEach((m, idx) => {
+             newPortions[m].frutas = f_main;
+             if (idx === 0) newPortions[m].lacteos = l_main; 
+          });
+       }
     }
 
-    if (snackMeals.length > 0) {
-       const f_snack = Math.max(1, Math.floor(suggested.frutas / snackMeals.length));
-       const l_snack = 1;
-       const c_snack = Math.max(0, Math.floor((suggested.cereales * 0.4) / snackMeals.length));
+    if (hasSnacks) {
+       const f_snack = Math.floor(suggested.frutas / snackMeals.length) || (suggested.frutas > 0 ? 1 : 0);
+       const c_snack = Math.floor((suggested.cereales * (hasMains ? 0.4 : 1.0)) / snackMeals.length);
 
        snackMeals.forEach(m => {
           newPortions[m].frutas = f_snack;
           newPortions[m].cereales = c_snack;
        });
-       if (snackMeals.length > 0) newPortions[snackMeals[0]].lacteos = 1;
+       if (snackMeals.length > 0) newPortions[snackMeals[0]].lacteos = suggested.lacteos > 0 ? 1 : 0;
+       
+       if (!hasMains) {
+           const p_snack = Math.floor(suggested.proteinas / snackMeals.length);
+           const g_snack = Math.floor(suggested.grasas / snackMeals.length);
+           snackMeals.forEach(m => {
+              newPortions[m].proteinas = p_snack;
+              newPortions[m].grasas = g_snack;
+           });
+       }
     }
 
     setMenus(prev => ({
@@ -363,21 +423,69 @@ export default function ManageMenu() {
 
   const getPlannedTotals = () => {
     let kcal = 0, prot = 0, cho = 0, fat = 0;
-    Object.values(menu).forEach(m => {
+    mealTypes.forEach(mealDef => {
+      const m = menu[mealDef.key];
+      if (!m) return;
       Object.entries(m.portions || {}).forEach(([group, amount]) => {
         const a = parseFloat(amount) || 0;
-        if (EXCHANGE_VALUES[group]) {
-          kcal += a * EXCHANGE_VALUES[group].kcal;
-          prot += a * EXCHANGE_VALUES[group].prot;
-          cho += a * EXCHANGE_VALUES[group].cho;
-          fat += a * EXCHANGE_VALUES[group].fat;
+        const exchange = getExchangeGroup(group);
+        if (exchange) {
+          kcal += a * exchange.kcal;
+          prot += a * exchange.prot;
+          cho += a * exchange.cho;
+          fat += a * exchange.fat;
         }
       });
     });
     return { kcal, prot, cho, fat };
   };
 
+  const getLiveRemaining = () => {
+    const targetKcal = evalFormula(formulas.kcal) || 0;
+    const targetProt = evalFormula(formulas.prot) || 0;
+    const targetCho = evalFormula(formulas.cho) || 0;
+    const targetFat = evalFormula(formulas.fat) || 0;
+
+    let consumedProt = 0;
+    let consumedCho = 0;
+    let consumedFat = 0;
+    let choBeforeCereales = 0;
+
+    mealTypes.forEach(mealDef => {
+      const m = menu[mealDef.key];
+      if (!m) return;
+      Object.entries(m.portions || {}).forEach(([group, amount]) => {
+        const a = parseFloat(amount) || 0;
+        const exchange = getExchangeGroup(group);
+        if (exchange) {
+           consumedProt += a * exchange.prot;
+           consumedCho += a * exchange.cho;
+           consumedFat += a * exchange.fat;
+           
+           if (['lacteos', 'vegetales', 'frutas'].includes(group)) {
+              choBeforeCereales += a * exchange.cho;
+           }
+        }
+      });
+    });
+
+    const choRestanteAntesDeCereales = targetCho - choBeforeCereales;
+    const suggestedCereales = Math.max(0, Math.floor(choRestanteAntesDeCereales / 15));
+
+    return {
+      target: { prot: targetProt, cho: targetCho, fat: targetFat, kcal: targetKcal },
+      consumed: { prot: consumedProt, cho: consumedCho, fat: consumedFat },
+      remaining: {
+        prot: targetProt - consumedProt,
+        cho: targetCho - consumedCho,
+        fat: targetFat - consumedFat
+      },
+      suggestedCereales
+    };
+  };
+
   const totals = getPlannedTotals();
+  const liveCalc = getLiveRemaining();
 
   const handleSave = async () => {
     if (!patient) return showToast('Paciente no cargado correctamente.', 'error');
@@ -463,7 +571,13 @@ export default function ManageMenu() {
       { title: 'Almuerzo', key: 'almuerzo' },
       { title: 'Cena', key: 'cena' },
     ],
-    '3+2 snacks': [
+    '3+1 snacks': [
+    { title: 'Desayuno', key: 'desayuno' },
+    { title: 'Almuerzo', key: 'almuerzo' },
+    { title: 'Merienda PM', key: 'meriendaPM' },
+    { title: 'Cena', key: 'cena' },
+  ],
+  '3+2 snacks': [
       { title: 'Desayuno', key: 'desayuno' },
       { title: 'Merienda AM', key: 'meriendaAM' },
       { title: 'Almuerzo', key: 'almuerzo' },
@@ -621,26 +735,52 @@ export default function ManageMenu() {
             </div>
           </section>
 
-          {/* Contador de Raciones Paso 1 */}
-          <section className="glass-panel" style={{ padding: '20px', background: 'var(--card-green-light)', marginBottom: '24px', border: '1.5px dashed var(--primary)', borderRadius: '16px', position: 'sticky', top: '10px', zIndex: 50 }}>
-             <h4 style={{ color: 'var(--primary)', fontSize: '0.8rem', fontWeight: '900', marginBottom: '10px' }}>📊 RACIONES DISTRIBUIDAS VS SUGERIDAS (Calculadas)</h4>
-             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-                {foodGroups.map(g => {
-                   let defined = 0;
-                   Object.keys(menu).forEach(mKey => {
-                      defined += parseFloat(menu[mKey].portions?.[g.key]) || 0;
-                   });
-                   const suggested = getSuggestedPortions()[g.key] || 0;
-                   const isOver = defined > suggested;
+          {/* Calculadora en Vivo */}
+          <section className="glass-panel" style={{ padding: '20px', background: 'white', marginBottom: '24px', border: '1.5px solid var(--primary)', borderRadius: '16px', position: 'sticky', top: '10px', zIndex: 50, boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }}>
+             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+                <div>
+                   <h4 style={{ color: 'var(--primary)', fontSize: '0.9rem', fontWeight: '900', marginBottom: '4px' }}>📊 CALCULADORA DE RESTANTE EN VIVO</h4>
+                   <p style={{ fontSize: '0.75rem', opacity: 0.6 }}>Prioridad: Lácteos → Veg → Frutas → Cereales → Carnes → Grasas</p>
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                   <select value={lacteosTipo} onChange={e => setLacteosTipo(e.target.value)} style={{ padding: '6px 10px', fontSize: '0.75rem', borderRadius: '8px', border: '1px solid #ddd', fontWeight: '800' }}>
+                     <option value="bajaGrasa1">Lácteos: Baja en Grasa (1%)</option>
+                     <option value="entera">Lácteos: Entera</option>
+                   </select>
+                   <select value={proteinasTipo} onChange={e => setProteinasTipo(e.target.value)} style={{ padding: '6px 10px', fontSize: '0.75rem', borderRadius: '8px', border: '1px solid #ddd', fontWeight: '800' }}>
+                     <option value="magra">Carnes: Magra</option>
+                     <option value="semigorda">Carnes: Semi Gorda</option>
+                     <option value="gorda">Carnes: Gorda</option>
+                   </select>
+                </div>
+             </div>
+
+             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
+                {['cho', 'prot', 'fat'].map(macro => {
+                   const isNegative = liveCalc.remaining[macro] < 0;
                    return (
-                     <div key={g.key} style={{ textAlign: 'center', background: 'white', padding: '8px', borderRadius: '8px', border: isOver ? '1.5px solid #ff4444' : '1px solid #eee' }}>
-                        <p style={{ fontSize: '0.6rem', fontWeight: '900', color: g.color }}>{g.name.toUpperCase()}</p>
-                        <p style={{ fontSize: '0.85rem', fontWeight: '900', color: isOver ? '#ff4444' : '#333' }}>
-                           {defined} <span style={{ opacity: 0.3, fontSize: '0.6rem' }}>/ {suggested}</span>
-                        </p>
+                     <div key={macro} style={{ textAlign: 'center', background: '#f8f9fa', padding: '12px', borderRadius: '12px', border: isNegative ? '1.5px solid #EF5350' : '1px solid #eee' }}>
+                        <p style={{ fontSize: '0.65rem', fontWeight: '900', opacity: 0.5, marginBottom: '6px', textTransform: 'uppercase' }}>{macro === 'cho' ? 'Carbohidratos' : macro === 'prot' ? 'Proteínas' : 'Grasas'}</p>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '4px' }}>
+                           <span style={{ opacity: 0.6 }}>Objetivo:</span>
+                           <strong>{liveCalc.target[macro].toFixed(0)}g</strong>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '8px' }}>
+                           <span style={{ opacity: 0.6 }}>Consumido:</span>
+                           <strong>{liveCalc.consumed[macro].toFixed(1)}g</strong>
+                        </div>
+                        <div style={{ paddingTop: '8px', borderTop: '1px solid #ddd', color: isNegative ? '#EF5350' : 'var(--primary)' }}>
+                           <span style={{ fontSize: '0.9rem', fontWeight: '900' }}>{liveCalc.remaining[macro] > 0 ? '+' : ''}{liveCalc.remaining[macro].toFixed(1)}g</span>
+                           {isNegative && <p style={{ fontSize: '0.6rem', marginTop: '2px' }}>Te pasaste por {Math.abs(liveCalc.remaining[macro]).toFixed(1)}g</p>}
+                        </div>
                      </div>
                    );
                 })}
+                <div style={{ textAlign: 'center', background: 'var(--card-green-light)', padding: '12px', borderRadius: '12px', border: '1px solid var(--accent)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                   <p style={{ fontSize: '0.7rem', fontWeight: '900', color: 'var(--primary)', marginBottom: '8px' }}>SUGERIDO CEREALES</p>
+                   <p style={{ fontSize: '1.5rem', fontWeight: '900', color: 'var(--primary)' }}>{liveCalc.suggestedCereales}</p>
+                   <p style={{ fontSize: '0.65rem', opacity: 0.7, marginTop: '4px' }}>raciones (según CHO libre)</p>
+                </div>
              </div>
           </section>
 

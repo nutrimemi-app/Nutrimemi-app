@@ -48,7 +48,13 @@ export default function MenuCard() {
       { label: 'ALMUERZO', key: 'almuerzo' },
       { label: 'CENA', key: 'cena' },
     ],
-    '3+2 snacks': [
+    '3+1 snacks': [
+    { label: 'DESAYUNO', key: 'desayuno' },
+    { label: 'ALMUERZO', key: 'almuerzo' },
+    { label: 'MERIENDA PM', key: 'meriendaPM' },
+    { label: 'CENA', key: 'cena' },
+  ],
+  '3+2 snacks': [
       { label: 'DESAYUNO', key: 'desayuno' },
       { label: 'MERIENDA AM', key: 'meriendaAM' },
       { label: 'ALMUERZO', key: 'almuerzo' },

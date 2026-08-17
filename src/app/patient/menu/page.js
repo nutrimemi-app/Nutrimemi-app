@@ -42,6 +42,12 @@ export default function PatientMenu() {
       { label: 'Almuerzo', key: 'almuerzo' },
       { label: 'Cena', key: 'cena' },
     ],
+    '3+1 snacks': [
+      { label: 'Desayuno', key: 'desayuno' },
+      { label: 'Almuerzo', key: 'almuerzo' },
+      { label: 'Merienda PM', key: 'meriendaPM' },
+      { label: 'Cena', key: 'cena' },
+    ],
     '3+2 snacks': [
       { label: 'Desayuno', key: 'desayuno' },
       { label: 'Merienda AM', key: 'meriendaAM' },

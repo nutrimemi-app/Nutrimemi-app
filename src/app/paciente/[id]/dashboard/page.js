@@ -15,6 +15,12 @@ const MEAL_PLANS = {
     { name: 'Almuerzo', key: 'almuerzo' },
     { name: 'Cena', key: 'cena' },
   ],
+  '3+1 snacks': [
+    { name: 'Desayuno', key: 'desayuno' },
+    { name: 'Almuerzo', key: 'almuerzo' },
+    { name: 'Merienda PM', key: 'meriendaPM' },
+    { name: 'Cena', key: 'cena' },
+  ],
   '3+2 snacks': [
     { name: 'Desayuno', key: 'desayuno' },
     { name: 'Merienda AM', key: 'meriendaAM' },

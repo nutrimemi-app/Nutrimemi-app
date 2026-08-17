@@ -119,9 +119,53 @@ export default function NutriDashboard() {
           gap: '12px', 
           overflowX: 'auto', 
           paddingBottom: '8px',
-          scrollbarWidth: 'none', // Ocultar scroll en Firefox
-          msOverflowStyle: 'none' // Ocultar scroll en IE/Edge
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none'
         }}>
+          {/* Botones de Vista (Pacientes vs Directorio) */}
+          <button 
+            onClick={() => setActiveView('fichas')}
+            className="glass-panel" 
+            style={{ 
+              padding: '12px 16px', 
+              borderRadius: '16px', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '8px', 
+              background: activeView === 'fichas' ? 'var(--text-primary)' : 'white',
+              color: activeView === 'fichas' ? 'white' : 'var(--text-primary)',
+              fontWeight: '900',
+              fontSize: '0.9rem',
+              whiteSpace: 'nowrap',
+              border: activeView === 'fichas' ? 'none' : '2px solid rgba(0,0,0,0.05)'
+            }}
+          >
+             <Users size={18} /> Fichas
+          </button>
+
+          <button 
+            onClick={() => setActiveView('directorio')}
+            className="glass-panel" 
+            style={{ 
+              padding: '12px 16px', 
+              borderRadius: '16px', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '8px', 
+              background: activeView === 'directorio' ? 'var(--text-primary)' : 'white',
+              color: activeView === 'directorio' ? 'white' : 'var(--text-primary)',
+              fontWeight: '900',
+              fontSize: '0.9rem',
+              whiteSpace: 'nowrap',
+              border: activeView === 'directorio' ? 'none' : '2px solid rgba(0,0,0,0.05)'
+            }}
+          >
+             <FileText size={18} /> Directorio
+          </button>
+
+          <div style={{ width: '2px', background: 'rgba(0,0,0,0.05)', margin: '0 4px' }} />
+
+          {/* Botones de Enlaces */}
           <Link href="/nutri/agenda" style={{ textDecoration: 'none' }}>
             <button className="glass-panel" style={{ 
               padding: '12px 16px', 
@@ -156,26 +200,6 @@ export default function NutriDashboard() {
                Mis Alimentos
             </button>
           </Link>
-
-          <button 
-            onClick={() => setActiveView(activeView === 'directorio' ? 'fichas' : 'directorio')}
-            className="glass-panel" 
-            style={{ 
-              padding: '12px 16px', 
-              borderRadius: '16px', 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '8px', 
-              background: activeView === 'directorio' ? 'var(--text-primary)' : 'white',
-              color: activeView === 'directorio' ? 'white' : 'var(--text-primary)',
-              fontWeight: '900',
-              fontSize: '0.9rem',
-              whiteSpace: 'nowrap',
-              border: activeView === 'directorio' ? 'none' : '2px solid rgba(0,0,0,0.05)'
-            }}
-          >
-             <FileText size={18} /> Directorio
-          </button>
         </div>
 
         {/* Botón de Nuevo Paciente en su propia fila */}
@@ -208,53 +232,43 @@ export default function NutriDashboard() {
             <p style={{ fontWeight: '700' }}>Cargando pacientes...</p>
           </div>
         ) : activeView === 'directorio' ? (
-          <div style={{ background: 'white', borderRadius: '16px', overflow: 'hidden', border: '2px solid rgba(0,0,0,0.05)' }}>
-             <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px' }}>
-                   <thead>
-                      <tr style={{ background: '#f5f5f5', borderBottom: '2px solid #eee' }}>
-                         <th style={{ padding: '16px', textAlign: 'left', fontWeight: '900', fontSize: '0.85rem', color: '#666' }}>NOMBRE</th>
-                         <th style={{ padding: '16px', textAlign: 'left', fontWeight: '900', fontSize: '0.85rem', color: '#666' }}>CÉDULA</th>
-                         <th style={{ padding: '16px', textAlign: 'left', fontWeight: '900', fontSize: '0.85rem', color: '#666' }}>CONTACTO</th>
-                         <th style={{ padding: '16px', textAlign: 'left', fontWeight: '900', fontSize: '0.85rem', color: '#666' }}>REGISTRO</th>
-                         <th style={{ padding: '16px', textAlign: 'center', fontWeight: '900', fontSize: '0.85rem', color: '#666' }}>EDITAR</th>
-                      </tr>
-                   </thead>
-                   <tbody>
-                      {filteredPatients.map(p => {
-                         const isComplete = p.onboardingAnswers && Object.keys(p.onboardingAnswers).length > 0 && p.measurements && Object.keys(p.measurements).length > 0;
-                         return (
-                            <tr key={p.id} style={{ borderBottom: '1px solid #eee' }}>
-                               <td style={{ padding: '16px', fontWeight: 'bold' }}>{p.name}</td>
-                               <td style={{ padding: '16px', opacity: 0.8 }}>{p.details?.ci || '-'}</td>
-                               <td style={{ padding: '16px', opacity: 0.8 }}>
-                                  <div style={{ fontSize: '0.85rem' }}>{p.details?.email || '-'}</div>
-                                  <div style={{ fontSize: '0.85rem' }}>{p.details?.phone || '-'}</div>
-                               </td>
-                               <td style={{ padding: '16px' }}>
-                                  <div style={{ fontSize: '0.85rem', opacity: 0.8, marginBottom: '4px' }}>
-                                    {new Date(p.created_at || Date.now()).toLocaleDateString()}
-                                  </div>
-                                  {!isComplete && (
-                                    <span style={{ background: '#FFF3E0', color: '#E65100', padding: '4px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold' }}>
-                                      Registro incompleto
-                                    </span>
-                                  )}
-                               </td>
-                               <td style={{ padding: '16px', textAlign: 'center' }}>
-                                  <button onClick={() => setEditPatient({ id: p.id, name: p.name, ci: p.details?.ci || '', email: p.details?.email || '', phone: p.details?.phone || '' })} style={{ background: '#f0f0f0', border: 'none', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}>
-                                     <Edit2 size={16} color="#666" />
-                                  </button>
-                               </td>
-                            </tr>
-                         )
-                      })}
-                      {filteredPatients.length === 0 && (
-                         <tr><td colSpan="5" style={{ padding: '32px', textAlign: 'center', opacity: 0.5 }}>No hay pacientes encontrados.</td></tr>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {filteredPatients.map(p => {
+              const isComplete = p.onboardingAnswers && Object.keys(p.onboardingAnswers).length > 0 && p.measurements && Object.keys(p.measurements).length > 0;
+              return (
+                <div key={p.id} style={{ background: 'white', borderRadius: '16px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', border: '2px solid rgba(0,0,0,0.05)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                      <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '900', color: '#1d512d' }}>{p.name}</h4>
+                      <div style={{ fontSize: '0.85rem', opacity: 0.7, marginTop: '4px' }}>C.I: {p.details?.ci || '-'}</div>
+                    </div>
+                    <button onClick={() => setEditPatient({ id: p.id, name: p.name, ci: p.details?.ci || '', email: p.details?.email || '', phone: p.details?.phone || '' })} style={{ background: '#f0f0f0', border: 'none', padding: '8px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: 'bold' }}>
+                      <Edit2 size={14} color="#666" /> Editar
+                    </button>
+                  </div>
+                  
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', fontSize: '0.9rem' }}>
+                    <div style={{ flex: '1 1 150px' }}>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 'bold', opacity: 0.5, marginBottom: '2px' }}>CONTACTO</div>
+                      <div style={{ wordBreak: 'break-all' }}>{p.details?.email || '-'}</div>
+                      <div>{p.details?.phone || '-'}</div>
+                    </div>
+                    <div style={{ flex: '1 1 120px' }}>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 'bold', opacity: 0.5, marginBottom: '2px' }}>REGISTRO</div>
+                      <div>{new Date(p.created_at || Date.now()).toLocaleDateString()}</div>
+                      {!isComplete && (
+                        <div style={{ background: '#FFF3E0', color: '#E65100', padding: '4px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold', display: 'inline-block', marginTop: '4px' }}>
+                          Registro incompleto
+                        </div>
                       )}
-                   </tbody>
-                </table>
-             </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+            {filteredPatients.length === 0 && (
+              <div style={{ padding: '32px', textAlign: 'center', opacity: 0.5, background: 'white', borderRadius: '16px' }}>No hay pacientes encontrados.</div>
+            )}
           </div>
         ) : filteredPatients.length === 0 ? (
           <p style={{ textAlign: 'center', opacity: 0.5, marginTop: '20px' }}>No se encontraron pacientes registrados.</p>
