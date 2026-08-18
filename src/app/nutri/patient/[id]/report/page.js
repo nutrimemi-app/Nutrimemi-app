@@ -4,6 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Printer, MapPin, Phone, User, Activity, FileText, ArrowLeft, Save, CheckCircle, Info, Bell } from 'lucide-react';
 import { useUI } from '@/context/UIContext';
 import { calculateClinicalData } from '@/utils/calculationUtils';
+import EvolutionChart from '@/components/EvolutionChart';
 import { usePatient } from '@/hooks/usePatient';
 
 import { getMealTypes, MEAL_PLANS } from '@/utils/mealUtils';
@@ -91,7 +92,12 @@ export default function ClinicalReport() {
         try {
           // Guardar en Supabase usando api
           const { addReport } = await import('@/lib/patients');
-          await addReport(patient.id, newReport);
+          await addReport(patient.id, newReport).catch(e => {
+            console.warn("Supabase addReport falló, guardando en localStorage", e);
+            const localReports = JSON.parse(localStorage.getItem(`patient_reports_${patient.id}`) || '[]');
+            localReports.push(newReport);
+            localStorage.setItem(`patient_reports_${patient.id}`, JSON.stringify(localReports));
+          });
 
           const updatedPatient = { ...patient, reports: [...(patient.reports || []), newReport] };
           
@@ -100,9 +106,10 @@ export default function ClinicalReport() {
           localStorage.setItem('cached_patients', JSON.stringify(savedPatients.map(p => p.id === patient.id ? updatedPatient : p)));
           
           setPatient(updatedPatient);
-          showToast('¡Informe guardado en el expediente!', 'success');
-        } catch (err) {
-          showToast('Error al guardar el informe', 'error');
+          showToast('Informe guardado en el expediente.', 'success');
+        } catch (error) {
+          console.error("Error guardando:", error);
+          showToast('Error guardando el informe.', 'error');
         }
       }
     );
@@ -139,7 +146,7 @@ export default function ClinicalReport() {
 
         .appointment-widget {
           position: absolute;
-          top: 20px !important;
+          top: 30px !important;
           right: 20px !important;
           width: 100px !important;
           height: 90px !important;
@@ -198,22 +205,15 @@ export default function ClinicalReport() {
           .info-grid-2 { grid-template-columns: 1.2fr 0.8fr; }
           .report-content-wrapper { padding: 4.8cm 1.2cm 2cm 1.2cm !important; }
           .appointment-widget {
-             top: 0.8cm !important;
-             right: 1.2cm !important;
-             width: 120px !important;
-             height: 110px !important;
-             border-radius: 25px;
-          }
-          .appointment-widget-day { font-size: 2.2rem !important; }
-          .appointment-widget-month { font-size: 0.7rem !important; }
-          .bg-membrete {
-            object-fit: cover;
+             top: 40px !important;
+             right: 40px !important;
+             transform: scale(1) !important;
           }
         }
 
         /* ESTILOS EXACTOS DE IMPRESIÓN */
         @media print {
-          @page { size: letter; margin: 0; }
+          @page { size: letter portrait; margin: 0; }
           .no-print, nav, footer:not(.report-footer), .tab-bar, #tab-bar { display: none !important; }
           body { background: white !important; margin: 0 !important; padding: 0 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
           .report-container { background: white !important; padding: 0 !important; margin: 0 !important; }
@@ -222,27 +222,29 @@ export default function ClinicalReport() {
             border: none !important; 
             margin: 0 !important; 
             width: 215.9mm !important; 
-            max-width: 215.9mm !important; 
-            min-height: 279.4mm !important;
+            height: 279.4mm !important;
             padding: 0 !important;
             border-radius: 0 !important;
             page-break-after: always;
+            overflow: hidden !important;
             background-size: 215.9mm 279.4mm !important;
-            background-repeat: repeat-y !important;
+            background-repeat: no-repeat !important;
             background-position: top center !important;
           }
-          .report-content-wrapper { padding: 4.8cm 1.2cm 2cm 1.2cm !important; }
+          .report-content-wrapper { padding: 3.5cm 0.8cm 1cm 0.8cm !important; transform: scale(0.95); transform-origin: top center; height: 100%; }
           .appointment-widget {
-             top: 0.8cm !important;
-             right: 1.2cm !important;
-             width: 120px !important;
-             height: 110px !important;
-             border-radius: 25px;
+             top: 25px !important;
+             right: 35px !important;
+             width: 100px !important;
+             height: 90px !important;
+             transform: scale(0.85) !important;
           }
-          .appointment-widget-day { font-size: 2.2rem !important; }
-          .appointment-widget-month { font-size: 0.7rem !important; }
-          .info-grid-3 { grid-template-columns: repeat(3, 1fr) !important; gap: 15px !important; }
-          .info-grid-2 { grid-template-columns: 1.2fr 0.8fr !important; gap: 20px !important; }
+          .info-grid-3 { grid-template-columns: repeat(3, 1fr) !important; gap: 8px !important; margin-bottom: 12px !important; }
+          .info-grid-2 { grid-template-columns: 1.2fr 0.8fr !important; gap: 10px !important; margin-bottom: 12px !important; }
+          table { min-width: 100% !important; font-size: 0.55rem !important; }
+          td, th { font-size: 0.55rem !important; padding: 3px !important; }
+          h4 { margin-bottom: 5px !important; padding-bottom: 3px !important; }
+          .report-content-wrapper > div { margin-bottom: 10px !important; }
           .bg-membrete {
             object-fit: fill !important;
             height: 100% !important;
@@ -354,6 +356,8 @@ export default function ClinicalReport() {
                   </div>
                 ))}
              </div>
+              {/* Gráfico de Evolución */}
+              <EvolutionChart history={patient.history} currentWeight={targetDetails?.weight} />
              {/* Evolución de Medidas */}
              {patient.history?.length > 0 && Object.keys(patient.measurements || {}).length > 0 && (
                 <div style={{ marginTop: '10px', background: 'rgba(255,255,255,0.5)', padding: '8px', borderRadius: '6px' }}>

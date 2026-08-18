@@ -80,8 +80,28 @@ export const getPatientById = async (id) => {
   }
 
   const mapped = mapDbToUI(patient);
-  if (history) mapped.history = history.map(h => h.entry);
-  if (reports) mapped.reports = reports.map(r => r.snapshot);
+  if (history) {
+    mapped.history = history.map(h => h.entry);
+  } else {
+    // Fallback if supabase table is missing
+    try {
+      if (typeof window !== 'undefined') {
+        const localHist = JSON.parse(window.localStorage.getItem(`patient_history_${id}`) || '[]');
+        if (localHist.length > 0) mapped.history = localHist;
+      }
+    } catch(e) {}
+  }
+  
+  if (reports) {
+    mapped.reports = reports.map(r => r.snapshot);
+  } else {
+    try {
+      if (typeof window !== 'undefined') {
+        const localRep = JSON.parse(window.localStorage.getItem(`patient_reports_${id}`) || '[]');
+        if (localRep.length > 0) mapped.reports = localRep;
+      }
+    } catch(e) {}
+  }
 
   return mapped;
 };

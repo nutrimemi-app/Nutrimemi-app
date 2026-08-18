@@ -1,8 +1,8 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Activity, Printer, Calendar, Save, History, Camera, FileText, BookOpen, BarChart2, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Activity, Printer, Calendar, Save, History, Camera, FileText, BookOpen, BarChart2, MessageCircle, FileDown } from 'lucide-react';
 import { useUI } from '@/context/UIContext';
 import { calculateClinicalData, getBodyFatProfile, suggestPortionsFromMacros } from '@/utils/calculationUtils';
 import { getAnthropometricIconSrc } from '@/utils/anthropometricIcon';
@@ -104,6 +104,7 @@ const displayCalculatedPortion = (food, targetVal) => {
 
 export default function PatientFile() {
   const params = useParams();
+  const router = useRouter();
   const { showToast, showConfirm } = useUI();
   const { patient, setPatient, status } = usePatient(params.id);
   const [selectedExchangeMeal, setSelectedExchangeMeal] = useState('');
@@ -450,12 +451,12 @@ export default function PatientFile() {
     return 'var(--primary)';
   };
 
-  const saveHistory = () => {
+  const saveHistory = async () => {
     if (!patient) return;
     showConfirm(
       "Guardar Consulta",
       "¿Deseas guardar los datos actuales (Peso, Medidas y Menú) como una nueva sesión en el historial?",
-      () => {
+      async () => {
         const newEntry = {
           id: Date.now(),
           date: new Date().toISOString().split('T')[0],
@@ -469,6 +470,17 @@ export default function PatientFile() {
 
         const updatedHistory = [...(patient.history || []), newEntry];
         const updatedPatient = { ...patient, history: updatedHistory };
+        
+        try {
+          const { addHistoryEntry } = await import('@/lib/patients');
+          await addHistoryEntry(patient.id, newEntry).catch(e => {
+             console.warn("Supabase addHistoryEntry failed, falling back to local storage", e);
+             localStorage.setItem(`patient_history_${patient.id}`, JSON.stringify(updatedHistory));
+          });
+        } catch (e) {
+          localStorage.setItem(`patient_history_${patient.id}`, JSON.stringify(updatedHistory));
+        }
+        
         savePatientUpdate(updatedPatient);
         showToast("¡Sesión guardada en el historial!", "success");
       }
@@ -1520,6 +1532,29 @@ export default function PatientFile() {
                   )}
                 </div>
               </details>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Informes Guardados */}
+      {patient.reports && patient.reports.length > 0 && (
+        <section className="glass-panel" style={{ padding: '24px', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h4 style={{ color: 'var(--text-primary)', fontSize: '1.2rem', fontWeight: '900' }}>INFORMES GUARDADOS</h4>
+            <FileDown size={24} color="var(--primary)" />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
+            {patient.reports.map((r, idx) => (
+              <div key={idx} style={{ background: 'white', padding: '15px', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <p style={{ fontSize: '0.8rem', fontWeight: '900', color: 'var(--primary)', margin: '0 0 4px 0' }}>Informe #{patient.reports.length - idx}</p>
+                  <p style={{ fontSize: '0.65rem', opacity: 0.6, margin: 0 }}>{new Date(r.date).toLocaleDateString()}</p>
+                </div>
+                <Link href={`/nutri/patient/${patient.id}/report?reportId=${r.id}`} style={{ textDecoration: 'none', background: 'var(--card-green-light)', color: 'var(--primary)', padding: '6px 12px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 'bold' }}>
+                  Ver / Imprimir
+                </Link>
+              </div>
             ))}
           </div>
         </section>
