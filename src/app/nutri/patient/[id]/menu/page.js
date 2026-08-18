@@ -656,14 +656,14 @@ export default function ManageMenu() {
               </h4>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
                 <select 
-                  value={mealPlanKey.startsWith('custom:') ? 'custom' : mealPlanKey}
+                  value={(mealPlanKey || '').startsWith('custom:') ? 'custom' : mealPlanKey}
                   onChange={(e) => {
                      if (e.target.value !== 'custom') setMealPlanKey(e.target.value);
                   }}
                   style={{ padding: '8px 12px', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid #ddd', fontWeight: '900', color: 'var(--primary)', cursor: 'pointer', background: 'white' }}
                 >
                   {Object.keys(MEAL_PLANS).map(k => <option key={k} value={k}>{k.toUpperCase()}</option>)}
-                  {mealPlanKey.startsWith('custom:') && <option value="custom">PERSONALIZADO ✍️</option>}
+                  {(mealPlanKey || '').startsWith('custom:') && <option value="custom">PERSONALIZADO ✍️</option>}
                 </select>
                 <button 
                   onClick={() => setShowCustomizer(true)}

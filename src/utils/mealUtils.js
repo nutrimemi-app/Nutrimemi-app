@@ -50,7 +50,7 @@ export const MEAL_PLANS = {
 export const getMealTypes = (mealPlanKey) => {
   if (!mealPlanKey) return MEAL_PLANS['3+2 snacks'];
   
-  if (mealPlanKey.startsWith('custom:')) {
+  if (typeof mealPlanKey === 'string' && mealPlanKey.startsWith('custom:')) {
     try {
       const customArray = JSON.parse(mealPlanKey.replace('custom:', ''));
       // Aseguramos que tengan title y label y name para retrocompatibilidad
