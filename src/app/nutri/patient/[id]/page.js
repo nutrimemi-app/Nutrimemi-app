@@ -162,7 +162,7 @@ export default function PatientFile() {
   const [newPhotoDate, setNewPhotoDate] = useState('');
   const [previewDashboardOpen, setPreviewDashboardOpen] = useState('');
   const [previewDay, setPreviewDay] = useState('');
-
+  const [customSuggestions, setCustomSuggestions] = useState(null);
 
   useEffect(() => {
     if (patient) {
@@ -1123,7 +1123,8 @@ export default function PatientFile() {
           const targetChoGrams = (rct * pctCho / 100) / 4;
           const targetFatGrams = (rct * pctLip / 100) / 9;
 
-          const suggestions = suggestPortionsFromMacros(targetProtGrams, targetChoGrams, targetFatGrams);
+          const calculatedSuggestions = suggestPortionsFromMacros(targetProtGrams, targetChoGrams, targetFatGrams);
+          const suggestions = customSuggestions || calculatedSuggestions;
 
           return (
             <div style={{
@@ -1141,18 +1142,27 @@ export default function PatientFile() {
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '14px' }}>
                 {[
-                  { name: 'Cereales', val: suggestions.cereales, color: '#FFA500' },
-                  { name: 'Proteínas', val: suggestions.proteinas, color: '#FF0000' },
-                  { name: 'Vegetales', val: 2, note: '(Fijo)' },
-                  { name: 'Frutas', val: suggestions.frutas, color: '#BA55D3' },
-                  { name: 'Lácteos', val: 1, note: '(Fijo)' },
-                  { name: 'Grasas', val: suggestions.grasas, color: '#FFD700' },
+                  { name: 'Cereales', val: suggestions.cereales, key: 'cereales', color: '#FFA500' },
+                  { name: 'Proteínas', val: suggestions.proteinas, key: 'proteinas', color: '#FF0000' },
+                  { name: 'Vegetales', val: suggestions.vegetales !== undefined ? suggestions.vegetales : 2, key: 'vegetales', note: '(Fijo)' },
+                  { name: 'Frutas', val: suggestions.frutas, key: 'frutas', color: '#BA55D3' },
+                  { name: 'Lácteos', val: suggestions.lacteos !== undefined ? suggestions.lacteos : 1, key: 'lacteos', note: '(Fijo)' },
+                  { name: 'Grasas', val: suggestions.grasas, key: 'grasas', color: '#FFD700' },
                 ].map((g, idx) => (
                   <div key={idx} style={{ background: 'white', border: '1px solid rgba(0,0,0,0.05)', padding: '10px 8px', borderRadius: '12px', textAlign: 'center' }}>
                     <p style={{ margin: 0, fontSize: '0.55rem', fontWeight: '850', color: '#1d512d', textTransform: 'uppercase' }}>{g.name}</p>
-                    <p style={{ margin: '4px 0 0 0', fontSize: '1.1rem', fontWeight: '950', color: '#1d512d' }}>
-                      {g.val} <span style={{ fontSize: '0.65rem', fontWeight: '750', opacity: 0.6 }}>rac.</span>
-                    </p>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', marginTop: '4px' }}>
+                      <input 
+                        type="number" 
+                        value={g.val}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value) || 0;
+                          setCustomSuggestions({ ...(customSuggestions || calculatedSuggestions), [g.key]: val });
+                        }}
+                        style={{ width: '40px', textAlign: 'center', border: '1px solid #ddd', borderRadius: '6px', fontSize: '1.1rem', fontWeight: '950', color: '#1d512d', padding: '2px' }}
+                      />
+                      <span style={{ fontSize: '0.65rem', fontWeight: '750', opacity: 0.6 }}>rac.</span>
+                    </div>
                   </div>
                 ))}
               </div>

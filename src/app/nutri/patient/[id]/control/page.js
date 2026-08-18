@@ -134,7 +134,7 @@ export default function ControlPage({ params }) {
       // Save patient to LocalStorage
       const saved = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
       localStorage.setItem('nutri_patients', JSON.stringify(saved.map(p => p.id === patient.id ? updatedPatient : p)));
-      updatePatient(updatedPatient);
+      updatePatient(patient.id, updatedPatient);
       
       showToast("¡Consulta de control guardada con éxito!", "success");
       

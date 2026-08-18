@@ -751,7 +751,7 @@ export default function ManageMenu() {
                 </div>
              </div>
 
-             <div className="responsive-grid-4-2">
+             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 80px), 1fr))', gap: '10px' }}>
                 {['cho', 'prot', 'fat'].map(macro => {
                    const isNegative = liveCalc.remaining[macro] < 0;
                    return (
@@ -771,11 +771,13 @@ export default function ManageMenu() {
                         </div>
                      </div>
                    );
-                })}
-                <div style={{ textAlign: 'center', background: 'var(--card-green-light)', padding: '12px', borderRadius: '12px', border: '1px solid var(--accent)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                   <p style={{ fontSize: '0.7rem', fontWeight: '900', color: 'var(--primary)', marginBottom: '8px' }}>SUGERIDO CEREALES</p>
-                   <p style={{ fontSize: '1.5rem', fontWeight: '900', color: 'var(--primary)' }}>{liveCalc.suggestedCereales}</p>
-                   <p style={{ fontSize: '0.65rem', opacity: 0.7, marginTop: '4px' }}>raciones (según CHO libre)</p>
+                 </div>
+             </div>
+             <div style={{ marginTop: '12px', textAlign: 'center', background: 'var(--card-green-light)', padding: '12px', borderRadius: '12px', border: '1px solid var(--accent)' }}>
+                <p style={{ fontSize: '0.7rem', fontWeight: '900', color: 'var(--primary)', marginBottom: '4px' }}>SUGERIDO CEREALES</p>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                  <p style={{ fontSize: '1.5rem', fontWeight: '900', color: 'var(--primary)', margin: 0 }}>{liveCalc.suggestedCereales}</p>
+                  <p style={{ fontSize: '0.65rem', opacity: 0.7, margin: 0 }}>raciones<br/>(según CHO libre)</p>
                 </div>
              </div>
           </section>
