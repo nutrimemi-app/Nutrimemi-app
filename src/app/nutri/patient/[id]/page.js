@@ -555,9 +555,7 @@ export default function PatientFile() {
             <Link href={`/nutri/patient/${patient.id}/menu`} className="btn-primary" style={{ textDecoration: 'none', padding: '12px 8px', borderRadius: '16px', fontWeight: '900', fontSize: '0.8rem', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', boxShadow: '0 8px 20px rgba(29, 81, 45, 0.2)' }}>
               Menú y Dietética
             </Link>
-            <Link href={`/nutri/patient/${patient.id}/reminder`} style={{ textDecoration: 'none', background: 'var(--card-yellow-light)', border: '1.5px solid var(--accent)', color: 'var(--text-primary)', padding: '12px 8px', borderRadius: '16px', fontWeight: '900', fontSize: '0.8rem', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-              <History size={16} /> R24H
-            </Link>
+
             <Link href={`/nutri/patient/${patient.id}/food-log`} style={{ textDecoration: 'none', background: '#FFEBEE', border: '1.5px solid #EF5350', color: '#B71C1C', padding: '12px 8px', borderRadius: '16px', fontWeight: '900', fontSize: '0.8rem', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
               <BookOpen size={16} /> Bitácora
             </Link>
@@ -820,125 +818,19 @@ export default function PatientFile() {
           )}
         </section>
 
-        {/* Caja de Ajustes de Peso */}
-        <section className="glass-panel shadow-premium" style={{ padding: '24px', background: 'white', borderRadius: '24px', border: '1px solid rgba(0,0,0,0.08)' }}>
-          <h4 style={{ fontSize: '0.85rem', fontWeight: '900', color: 'var(--primary)', marginBottom: '14px', letterSpacing: '1px', textTransform: 'uppercase' }}>
-            ⚖️ Cálculos y Ajustes de Peso (Lorentz / Devine)
-          </h4>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ background: 'rgba(0,0,0,0.015)', padding: '12px 16px', borderRadius: '16px', fontSize: '0.75rem', lineHeight: '1.45', borderLeft: '3px solid var(--primary)' }}>
-              <p style={{ margin: 0, fontWeight: '750', color: 'var(--primary)' }}>Fórmulas Clínicas:</p>
-              <p style={{ margin: '4px 0 0 0', opacity: 0.8 }}>
-                <strong>Peso Ideal (PI):</strong> {gender === 'female' ? 'PI = 45.5 + 2.3 * ((Talla_cm / 2.54) - 60)' : 'PI = 50.0 + 2.3 * ((Talla_cm / 2.54) - 60)'}
-              </p>
-              <p style={{ margin: '4px 0 0 0', opacity: 0.8 }}>
-                <strong>Peso Ajustado (PA):</strong> PA = ((Peso Actual - PI) * 0.25) + PI (Recomendado para sobrepeso y obesidad)
-              </p>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px' }}>
-              <div>
-                <label style={{ fontSize: '0.7rem', fontWeight: '850', opacity: 0.6, display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>P. ACTUAL</label>
-                <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,0.05)', borderRadius: '10px', padding: '2px 8px' }}>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={patient.details?.weight || ''}
-                    onChange={(e) => {
-                      const val = parseFloat(e.target.value) || 0;
-                      const updatedDetails = { ...patient.details, weight: val };
-                      const updatedPatient = { ...patient, details: updatedDetails };
-                      savePatientUpdate(updatedPatient);
-                    }}
-                    style={{ width: '100%', background: 'none', border: 'none', outline: 'none', fontSize: '0.9rem', fontWeight: '800', padding: '8px 2px', textAlign: 'center' }}
-                  />
-                  <span style={{ fontSize: '0.7rem', fontWeight: '800', opacity: 0.5 }}>kg</span>
-                </div>
-              </div>
-
-              <div>
-                <label style={{ fontSize: '0.7rem', fontWeight: '850', opacity: 0.6, display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>P. IDEAL (PI)</label>
-                <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,0.05)', borderRadius: '10px', padding: '2px 8px' }}>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={patient.details?.manualPi || ''}
-                    placeholder={clinical.suggestedPi}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      const updatedDetails = { ...patient.details, manualPi: val };
-                      const updatedPatient = { ...patient, details: updatedDetails };
-                      savePatientUpdate(updatedPatient);
-                    }}
-                    style={{ width: '100%', background: 'none', border: 'none', outline: 'none', fontSize: '0.9rem', fontWeight: '800', padding: '8px 2px', textAlign: 'center' }}
-                  />
-                  <span style={{ fontSize: '0.7rem', fontWeight: '800', opacity: 0.5 }}>kg</span>
-                </div>
-              </div>
-
-              <div>
-                <label style={{ fontSize: '0.7rem', fontWeight: '850', opacity: 0.6, display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>P. AJUSTADO (PA)</label>
-                <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,0.05)', borderRadius: '10px', padding: '2px 8px' }}>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={patient.details?.manualPa || ''}
-                    placeholder={clinical.suggestedPa}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      const updatedDetails = { ...patient.details, manualPa: val };
-                      const updatedPatient = { ...patient, details: updatedDetails };
-                      savePatientUpdate(updatedPatient);
-                    }}
-                    style={{ width: '100%', background: 'none', border: 'none', outline: 'none', fontSize: '0.9rem', fontWeight: '800', padding: '8px 2px', textAlign: 'center' }}
-                  />
-                  <span style={{ fontSize: '0.7rem', fontWeight: '800', opacity: 0.5 }}>kg</span>
-                </div>
-              </div>
-
-
-            </div>
-          </div>
-        </section>
-
-        {/* Notas del Nutricionista */}
-      <section className="glass-panel" style={{ padding: '20px', marginBottom: '20px', background: 'rgba(0,0,0,0.02)' }}>
-        <p style={{ fontSize: '0.75rem', fontWeight: '900', color: 'var(--text-primary)', opacity: 0.6, marginBottom: '12px' }}>NOTAS Y OBSERVACIONES CLÍNICAS</p>
-        <textarea 
-          style={{ 
-            width: '100%', 
-            minHeight: '100px', 
-            background: 'white', 
-            border: '1.5px solid rgba(0,0,0,0.05)', 
-            borderRadius: '16px', 
-            padding: '16px', 
-            fontSize: '0.9rem', 
-            fontFamily: 'inherit',
-            color: '#444',
-            outline: 'none',
-            resize: 'none'
-          }}
-          placeholder="Escribe aquí tus notas sobre exámenes o recordatorios para la próxima sesión..."
-          defaultValue={patient.details?.notes || ''}
-          onBlur={(e) => {
-            const updatedDetails = { ...patient.details, notes: e.target.value };
-            const updatedPatient = { ...patient, details: updatedDetails };
-            savePatientUpdate(updatedPatient);
-          }}
-        />
-      </section>
-
-
       {/* Selector de Distribución de Comidas */}
       <section className="glass-panel shadow-premium" style={{ padding: '24px', marginBottom: '20px', background: 'white', borderRadius: '24px' }}>
-        <h4 style={{ fontSize: '0.9rem', fontWeight: '900', color: 'var(--text-primary)', marginBottom: '16px', textTransform: 'uppercase' }}>🍽️ Distribución de Comidas al Día</h4>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>
+          <h4 style={{ fontSize: '0.9rem', fontWeight: '900', color: '#1d512d', margin: 0, textTransform: 'uppercase' }}>Distribución de Comidas al Día</h4>
+        </div>
         <select 
           value={patient.details?.mealPlan || '3+2 snacks'}
           onChange={(e) => {
              const updatedDetails = { ...patient.details, mealPlan: e.target.value };
              savePatientUpdate({ ...patient, details: updatedDetails });
           }}
-          style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.1)', fontSize: '0.9rem', fontWeight: '700', outline: 'none' }}
+          style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.1)', fontSize: '0.9rem', fontWeight: '700', outline: 'none', cursor: 'pointer' }}
         >
           {Object.keys(MEAL_PLANS).map(key => (
             <option key={key} value={key}>{key} ({MEAL_PLANS[key].length} comidas)</option>
@@ -999,7 +891,7 @@ export default function PatientFile() {
                 }}
                 className="input-field" style={{ margin: 0, padding: '8px', fontSize: '0.9rem' }}
               />
-              <span style={{ fontSize: '0.55rem', opacity: 0.7, marginTop: '4px', display: 'block' }}>Ref: Déficit 20-25 | Mant. 25-30 | Superávit 30-35</span>
+              <span style={{ fontSize: '0.55rem', opacity: 0.7, marginTop: '4px', display: 'block', lineHeight: '1.3' }}>Hipocalórico: 20-24 kcal/kg · Normocalórico: 25-30 kcal/kg · Hipercalórico: &gt;30 kcal/kg</span>
             </div>
             <div>
               <label style={{ fontSize: '0.7rem', fontWeight: '850', opacity: 0.6, display: 'block', marginBottom: '6px' }}>RCT CALCULADO</label>
@@ -1257,6 +1149,118 @@ export default function PatientFile() {
           );
         })()}
       </section>
+
+
+        {/* Caja de Ajustes de Peso */}
+        <section className="glass-panel shadow-premium" style={{ padding: '24px', background: 'white', borderRadius: '24px', border: '1px solid rgba(0,0,0,0.08)' }}>
+          <h4 style={{ fontSize: '0.85rem', fontWeight: '900', color: 'var(--primary)', marginBottom: '14px', letterSpacing: '1px', textTransform: 'uppercase' }}>
+            ⚖️ Cálculos y Ajustes de Peso (Lorentz / Devine)
+          </h4>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ background: 'rgba(0,0,0,0.015)', padding: '12px 16px', borderRadius: '16px', fontSize: '0.75rem', lineHeight: '1.45', borderLeft: '3px solid var(--primary)' }}>
+              <p style={{ margin: 0, fontWeight: '750', color: 'var(--primary)' }}>Fórmulas Clínicas:</p>
+              <p style={{ margin: '4px 0 0 0', opacity: 0.8 }}>
+                <strong>Peso Ideal (PI):</strong> {gender === 'female' ? 'PI = 45.5 + 2.3 * ((Talla_cm / 2.54) - 60)' : 'PI = 50.0 + 2.3 * ((Talla_cm / 2.54) - 60)'}
+              </p>
+              <p style={{ margin: '4px 0 0 0', opacity: 0.8 }}>
+                <strong>Peso Ajustado (PA):</strong> PA = ((Peso Actual - PI) * 0.25) + PI (Recomendado para sobrepeso y obesidad)
+              </p>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px' }}>
+              <div>
+                <label style={{ fontSize: '0.7rem', fontWeight: '850', opacity: 0.6, display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>P. ACTUAL</label>
+                <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,0.05)', borderRadius: '10px', padding: '2px 8px' }}>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={patient.details?.weight || ''}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value) || 0;
+                      const updatedDetails = { ...patient.details, weight: val };
+                      const updatedPatient = { ...patient, details: updatedDetails };
+                      savePatientUpdate(updatedPatient);
+                    }}
+                    style={{ width: '100%', background: 'none', border: 'none', outline: 'none', fontSize: '0.9rem', fontWeight: '800', padding: '8px 2px', textAlign: 'center' }}
+                  />
+                  <span style={{ fontSize: '0.7rem', fontWeight: '800', opacity: 0.5 }}>kg</span>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.7rem', fontWeight: '850', opacity: 0.6, display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>P. IDEAL (PI)</label>
+                <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,0.05)', borderRadius: '10px', padding: '2px 8px' }}>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={patient.details?.manualPi || ''}
+                    placeholder={clinical.suggestedPi}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const updatedDetails = { ...patient.details, manualPi: val };
+                      const updatedPatient = { ...patient, details: updatedDetails };
+                      savePatientUpdate(updatedPatient);
+                    }}
+                    style={{ width: '100%', background: 'none', border: 'none', outline: 'none', fontSize: '0.9rem', fontWeight: '800', padding: '8px 2px', textAlign: 'center' }}
+                  />
+                  <span style={{ fontSize: '0.7rem', fontWeight: '800', opacity: 0.5 }}>kg</span>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.7rem', fontWeight: '850', opacity: 0.6, display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>P. AJUSTADO (PA)</label>
+                <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,0.05)', borderRadius: '10px', padding: '2px 8px' }}>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={patient.details?.manualPa || ''}
+                    placeholder={clinical.suggestedPa}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const updatedDetails = { ...patient.details, manualPa: val };
+                      const updatedPatient = { ...patient, details: updatedDetails };
+                      savePatientUpdate(updatedPatient);
+                    }}
+                    style={{ width: '100%', background: 'none', border: 'none', outline: 'none', fontSize: '0.9rem', fontWeight: '800', padding: '8px 2px', textAlign: 'center' }}
+                  />
+                  <span style={{ fontSize: '0.7rem', fontWeight: '800', opacity: 0.5 }}>kg</span>
+                </div>
+              </div>
+
+
+            </div>
+          </div>
+        </section>
+
+        {/* Notas del Nutricionista */}
+      <section className="glass-panel" style={{ padding: '20px', marginBottom: '20px', background: 'rgba(0,0,0,0.02)' }}>
+        <p style={{ fontSize: '0.75rem', fontWeight: '900', color: 'var(--text-primary)', opacity: 0.6, marginBottom: '12px' }}>NOTAS Y OBSERVACIONES CLÍNICAS</p>
+        <textarea 
+          style={{ 
+            width: '100%', 
+            minHeight: '100px', 
+            background: 'white', 
+            border: '1.5px solid rgba(0,0,0,0.05)', 
+            borderRadius: '16px', 
+            padding: '16px', 
+            fontSize: '0.9rem', 
+            fontFamily: 'inherit',
+            color: '#444',
+            outline: 'none',
+            resize: 'none'
+          }}
+          placeholder="Escribe aquí tus notas sobre exámenes o recordatorios para la próxima sesión..."
+          defaultValue={patient.details?.notes || ''}
+          onBlur={(e) => {
+            const updatedDetails = { ...patient.details, notes: e.target.value };
+            const updatedPatient = { ...patient, details: updatedDetails };
+            savePatientUpdate(updatedPatient);
+          }}
+        />
+      </section>
+
+
+
 
 
       {/* DATOS DE INGRESO */}
