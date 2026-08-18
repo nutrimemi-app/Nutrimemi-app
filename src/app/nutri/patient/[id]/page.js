@@ -572,6 +572,185 @@ export default function PatientFile() {
         </div>
       </header>
 
+      {/* Tarjeta Antropometría (Coral) */}
+      <section className="glass-panel" style={{
+        background: gender === 'female' ? '#FFF0F5' : '#E6F2FF',
+        color: '#111',
+        padding: '20px',
+        marginBottom: '20px'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <h4 style={{ textTransform: 'uppercase', letterSpacing: '1px' }}>Antropometría</h4>
+          <div style={{ fontSize: '0.7rem', fontWeight: '700', padding: '4px 12px', background: 'rgba(0,0,0,0.1)', borderRadius: '20px' }}>
+            {gender.toUpperCase()}
+          </div>
+        </div>
+
+        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+          <p style={{ fontSize: '1.1rem', fontWeight: '700' }}>IMC: {clinical.imc} kG/mts2 ({clinical.profile})</p>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '10px' }}>
+            <div>
+              <p style={{ fontSize: '0.65rem', fontWeight: '800', opacity: 0.6, marginBottom: '2px' }}>% GRASA (GC)</p>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <p style={{ fontSize: '1.1rem', fontWeight: '900', color: '#EF5350', margin: 0 }}>
+                  {clinical.gc !== '—' ? `${clinical.gc}%` : '—'}
+                </p>
+                {clinical.gc !== '—' && (
+                  <span style={{ fontSize: '0.55rem', fontWeight: '900', color: '#B71C1C', opacity: 0.8, textTransform: 'uppercase', lineHeight: 1, marginTop: '2px' }}>
+                    {getBodyFatProfile(gender, patient.details?.age || 30, clinical.gc)}
+                  </span>
+                )}
+              </div>
+            </div>
+            <div>
+              <p style={{ fontSize: '0.65rem', fontWeight: '800', opacity: 0.6, marginBottom: '2px' }}>G. MAGRA</p>
+              <p style={{ fontSize: '1.1rem', fontWeight: '900', color: '#66BB6A', margin: 0 }}>
+                {clinical.grasaMagra !== '—' ? `${clinical.grasaMagra}kg` : '—'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
+          <div style={{ flex: 1, position: 'relative', minHeight: '440px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.15)', borderRadius: '20px', paddingBottom: '90px' }}>
+            {patient.details?.isPediatric ? (
+              <svg viewBox="0 0 100 220" style={{ height: '320px', width: 'auto' }}>
+                <g stroke="white" strokeWidth="1.5" fill="none" opacity="0.7">
+                  {/* Cabeza */}
+                  <circle cx="50" cy="25" r="14" />
+                  {/* Torso Infantil (más pequeño, cabeza proporcionalmente más grande) */}
+                  <path d="M42 39 Q50 37 58 39 L60 75 Q50 82 40 75 Z" />
+                  <path d="M44 75 Q50 78 56 75 L57 110 Q50 115 43 110 Z" />
+                  {/* Brazos */}
+                  <path d="M42 39 L28 80 M58 39 L72 80" />
+                  {/* Piernas */}
+                  <path d="M43 110 L38 200 M57 110 L62 200" />
+                </g>
+                <g style={{ cursor: 'pointer' }}>
+                  <circle cx="50" cy="35" r="4" fill="var(--accent)" onClick={() => setFocusedMeasurement('CUELLO')} onMouseEnter={() => setFocusedMeasurement('CUELLO')} />
+                  <circle cx="28" cy="80" r="4" fill="white" stroke="#333" strokeWidth="0.5" onClick={() => setFocusedMeasurement('BRAZO')} onMouseEnter={() => setFocusedMeasurement('BRAZO')} />
+                  <circle cx="50" cy="57" r="4" fill="white" stroke="#333" strokeWidth="0.5" onClick={() => setFocusedMeasurement('TORSO')} onMouseEnter={() => setFocusedMeasurement('TORSO')} />
+                  <circle cx="50" cy="92" r="4" fill="white" stroke="#333" strokeWidth="0.5" onClick={() => setFocusedMeasurement('CINTURA')} onMouseEnter={() => setFocusedMeasurement('CINTURA')} />
+                  <circle cx="50" cy="118" r="4" fill="white" stroke="#333" strokeWidth="0.5" onClick={() => setFocusedMeasurement('CADERA')} onMouseEnter={() => setFocusedMeasurement('CADERA')} />
+                  <circle cx="50" cy="135" r="4" fill="white" stroke="#333" strokeWidth="0.5" onClick={() => setFocusedMeasurement('GLÚTEOS')} onMouseEnter={() => setFocusedMeasurement('GLÚTEOS')} />
+                  <circle cx="41" cy="160" r="4" fill="white" stroke="#333" strokeWidth="0.5" onClick={() => setFocusedMeasurement('MUSLO')} onMouseEnter={() => setFocusedMeasurement('MUSLO')} />
+                  <circle cx="59" cy="160" r="4" fill="white" stroke="#333" strokeWidth="0.5" onClick={() => setFocusedMeasurement('PANTORRILLA')} onMouseEnter={() => setFocusedMeasurement('PANTORRILLA')} />
+                </g>
+              </svg>
+            ) : gender === 'female' ? (
+              <div style={{ position: 'relative', height: '340px', width: '160px' }}>
+                <img 
+                  src={getAnthropometricIconSrc(gender, clinical.profile)} 
+                  alt={clinical.profile} 
+                  style={{ position: 'absolute', height: '100%', width: '100%', objectFit: 'contain' }} 
+                />
+                <svg viewBox="0 0 100 220" style={{ position: 'absolute', top: 0, left: 0, height: '100%', width: '100%', zIndex: 1 }}>
+                  {/* Puntos Interactivos (Invisibles, actúan como hitboxes sobre los círculos del SVG original) */}
+                  <g style={{ cursor: 'pointer', opacity: 0 }}>
+                    <circle cx="50" cy="22" r="12" fill="red" onClick={() => setFocusedMeasurement('CUELLO')} onMouseEnter={() => setFocusedMeasurement('CUELLO')} />
+                    <circle cx="25" cy="50" r="12" fill="red" onClick={() => setFocusedMeasurement('BRAZO')} onMouseEnter={() => setFocusedMeasurement('BRAZO')} />
+                    <circle cx="50" cy="42" r="12" fill="red" onClick={() => setFocusedMeasurement('TORSO')} onMouseEnter={() => setFocusedMeasurement('TORSO')} />
+                    <circle cx="50" cy="65" r="12" fill="red" onClick={() => setFocusedMeasurement('CINTURA')} onMouseEnter={() => setFocusedMeasurement('CINTURA')} />
+                    <circle cx="50" cy="85" r="12" fill="red" onClick={() => setFocusedMeasurement('CADERA')} onMouseEnter={() => setFocusedMeasurement('CADERA')} />
+                    <circle cx="50" cy="95" r="12" fill="red" onClick={() => setFocusedMeasurement('GLÚTEOS')} onMouseEnter={() => setFocusedMeasurement('GLÚTEOS')} />
+                    <circle cx="42" cy="125" r="12" fill="red" onClick={() => setFocusedMeasurement('MUSLO')} onMouseEnter={() => setFocusedMeasurement('MUSLO')} />
+                    <circle cx="40" cy="165" r="12" fill="red" onClick={() => setFocusedMeasurement('PANTORRILLA')} onMouseEnter={() => setFocusedMeasurement('PANTORRILLA')} />
+                  </g>
+                </svg>
+              </div>
+            ) : (
+              <div style={{ position: 'relative', height: '340px', width: '160px' }}>
+                <img 
+                  src={getAnthropometricIconSrc(gender, clinical.profile)} 
+                  alt={clinical.profile} 
+                  style={{ position: 'absolute', height: '100%', width: '100%', objectFit: 'contain' }} 
+                />
+                <svg viewBox="0 0 100 220" style={{ position: 'absolute', top: 0, left: 0, height: '100%', width: '100%', zIndex: 1 }}>
+                  {/* Puntos Interactivos (Invisibles, actúan como hitboxes sobre los círculos del SVG original) */}
+                  <g style={{ cursor: 'pointer', opacity: 0 }}>
+                    <circle cx="50" cy="22" r="12" fill="red" onClick={() => setFocusedMeasurement('CUELLO')} onMouseEnter={() => setFocusedMeasurement('CUELLO')} />
+                    <circle cx="25" cy="50" r="12" fill="red" onClick={() => setFocusedMeasurement('BRAZO')} onMouseEnter={() => setFocusedMeasurement('BRAZO')} />
+                    <circle cx="50" cy="42" r="12" fill="red" onClick={() => setFocusedMeasurement('TORSO')} onMouseEnter={() => setFocusedMeasurement('TORSO')} />
+                    <circle cx="50" cy="65" r="12" fill="red" onClick={() => setFocusedMeasurement('CINTURA')} onMouseEnter={() => setFocusedMeasurement('CINTURA')} />
+                    <circle cx="50" cy="85" r="12" fill="red" onClick={() => setFocusedMeasurement('CADERA')} onMouseEnter={() => setFocusedMeasurement('CADERA')} />
+                    <circle cx="50" cy="95" r="12" fill="red" onClick={() => setFocusedMeasurement('GLÚTEOS')} onMouseEnter={() => setFocusedMeasurement('GLÚTEOS')} />
+                    <circle cx="42" cy="125" r="12" fill="red" onClick={() => setFocusedMeasurement('MUSLO')} onMouseEnter={() => setFocusedMeasurement('MUSLO')} />
+                    <circle cx="40" cy="165" r="12" fill="red" onClick={() => setFocusedMeasurement('PANTORRILLA')} onMouseEnter={() => setFocusedMeasurement('PANTORRILLA')} />
+                  </g>
+                </svg>
+              </div>
+            )}
+            
+            {/* Guía Explicativa Detallada de Cinta Métrica */}
+            <div style={{ 
+              position: 'absolute', 
+              bottom: '10px', 
+              left: '10px', 
+              right: '10px', 
+              fontSize: '0.65rem', 
+              background: 'rgba(0,0,0,0.85)', 
+              color: 'white', 
+              padding: '10px 12px', 
+              borderRadius: '12px',
+              minHeight: '52px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textAlign: 'center',
+              lineHeight: '1.35',
+              border: '1px solid rgba(255,255,255,0.1)'
+            }}>
+              {focusedMeasurement ? (
+                <span>
+                  <strong style={{ color: 'var(--accent)', textTransform: 'uppercase' }}>{focusedMeasurement}:</strong> {measurements.find(m => m.label === focusedMeasurement)?.guide}
+                </span>
+              ) : (
+                <span style={{ opacity: 0.8 }}>📍 Posiciona el cursor o toca los puntos del avatar para ver la guía de medición de cinta.</span>
+              )}
+            </div>
+          </div>
+          <div style={{ flex: 1.2, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {measurements.map((m) => (
+              <div key={m.label} style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <p style={{ fontSize: '0.7rem', fontWeight: '800', fontFamily: 'Belinda, sans-serif', cursor: 'pointer', color: '#111', textTransform: 'uppercase', marginRight: '16px' }} onClick={() => setFocusedMeasurement(m.label)}>{m.label}</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <input
+                      id={`input-${m.label}`}
+                      type="number"
+                      placeholder="0"
+                      defaultValue={patient.measurements?.[m.label] || ''}
+                      style={{
+                        width: '60px',
+                        background: 'rgba(0,0,0,0.05)',
+                        border: '1px solid rgba(0,0,0,0.1)',
+                        borderRadius: '6px',
+                        padding: '8px 8px',
+                        color: '#111',
+                        fontSize: '0.85rem',
+                        fontWeight: '700',
+                        textAlign: 'right'
+                      }}
+                      onFocus={() => setFocusedMeasurement(m.label)}
+                      onBlur={(e) => {
+                        const updated = { ...patient, measurements: { ...patient.measurements, [m.label]: e.target.value } };
+                        const saved = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
+                        localStorage.setItem('nutri_patients', JSON.stringify(saved.map(p => p.id === patient.id ? updated : p)));
+                        setPatient(updated);
+                        setFocusedMeasurement(null);
+                      }}
+                    />
+                    <span style={{ fontSize: '0.65rem' }}>cm</span>
+                  </div>
+                </div>
+                <p style={{ fontSize: '0.5rem', opacity: 0.6, marginTop: '4px' }}>{m.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+
       {/* Etiquetas / Patologías */}
       <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap', alignItems: 'center' }}>
         {patient.details?.tags?.map(tag => (
@@ -611,10 +790,7 @@ export default function PatientFile() {
               <p style={{ fontSize: '0.6rem', fontWeight: '800', opacity: 0.5, marginBottom: '4px' }}>IMC REAL</p>
               <p style={{ fontSize: '1.1rem', fontWeight: '900', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{clinical.imc}</p>
             </div>
-            <div>
-              <p style={{ fontSize: '0.6rem', fontWeight: '800', opacity: 0.5, marginBottom: '4px' }}>P. REF (PC)</p>
-              <p style={{ fontSize: '1.1rem', fontWeight: '900', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{clinical.pc} kg</p>
-            </div>
+
             <div>
               <p style={{ fontSize: '0.6rem', fontWeight: '800', opacity: 0.5, marginBottom: '4px' }}>P. IDEAL</p>
               <p style={{ fontSize: '1.1rem', fontWeight: '900', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{clinical.pi} kg</p>
@@ -720,81 +896,12 @@ export default function PatientFile() {
                 </div>
               </div>
 
-              <div>
-                <label style={{ fontSize: '0.7rem', fontWeight: '850', opacity: 0.6, display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>P. REFERENCIA (PC)</label>
-                <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,0.05)', borderRadius: '10px', padding: '2px 8px' }}>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={patient.details?.manualPc || ''}
-                    placeholder={clinical.suggestedPc}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      const updatedDetails = { ...patient.details, manualPc: val };
-                      const updatedPatient = { ...patient, details: updatedDetails };
-                      savePatientUpdate(updatedPatient);
-                    }}
-                    style={{ width: '100%', background: 'none', border: 'none', outline: 'none', fontSize: '0.9rem', fontWeight: '800', padding: '8px 2px', textAlign: 'center' }}
-                  />
-                  <span style={{ fontSize: '0.7rem', fontWeight: '800', opacity: 0.5 }}>kg</span>
-                </div>
-              </div>
+
             </div>
           </div>
         </section>
 
-        {/* Ficha Clínica Editable Horizontal */}
-        <section className="glass-panel shadow-premium" style={{ padding: '24px', background: 'var(--card-green)', color: 'white', borderRadius: '24px' }}>
-          <h4 style={{ fontSize: '0.85rem', fontWeight: '900', marginBottom: '16px', letterSpacing: '1px', borderBottom: '1px solid rgba(255,255,255,0.2)', paddingBottom: '8px' }}>FICHA CLÍNICA (EDITABLE)</h4>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div>
-              <p style={{ fontSize: '0.65rem', opacity: 0.8, fontWeight: '900', marginBottom: '6px' }}>ANTECEDENTES FAMILIARES / PATOLÓGICOS</p>
-              <textarea 
-                defaultValue={patient.details?.clinicalHistory || ''}
-                onBlur={(e) => {
-                  const updatedPatient = { ...patient, details: { ...patient.details, clinicalHistory: e.target.value } };
-                  savePatientUpdate(updatedPatient);
-                  showToast('Antecedentes actualizados', 'success');
-                }}
-                style={{ width: '100%', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '12px', padding: '12px', color: 'white', fontSize: '0.85rem', outline: 'none', resize: 'none', minHeight: '80px' }}
-                placeholder="Escribir antecedentes aquí..."
-              />
-            </div>
-            <div>
-              <p style={{ fontSize: '0.65rem', opacity: 0.8, fontWeight: '900', marginBottom: '6px' }}>MEDICAMENTOS EN USO</p>
-              <textarea 
-                defaultValue={patient.details?.medications || ''}
-                onBlur={(e) => {
-                  const updatedPatient = { ...patient, details: { ...patient.details, medications: e.target.value } };
-                  savePatientUpdate(updatedPatient);
-                  showToast('Medicación actualizada', 'success');
-                }}
-                style={{ width: '100%', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '12px', padding: '12px', color: 'white', fontSize: '0.85rem', outline: 'none', resize: 'none', minHeight: '60px' }}
-                placeholder="Listar medicamentos aquí..."
-              />
-            </div>
-            {/* Expediente de Informes Guardados (Moviéndolo aquí para visibilidad) */}
-            {patient.reports?.length > 0 && (
-              <div style={{ marginTop: '8px', borderTop: '1px solid rgba(255,255,255,0.2)', paddingTop: '16px' }}>
-                <p style={{ fontSize: '0.65rem', fontWeight: '900', opacity: 0.8, marginBottom: '10px' }}>HISTORIAL DE INFORMES</p>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                  {[...patient.reports].reverse().slice(0, 4).map(report => (
-                    <Link key={report.id} href={`/nutri/patient/${patient.id}/report?reportId=${report.id}`} style={{
-                      textDecoration: 'none', background: 'rgba(255,255,255,0.15)', color: 'white',
-                      padding: '10px', borderRadius: '8px', fontSize: '0.7rem', fontWeight: '800',
-                      textAlign: 'center', border: '1px solid rgba(255,255,255,0.3)'
-                    }}>
-                      Copia {new Date(report.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </section>
-      </div>
-
-      {/* Notas del Nutricionista */}
+        {/* Notas del Nutricionista */}
       <section className="glass-panel" style={{ padding: '20px', marginBottom: '20px', background: 'rgba(0,0,0,0.02)' }}>
         <p style={{ fontSize: '0.75rem', fontWeight: '900', color: 'var(--text-primary)', opacity: 0.6, marginBottom: '12px' }}>NOTAS Y OBSERVACIONES CLÍNICAS</p>
         <textarea 
@@ -821,90 +928,22 @@ export default function PatientFile() {
         />
       </section>
 
-      {/* Resumen del Recordatorio de 24 Horas (R24H) */}
-      <section className="glass-panel" style={{ padding: '24px', marginBottom: '20px', background: 'white', border: '1.5px dashed var(--accent)', borderRadius: '24px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <h4 style={{ fontSize: '1rem', fontWeight: '955', color: 'var(--primary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-            🍏 Consulta / Resumen R24H (Última Ingesta)
-          </h4>
-          {patient.lastReminderDate && (
-            <span style={{ fontSize: '0.7rem', fontWeight: '800', background: 'var(--card-yellow-light)', color: 'var(--accent)', padding: '4px 10px', borderRadius: '12px' }}>
-              Modificado: {patient.lastReminderDate.split('-').reverse().join('/')}
-            </span>
-          )}
-        </div>
 
-        {!savedR24h ? (
-          <div style={{ padding: '16px', textAlign: 'center', opacity: 0.6, fontSize: '0.85rem' }}>
-            No hay recordatorio de 24 horas guardado todavía. 
-            <div style={{ marginTop: '10px' }}>
-              <Link href={`/nutri/patient/${patient.id}/reminder`} className="btn-secondary" style={{ textDecoration: 'none', display: 'inline-block', padding: '8px 16px', borderRadius: '10px', fontSize: '0.75rem' }}>
-                + Llenar R24H
-              </Link>
-            </div>
-          </div>
-        ) : (
-          <div>
-            {/* Totales Nutricionales */}
-            {patient.r24hTotals && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', textAlign: 'center', marginBottom: '16px', background: 'var(--bg-primary)', padding: '12px', borderRadius: '16px' }}>
-                <div>
-                  <p style={{ fontSize: '0.55rem', fontWeight: '800', opacity: 0.6 }}>CALORÍAS</p>
-                  <p style={{ fontSize: '0.95rem', fontWeight: '900', color: 'var(--primary)', marginTop: '2px' }}>{patient.r24hTotals.kcal?.toFixed(0)} <span style={{ fontSize: '0.6rem' }}>kcal</span></p>
-                </div>
-                <div>
-                  <p style={{ fontSize: '0.55rem', fontWeight: '800', opacity: 0.6, color: '#FFA500' }}>CHO</p>
-                  <p style={{ fontSize: '0.95rem', fontWeight: '900', color: '#FFA500', marginTop: '2px' }}>{patient.r24hTotals.cho?.toFixed(1)}g</p>
-                </div>
-                <div>
-                  <p style={{ fontSize: '0.55rem', fontWeight: '800', opacity: 0.6, color: '#EF5350' }}>PROT</p>
-                  <p style={{ fontSize: '0.95rem', fontWeight: '900', color: '#EF5350', marginTop: '2px' }}>{patient.r24hTotals.prot?.toFixed(1)}g</p>
-                </div>
-                <div>
-                  <p style={{ fontSize: '0.55rem', fontWeight: '800', opacity: 0.6, color: '#CBBC1E' }}>GRASA</p>
-                  <p style={{ fontSize: '0.95rem', fontWeight: '900', color: '#CBBC1E', marginTop: '2px' }}>{patient.r24hTotals.fat?.toFixed(1)}g</p>
-                </div>
-              </div>
-            )}
-
-            {/* Listado de Alimentos por comida */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'visible', paddingRight: '4px', marginBottom: '16px' }}>
-              {['Desayuno', 'Merienda AM', 'Almuerzo', 'Merienda PM', 'Cena', 'Colación Nocturna'].map(meal => {
-                const entries = savedR24h[meal] || [];
-                if (entries.length === 0) return null;
-                return (
-                  <div key={meal} style={{ background: 'rgba(0,0,0,0.015)', padding: '10px 14px', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.03)' }}>
-                    <p style={{ fontSize: '0.75rem', fontWeight: '900', color: 'var(--primary)', marginBottom: '4px' }}>{meal.toUpperCase()}</p>
-                    <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '0.8rem', color: '#555' }}>
-                      {entries.map(e => (
-                        <li key={e.id}>
-                          <span style={{ fontWeight: '700', color: '#222' }}>{e.portionsQty} rac. de {e.name}</span>
-                          <span style={{ fontSize: '0.7rem', opacity: 0.6, marginLeft: '6px' }}>({(e.kcal).toFixed(0)} kcal)</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Notas Manuales */}
-            {savedR24hNotes && (
-              <div style={{ background: '#FFFDF0', borderLeft: '3.5px solid var(--accent)', padding: '12px 14px', borderRadius: '0 12px 12px 0', fontSize: '0.85rem' }}>
-                <p style={{ margin: '0 0 4px 0', fontWeight: '900', fontSize: '0.7rem', opacity: 0.7, color: 'var(--accent)', textTransform: 'uppercase' }}>Notas Manuales del Recordatorio:</p>
-                <p style={{ margin: 0, color: '#555', fontStyle: 'italic', whiteSpace: 'pre-wrap' }}>{savedR24hNotes}</p>
-              </div>
-            )}
-
-            <div style={{ marginTop: '14px', display: 'flex', justifyContent: 'flex-end' }}>
-              <Link href={`/nutri/patient/${patient.id}/reminder`} style={{ textDecoration: 'none' }}>
-                <button className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <History size={14} /> Editar Recordatorio
-                </button>
-              </Link>
-            </div>
-          </div>
-        )}
+      {/* Selector de Distribución de Comidas */}
+      <section className="glass-panel shadow-premium" style={{ padding: '24px', marginBottom: '20px', background: 'white', borderRadius: '24px' }}>
+        <h4 style={{ fontSize: '0.9rem', fontWeight: '900', color: 'var(--text-primary)', marginBottom: '16px', textTransform: 'uppercase' }}>🍽️ Distribución de Comidas al Día</h4>
+        <select 
+          value={patient.details?.mealPlan || '3+2 snacks'}
+          onChange={(e) => {
+             const updatedDetails = { ...patient.details, mealPlan: e.target.value };
+             savePatientUpdate({ ...patient, details: updatedDetails });
+          }}
+          style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.1)', fontSize: '0.9rem', fontWeight: '700', outline: 'none' }}
+        >
+          {Object.keys(MEAL_PLANS).map(key => (
+            <option key={key} value={key}>{key} ({MEAL_PLANS[key].length} comidas)</option>
+          ))}
+        </select>
       </section>
 
       {/* Tarjeta Fórmula Dietética Interactiva */}
@@ -919,28 +958,63 @@ export default function PatientFile() {
           <h4 style={{ fontSize: '1rem', fontWeight: '955', color: 'var(--primary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
             📊 Cálculo Automático de Fórmula Dietética
           </h4>
-          <span style={{ fontSize: '0.7rem', fontWeight: '805', background: 'var(--card-green-light)', color: 'var(--primary)', padding: '4px 10px', borderRadius: '12px' }}>
-            Peso Ref (PC): {clinical.pc} kg
-          </span>
+
         </div>
 
         {/* Input de RCT */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', background: 'rgba(0,0,0,0.02)', padding: '12px 16px', borderRadius: '16px', marginBottom: '20px' }}>
-          <div style={{ flex: 1 }}>
-            <label style={{ fontSize: '0.7rem', fontWeight: '850', opacity: 0.6, display: 'block', marginBottom: '3px' }}>REQUERIMIENTO CALÓRICO TOTAL (RCT)</label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <input
-                type="number"
-                value={patient.dietForm?.rct || '1700'}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', background: 'rgba(0,0,0,0.02)', padding: '16px', borderRadius: '16px', marginBottom: '20px' }}>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px' }}>
+            <div>
+              <label style={{ fontSize: '0.7rem', fontWeight: '850', opacity: 0.6, display: 'block', marginBottom: '6px' }}>REFERENCIA DE PESO</label>
+              <select 
+                value={patient.dietForm?.weightRef || 'PI'}
                 onChange={(e) => {
                   const val = e.target.value;
-                  const updatedDietForm = { ...patient.dietForm, rct: val };
-                  const updatedPatient = { ...patient, dietForm: updatedDietForm };
-                  savePatientUpdate(updatedPatient);
+                  const updatedDietForm = { ...patient.dietForm, weightRef: val };
+                  const weightToUse = val === 'PI' ? (patient.details?.manualPi || clinical.pi) : (patient.details?.manualPa || clinical.pa);
+                  const rct = (parseFloat(weightToUse) || 0) * (parseFloat(updatedDietForm.kcalPerKg) || 0);
+                  if (rct > 0) updatedDietForm.rct = rct.toFixed(0);
+                  savePatientUpdate({ ...patient, dietForm: updatedDietForm });
                 }}
-                style={{ width: '100px', padding: '8px', border: '1px solid #ddd', borderRadius: '8px', fontSize: '1rem', fontWeight: '900', color: 'var(--text-primary)' }}
+                className="input-field" style={{ margin: 0, padding: '8px', fontSize: '0.9rem' }}
+              >
+                <option value="PI">Peso Ideal (PI)</option>
+                <option value="PA">Peso Ajustado (PA)</option>
+              </select>
+            </div>
+            <div>
+              <label style={{ fontSize: '0.7rem', fontWeight: '850', opacity: 0.6, display: 'block', marginBottom: '6px' }}>KCAL X KG</label>
+              <input
+                type="number"
+                value={patient.dietForm?.kcalPerKg || ''}
+                placeholder="ej. 25"
+                onChange={(e) => {
+                  const val = e.target.value;
+                  const updatedDietForm = { ...patient.dietForm, kcalPerKg: val };
+                  const weightToUse = updatedDietForm.weightRef === 'PA' ? (patient.details?.manualPa || clinical.pa) : (patient.details?.manualPi || clinical.pi);
+                  const rct = (parseFloat(weightToUse) || 0) * (parseFloat(val) || 0);
+                  if (rct > 0) updatedDietForm.rct = rct.toFixed(0);
+                  savePatientUpdate({ ...patient, dietForm: updatedDietForm });
+                }}
+                className="input-field" style={{ margin: 0, padding: '8px', fontSize: '0.9rem' }}
               />
-              <span style={{ fontSize: '0.85rem', fontWeight: '900', color: 'var(--text-primary)' }}>Kcal / día</span>
+              <span style={{ fontSize: '0.55rem', opacity: 0.7, marginTop: '4px', display: 'block' }}>Ref: Déficit 20-25 | Mant. 25-30 | Superávit 30-35</span>
+            </div>
+            <div>
+              <label style={{ fontSize: '0.7rem', fontWeight: '850', opacity: 0.6, display: 'block', marginBottom: '6px' }}>RCT CALCULADO</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input
+                  type="number"
+                  value={patient.dietForm?.rct || ''}
+                  onChange={(e) => {
+                    const updatedDietForm = { ...patient.dietForm, rct: e.target.value };
+                    savePatientUpdate({ ...patient, dietForm: updatedDietForm });
+                  }}
+                  style={{ width: '100px', padding: '8px', border: '1px solid #ddd', borderRadius: '8px', fontSize: '1rem', fontWeight: '900', color: 'var(--text-primary)', background: '#fff' }}
+                />
+                <span style={{ fontSize: '0.85rem', fontWeight: '900', color: 'var(--text-primary)' }}>Kcal/día</span>
+              </div>
             </div>
           </div>
 
@@ -1184,183 +1258,148 @@ export default function PatientFile() {
         })()}
       </section>
 
-      {/* Tarjeta Antropometría (Coral) */}
-      <section className="glass-panel" style={{
-        background: gender === 'female' ? '#FFF0F5' : '#E6F2FF',
-        color: '#111',
-        padding: '20px',
-        marginBottom: '20px'
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <h4 style={{ textTransform: 'uppercase', letterSpacing: '1px' }}>Antropometría</h4>
-          <div style={{ fontSize: '0.7rem', fontWeight: '700', padding: '4px 12px', background: 'rgba(0,0,0,0.1)', borderRadius: '20px' }}>
-            {gender.toUpperCase()}
-          </div>
-        </div>
 
-        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-          <p style={{ fontSize: '1.1rem', fontWeight: '700' }}>IMC: {clinical.imc} kG/mts2 ({clinical.profile})</p>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '10px' }}>
+      {/* DATOS DE INGRESO */}
+      <h3 style={{ fontSize: '1.2rem', fontWeight: '900', color: 'var(--text-primary)', marginTop: '40px', marginBottom: '20px', borderBottom: '2px solid rgba(0,0,0,0.1)', paddingBottom: '10px' }}>DATOS DE INGRESO / HISTORIAL</h3>
+      {/* Ficha Clínica Editable Horizontal */}
+        <section className="glass-panel shadow-premium" style={{ padding: '24px', background: 'var(--card-green)', color: 'white', borderRadius: '24px' }}>
+          <h4 style={{ fontSize: '0.85rem', fontWeight: '900', marginBottom: '16px', letterSpacing: '1px', borderBottom: '1px solid rgba(255,255,255,0.2)', paddingBottom: '8px' }}>FICHA CLÍNICA (EDITABLE)</h4>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div>
-              <p style={{ fontSize: '0.65rem', fontWeight: '800', opacity: 0.6, marginBottom: '2px' }}>% GRASA (GC)</p>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <p style={{ fontSize: '1.1rem', fontWeight: '900', color: '#EF5350', margin: 0 }}>
-                  {clinical.gc !== '—' ? `${clinical.gc}%` : '—'}
-                </p>
-                {clinical.gc !== '—' && (
-                  <span style={{ fontSize: '0.55rem', fontWeight: '900', color: '#B71C1C', opacity: 0.8, textTransform: 'uppercase', lineHeight: 1, marginTop: '2px' }}>
-                    {getBodyFatProfile(gender, patient.details?.age || 30, clinical.gc)}
-                  </span>
-                )}
-              </div>
+              <p style={{ fontSize: '0.65rem', opacity: 0.8, fontWeight: '900', marginBottom: '6px' }}>ANTECEDENTES FAMILIARES / PATOLÓGICOS</p>
+              <textarea 
+                defaultValue={patient.details?.clinicalHistory || ''}
+                onBlur={(e) => {
+                  const updatedPatient = { ...patient, details: { ...patient.details, clinicalHistory: e.target.value } };
+                  savePatientUpdate(updatedPatient);
+                  showToast('Antecedentes actualizados', 'success');
+                }}
+                style={{ width: '100%', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '12px', padding: '12px', color: 'white', fontSize: '0.85rem', outline: 'none', resize: 'none', minHeight: '80px' }}
+                placeholder="Escribir antecedentes aquí..."
+              />
             </div>
             <div>
-              <p style={{ fontSize: '0.65rem', fontWeight: '800', opacity: 0.6, marginBottom: '2px' }}>G. MAGRA</p>
-              <p style={{ fontSize: '1.1rem', fontWeight: '900', color: '#66BB6A', margin: 0 }}>
-                {clinical.grasaMagra !== '—' ? `${clinical.grasaMagra}kg` : '—'}
-              </p>
+              <p style={{ fontSize: '0.65rem', opacity: 0.8, fontWeight: '900', marginBottom: '6px' }}>MEDICAMENTOS EN USO</p>
+              <textarea 
+                defaultValue={patient.details?.medications || ''}
+                onBlur={(e) => {
+                  const updatedPatient = { ...patient, details: { ...patient.details, medications: e.target.value } };
+                  savePatientUpdate(updatedPatient);
+                  showToast('Medicación actualizada', 'success');
+                }}
+                style={{ width: '100%', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '12px', padding: '12px', color: 'white', fontSize: '0.85rem', outline: 'none', resize: 'none', minHeight: '60px' }}
+                placeholder="Listar medicamentos aquí..."
+              />
             </div>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
-          <div style={{ flex: 1, position: 'relative', minHeight: '440px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.15)', borderRadius: '20px', paddingBottom: '90px' }}>
-            {patient.details?.isPediatric ? (
-              <svg viewBox="0 0 100 220" style={{ height: '320px', width: 'auto' }}>
-                <g stroke="white" strokeWidth="1.5" fill="none" opacity="0.7">
-                  {/* Cabeza */}
-                  <circle cx="50" cy="25" r="14" />
-                  {/* Torso Infantil (más pequeño, cabeza proporcionalmente más grande) */}
-                  <path d="M42 39 Q50 37 58 39 L60 75 Q50 82 40 75 Z" />
-                  <path d="M44 75 Q50 78 56 75 L57 110 Q50 115 43 110 Z" />
-                  {/* Brazos */}
-                  <path d="M42 39 L28 80 M58 39 L72 80" />
-                  {/* Piernas */}
-                  <path d="M43 110 L38 200 M57 110 L62 200" />
-                </g>
-                <g style={{ cursor: 'pointer' }}>
-                  <circle cx="50" cy="35" r="4" fill="var(--accent)" onClick={() => setFocusedMeasurement('CUELLO')} onMouseEnter={() => setFocusedMeasurement('CUELLO')} />
-                  <circle cx="28" cy="80" r="4" fill="white" stroke="#333" strokeWidth="0.5" onClick={() => setFocusedMeasurement('BRAZO')} onMouseEnter={() => setFocusedMeasurement('BRAZO')} />
-                  <circle cx="50" cy="57" r="4" fill="white" stroke="#333" strokeWidth="0.5" onClick={() => setFocusedMeasurement('TORSO')} onMouseEnter={() => setFocusedMeasurement('TORSO')} />
-                  <circle cx="50" cy="92" r="4" fill="white" stroke="#333" strokeWidth="0.5" onClick={() => setFocusedMeasurement('CINTURA')} onMouseEnter={() => setFocusedMeasurement('CINTURA')} />
-                  <circle cx="50" cy="118" r="4" fill="white" stroke="#333" strokeWidth="0.5" onClick={() => setFocusedMeasurement('CADERA')} onMouseEnter={() => setFocusedMeasurement('CADERA')} />
-                  <circle cx="50" cy="135" r="4" fill="white" stroke="#333" strokeWidth="0.5" onClick={() => setFocusedMeasurement('GLÚTEOS')} onMouseEnter={() => setFocusedMeasurement('GLÚTEOS')} />
-                  <circle cx="41" cy="160" r="4" fill="white" stroke="#333" strokeWidth="0.5" onClick={() => setFocusedMeasurement('MUSLO')} onMouseEnter={() => setFocusedMeasurement('MUSLO')} />
-                  <circle cx="59" cy="160" r="4" fill="white" stroke="#333" strokeWidth="0.5" onClick={() => setFocusedMeasurement('PANTORRILLA')} onMouseEnter={() => setFocusedMeasurement('PANTORRILLA')} />
-                </g>
-              </svg>
-            ) : gender === 'female' ? (
-              <div style={{ position: 'relative', height: '340px', width: '160px' }}>
-                <img 
-                  src={getAnthropometricIconSrc(gender, clinical.profile)} 
-                  alt={clinical.profile} 
-                  style={{ position: 'absolute', height: '100%', width: '100%', objectFit: 'contain' }} 
-                />
-                <svg viewBox="0 0 100 220" style={{ position: 'absolute', top: 0, left: 0, height: '100%', width: '100%', zIndex: 1 }}>
-                  {/* Puntos Interactivos (Invisibles, actúan como hitboxes sobre los círculos del SVG original) */}
-                  <g style={{ cursor: 'pointer', opacity: 0 }}>
-                    <circle cx="50" cy="22" r="12" fill="red" onClick={() => setFocusedMeasurement('CUELLO')} onMouseEnter={() => setFocusedMeasurement('CUELLO')} />
-                    <circle cx="25" cy="50" r="12" fill="red" onClick={() => setFocusedMeasurement('BRAZO')} onMouseEnter={() => setFocusedMeasurement('BRAZO')} />
-                    <circle cx="50" cy="42" r="12" fill="red" onClick={() => setFocusedMeasurement('TORSO')} onMouseEnter={() => setFocusedMeasurement('TORSO')} />
-                    <circle cx="50" cy="65" r="12" fill="red" onClick={() => setFocusedMeasurement('CINTURA')} onMouseEnter={() => setFocusedMeasurement('CINTURA')} />
-                    <circle cx="50" cy="85" r="12" fill="red" onClick={() => setFocusedMeasurement('CADERA')} onMouseEnter={() => setFocusedMeasurement('CADERA')} />
-                    <circle cx="50" cy="95" r="12" fill="red" onClick={() => setFocusedMeasurement('GLÚTEOS')} onMouseEnter={() => setFocusedMeasurement('GLÚTEOS')} />
-                    <circle cx="42" cy="125" r="12" fill="red" onClick={() => setFocusedMeasurement('MUSLO')} onMouseEnter={() => setFocusedMeasurement('MUSLO')} />
-                    <circle cx="40" cy="165" r="12" fill="red" onClick={() => setFocusedMeasurement('PANTORRILLA')} onMouseEnter={() => setFocusedMeasurement('PANTORRILLA')} />
-                  </g>
-                </svg>
-              </div>
-            ) : (
-              <div style={{ position: 'relative', height: '340px', width: '160px' }}>
-                <img 
-                  src={getAnthropometricIconSrc(gender, clinical.profile)} 
-                  alt={clinical.profile} 
-                  style={{ position: 'absolute', height: '100%', width: '100%', objectFit: 'contain' }} 
-                />
-                <svg viewBox="0 0 100 220" style={{ position: 'absolute', top: 0, left: 0, height: '100%', width: '100%', zIndex: 1 }}>
-                  {/* Puntos Interactivos (Invisibles, actúan como hitboxes sobre los círculos del SVG original) */}
-                  <g style={{ cursor: 'pointer', opacity: 0 }}>
-                    <circle cx="50" cy="22" r="12" fill="red" onClick={() => setFocusedMeasurement('CUELLO')} onMouseEnter={() => setFocusedMeasurement('CUELLO')} />
-                    <circle cx="25" cy="50" r="12" fill="red" onClick={() => setFocusedMeasurement('BRAZO')} onMouseEnter={() => setFocusedMeasurement('BRAZO')} />
-                    <circle cx="50" cy="42" r="12" fill="red" onClick={() => setFocusedMeasurement('TORSO')} onMouseEnter={() => setFocusedMeasurement('TORSO')} />
-                    <circle cx="50" cy="65" r="12" fill="red" onClick={() => setFocusedMeasurement('CINTURA')} onMouseEnter={() => setFocusedMeasurement('CINTURA')} />
-                    <circle cx="50" cy="85" r="12" fill="red" onClick={() => setFocusedMeasurement('CADERA')} onMouseEnter={() => setFocusedMeasurement('CADERA')} />
-                    <circle cx="50" cy="95" r="12" fill="red" onClick={() => setFocusedMeasurement('GLÚTEOS')} onMouseEnter={() => setFocusedMeasurement('GLÚTEOS')} />
-                    <circle cx="42" cy="125" r="12" fill="red" onClick={() => setFocusedMeasurement('MUSLO')} onMouseEnter={() => setFocusedMeasurement('MUSLO')} />
-                    <circle cx="40" cy="165" r="12" fill="red" onClick={() => setFocusedMeasurement('PANTORRILLA')} onMouseEnter={() => setFocusedMeasurement('PANTORRILLA')} />
-                  </g>
-                </svg>
+            {/* Expediente de Informes Guardados (Estilo Carpetas) */}
+            {patient.reports?.length > 0 && (
+              <div style={{ marginTop: '8px', borderTop: '1px solid rgba(255,255,255,0.2)', paddingTop: '16px' }}>
+                <p style={{ fontSize: '0.65rem', fontWeight: '900', opacity: 0.8, marginBottom: '10px' }}>HISTORIAL DE INFORMES</p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '12px' }}>
+                  {[...patient.reports].reverse().map(report => (
+                    <Link key={report.id} href={`/nutri/patient/${patient.id}/report?reportId=${report.id}`} style={{
+                      textDecoration: 'none', background: 'rgba(255,255,255,0.1)', color: 'white',
+                      padding: '16px 12px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '800',
+                      textAlign: 'center', border: '1px solid rgba(255,255,255,0.3)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', transition: 'all 0.2s'
+                    }} className="folder-hover">
+                      <FileText size={28} opacity={0.9} />
+                      <span>{new Date(report.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                    </Link>
+                  ))}
+                </div>
               </div>
             )}
-            
-            {/* Guía Explicativa Detallada de Cinta Métrica */}
-            <div style={{ 
-              position: 'absolute', 
-              bottom: '10px', 
-              left: '10px', 
-              right: '10px', 
-              fontSize: '0.65rem', 
-              background: 'rgba(0,0,0,0.85)', 
-              color: 'white', 
-              padding: '10px 12px', 
-              borderRadius: '12px',
-              minHeight: '52px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              textAlign: 'center',
-              lineHeight: '1.35',
-              border: '1px solid rgba(255,255,255,0.1)'
-            }}>
-              {focusedMeasurement ? (
-                <span>
-                  <strong style={{ color: 'var(--accent)', textTransform: 'uppercase' }}>{focusedMeasurement}:</strong> {measurements.find(m => m.label === focusedMeasurement)?.guide}
-                </span>
-              ) : (
-                <span style={{ opacity: 0.8 }}>📍 Posiciona el cursor o toca los puntos del avatar para ver la guía de medición de cinta.</span>
-              )}
+          </div>
+        </section>
+      </div>
+
+
+      {/* Resumen del Recordatorio de 24 Horas (R24H) */}
+      <section className="glass-panel" style={{ padding: '24px', marginBottom: '20px', background: 'white', border: '1.5px dashed var(--accent)', borderRadius: '24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <h4 style={{ fontSize: '1rem', fontWeight: '955', color: 'var(--primary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            🍏 Consulta / Resumen R24H (Última Ingesta)
+          </h4>
+          {patient.lastReminderDate && (
+            <span style={{ fontSize: '0.7rem', fontWeight: '800', background: 'var(--card-yellow-light)', color: 'var(--accent)', padding: '4px 10px', borderRadius: '12px' }}>
+              Modificado: {patient.lastReminderDate.split('-').reverse().join('/')}
+            </span>
+          )}
+        </div>
+
+        {!savedR24h ? (
+          <div style={{ padding: '16px', textAlign: 'center', opacity: 0.6, fontSize: '0.85rem' }}>
+            No hay recordatorio de 24 horas guardado todavía. 
+            <div style={{ marginTop: '10px' }}>
+              <Link href={`/nutri/patient/${patient.id}/reminder`} className="btn-secondary" style={{ textDecoration: 'none', display: 'inline-block', padding: '8px 16px', borderRadius: '10px', fontSize: '0.75rem' }}>
+                + Llenar R24H
+              </Link>
             </div>
           </div>
-          <div style={{ flex: 1.2, display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {measurements.map((m) => (
-              <div key={m.label} style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '8px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <p style={{ fontSize: '0.7rem', fontWeight: '800', fontFamily: 'Belinda, sans-serif', cursor: 'pointer', color: '#111', textTransform: 'uppercase', marginRight: '16px' }} onClick={() => setFocusedMeasurement(m.label)}>{m.label}</p>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <input
-                      id={`input-${m.label}`}
-                      type="number"
-                      placeholder="0"
-                      defaultValue={patient.measurements?.[m.label] || ''}
-                      style={{
-                        width: '60px',
-                        background: 'rgba(0,0,0,0.05)',
-                        border: '1px solid rgba(0,0,0,0.1)',
-                        borderRadius: '6px',
-                        padding: '8px 8px',
-                        color: '#111',
-                        fontSize: '0.85rem',
-                        fontWeight: '700',
-                        textAlign: 'right'
-                      }}
-                      onFocus={() => setFocusedMeasurement(m.label)}
-                      onBlur={(e) => {
-                        const updated = { ...patient, measurements: { ...patient.measurements, [m.label]: e.target.value } };
-                        const saved = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
-                        localStorage.setItem('nutri_patients', JSON.stringify(saved.map(p => p.id === patient.id ? updated : p)));
-                        setPatient(updated);
-                        setFocusedMeasurement(null);
-                      }}
-                    />
-                    <span style={{ fontSize: '0.65rem' }}>cm</span>
-                  </div>
+        ) : (
+          <div>
+            {/* Totales Nutricionales */}
+            {patient.r24hTotals && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', textAlign: 'center', marginBottom: '16px', background: 'var(--bg-primary)', padding: '12px', borderRadius: '16px' }}>
+                <div>
+                  <p style={{ fontSize: '0.55rem', fontWeight: '800', opacity: 0.6 }}>CALORÍAS</p>
+                  <p style={{ fontSize: '0.95rem', fontWeight: '900', color: 'var(--primary)', marginTop: '2px' }}>{patient.r24hTotals.kcal?.toFixed(0)} <span style={{ fontSize: '0.6rem' }}>kcal</span></p>
                 </div>
-                <p style={{ fontSize: '0.5rem', opacity: 0.6, marginTop: '4px' }}>{m.desc}</p>
+                <div>
+                  <p style={{ fontSize: '0.55rem', fontWeight: '800', opacity: 0.6, color: '#FFA500' }}>CHO</p>
+                  <p style={{ fontSize: '0.95rem', fontWeight: '900', color: '#FFA500', marginTop: '2px' }}>{patient.r24hTotals.cho?.toFixed(1)}g</p>
+                </div>
+                <div>
+                  <p style={{ fontSize: '0.55rem', fontWeight: '800', opacity: 0.6, color: '#EF5350' }}>PROT</p>
+                  <p style={{ fontSize: '0.95rem', fontWeight: '900', color: '#EF5350', marginTop: '2px' }}>{patient.r24hTotals.prot?.toFixed(1)}g</p>
+                </div>
+                <div>
+                  <p style={{ fontSize: '0.55rem', fontWeight: '800', opacity: 0.6, color: '#CBBC1E' }}>GRASA</p>
+                  <p style={{ fontSize: '0.95rem', fontWeight: '900', color: '#CBBC1E', marginTop: '2px' }}>{patient.r24hTotals.fat?.toFixed(1)}g</p>
+                </div>
               </div>
-            ))}
+            )}
+
+            {/* Listado de Alimentos por comida */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'visible', paddingRight: '4px', marginBottom: '16px' }}>
+              {['Desayuno', 'Merienda AM', 'Almuerzo', 'Merienda PM', 'Cena', 'Colación Nocturna'].map(meal => {
+                const entries = savedR24h[meal] || [];
+                if (entries.length === 0) return null;
+                return (
+                  <div key={meal} style={{ background: 'rgba(0,0,0,0.015)', padding: '10px 14px', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.03)' }}>
+                    <p style={{ fontSize: '0.75rem', fontWeight: '900', color: 'var(--primary)', marginBottom: '4px' }}>{meal.toUpperCase()}</p>
+                    <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '0.8rem', color: '#555' }}>
+                      {entries.map(e => (
+                        <li key={e.id}>
+                          <span style={{ fontWeight: '700', color: '#222' }}>{e.portionsQty} rac. de {e.name}</span>
+                          <span style={{ fontSize: '0.7rem', opacity: 0.6, marginLeft: '6px' }}>({(e.kcal).toFixed(0)} kcal)</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Notas Manuales */}
+            {savedR24hNotes && (
+              <div style={{ background: '#FFFDF0', borderLeft: '3.5px solid var(--accent)', padding: '12px 14px', borderRadius: '0 12px 12px 0', fontSize: '0.85rem' }}>
+                <p style={{ margin: '0 0 4px 0', fontWeight: '900', fontSize: '0.7rem', opacity: 0.7, color: 'var(--accent)', textTransform: 'uppercase' }}>Notas Manuales del Recordatorio:</p>
+                <p style={{ margin: 0, color: '#555', fontStyle: 'italic', whiteSpace: 'pre-wrap' }}>{savedR24hNotes}</p>
+              </div>
+            )}
+
+            <div style={{ marginTop: '14px', display: 'flex', justifyContent: 'flex-end' }}>
+              <Link href={`/nutri/patient/${patient.id}/reminder`} style={{ textDecoration: 'none' }}>
+                <button className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <History size={14} /> Editar Recordatorio
+                </button>
+              </Link>
+            </div>
           </div>
-        </div>
+        )}
       </section>
+
 
       {/* Sección de Preguntas del Onboarding */}
       <section className="glass-panel" style={{ padding: '24px', marginBottom: '20px' }}>
@@ -1846,157 +1885,7 @@ export default function PatientFile() {
            );
          })()}
       </section>
-      {/* PREVISUALIZACIÓN DEL DASHBOARD INTERACTIVO DEL PACIENTE */}
-      <section className="glass-panel" style={{ padding: '24px', marginBottom: '20px', background: 'white' }}>
-        <div 
-          onClick={() => setPreviewDashboardOpen(!previewDashboardOpen)}
-          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '1.4rem' }}>👁️</span>
-            <h4 style={{ color: 'var(--text-primary)', fontSize: '1.2rem', fontWeight: '900', margin: 0 }}>
-              PREVISUALIZACIÓN DE PLAN E INTERCAMBIOS
-            </h4>
-          </div>
-          <span style={{ fontWeight: 'bold', fontSize: '1rem', color: 'var(--primary)' }}>{previewDashboardOpen ? '▲ Ocultar' : '▼ Expandir'}</span>
-        </div>
 
-        {previewDashboardOpen && (
-          <div className="fade-in" style={{ marginTop: '24px', borderTop: '1.5px solid rgba(0,0,0,0.08)', paddingTop: '20px' }}>
-            <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
-              <button 
-                onClick={() => setPreviewDay('day1')}
-                style={{ flex: 1, padding: '10px', borderRadius: '12px', border: previewDay === 'day1' ? '2px solid var(--accent)' : '1px solid #ccc', background: previewDay === 'day1' ? 'rgba(255,167,38,0.1)' : 'white', fontWeight: '900', color: previewDay === 'day1' ? 'var(--accent)' : '#666', cursor: 'pointer' }}
-              >
-                ☀️ DÍA 1
-              </button>
-              <button 
-                onClick={() => setPreviewDay('day2')}
-                style={{ flex: 1, padding: '10px', borderRadius: '12px', border: previewDay === 'day2' ? '2px solid var(--primary)' : '1px solid #ccc', background: previewDay === 'day2' ? 'rgba(29, 81, 45, 0.1)' : 'white', fontWeight: '900', color: previewDay === 'day2' ? 'var(--primary)' : '#666', cursor: 'pointer' }}
-              >
-                🌙 DÍA 2
-              </button>
-            </div>
-            <p style={{ fontSize: '0.8rem', opacity: 0.7, marginBottom: '20px', fontStyle: 'italic' }}>
-              Así es como el paciente visualiza su distribución e intercambios auto-calculada en tiempo real:
-            </p>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '20px' }}>
-              {/* LADO IZQUIERDO: MENÚ (Amarillo-Mostaza estilo la guía) */}
-              <div style={{ 
-                background: '#F9FBE7', 
-                border: '2.5px solid #AFB42B', 
-                borderRadius: '20px', 
-                padding: '20px', 
-                display: 'flex', 
-                flexDirection: 'column', 
-                gap: '16px',
-                alignSelf: 'start'
-              }}>
-                <h4 style={{ fontSize: '1.1rem', fontWeight: '950', margin: '0 0 10px 0', color: '#1d512d', textAlign: 'center', borderBottom: '2.5px solid #AFB42B', paddingBottom: '8px' }}>
-                  DISTRIBUCIÓN
-                </h4>
-                
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {mealsForPatient.map(m => {
-                    const isActive = selectedExchangeMeal === m.key;
-                    const mealPortions = patient.menus?.[previewDay]?.[m.key]?.portions || {};
-                    const hasPortions = Object.values(mealPortions).some(val => parseFloat(val) > 0);
-                    
-                    return (
-                      <div 
-                        key={m.key} 
-                        onClick={() => setSelectedExchangeMeal(m.key)}
-                        style={{ 
-                          padding: '12px 14px', 
-                          borderRadius: '12px',
-                          background: isActive ? 'white' : 'rgba(255,255,255,0.4)',
-                          border: isActive ? '2px solid #AFB42B' : '2px solid transparent',
-                          boxShadow: isActive ? '0 8px 20px rgba(0,0,0,0.06)' : 'none',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s'
-                        }}
-                      >
-                        <p style={{ margin: '0 0 6px 0', fontWeight: '955', fontSize: '0.85rem', textTransform: 'uppercase', color: isActive ? '#1d512d' : '#555' }}>
-                          {m.name}
-                        </p>
-                        
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                          {Object.keys(EXCHANGE_GUIDE_DB).map(groupKey => {
-                            const target = parseFloat(mealPortions[groupKey]) || 0;
-                            if (target === 0) return null;
-                            const groupMeta = EXCHANGE_GUIDE_DB[groupKey];
-                            return (
-                              <div key={groupKey} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', fontWeight: '800', color: '#1d512d' }}>
-                                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: groupMeta.color, display: 'inline-block' }}></span>
-                                <span>{groupMeta.name.split('/')[0].split(' ')[0]}: {target}</span>
-                              </div>
-                            );
-                          })}
-                          {!hasPortions && (
-                            <span style={{ fontSize: '0.65rem', opacity: 0.5, fontStyle: 'italic', color: '#555' }}>Sin porciones objetivo</span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* LADO DERECHO: INTERCAMBIOS AUTO-RELLENADOS */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <h4 style={{ fontSize: '0.95rem', fontWeight: '900', margin: '0 0 4px 0', color: '#1d512d' }}>
-                  📋 TABLA DE INTERCAMBIOS PARA: <span style={{ textTransform: 'uppercase', color: '#1d512d', fontWeight: '950' }}>{mealsForPatient.find(em => em.key === selectedExchangeMeal)?.name || ''}</span>
-                </h4>
-                
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {Object.entries(EXCHANGE_GUIDE_DB).map(([groupKey, groupMeta]) => {
-                    const targetVal = parseFloat(patient.menus?.[previewDay]?.[selectedExchangeMeal]?.portions?.[groupKey]) || 0;
-                    
-                    return (
-                      <div key={groupKey} style={{ border: `1.5px solid ${groupMeta.color}`, borderRadius: '16px', overflow: 'hidden' }}>
-                        {/* Header del Grupo */}
-                        <div style={{ 
-                          background: groupMeta.color, 
-                          color: groupMeta.textColor, 
-                          padding: '10px 14px', 
-                          display: 'flex', 
-                          justifyContent: 'space-between', 
-                          alignItems: 'center',
-                          fontWeight: '950',
-                          fontSize: '0.85rem'
-                        }}>
-                          <span>{groupMeta.name}</span>
-                          <span style={{ background: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: '6px', fontSize: '0.65rem' }}>
-                            Meta: {targetVal} ración{targetVal !== 1 ? 'es' : ''}
-                          </span>
-                        </div>
-                        
-                        {/* Lista de Alimentos con Cálculo de Porciones */}
-                        <div style={{ background: '#fafafa', padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          {groupMeta.foods.map((food, idx) => (
-                            <div key={idx} style={{ 
-                              borderBottom: idx < groupMeta.foods.length - 1 ? '1px solid rgba(0,0,0,0.04)' : 'none',
-                              paddingBottom: idx < groupMeta.foods.length - 1 ? '6px' : 0,
-                              fontSize: '0.8rem',
-                              fontWeight: '700'
-                            }}>
-                              <p style={{ margin: '0 0 3px 0', color: '#333' }}>{food.name}</p>
-                              <p style={{ margin: 0, color: groupMeta.color === '#FFD700' ? '#b59c00' : groupMeta.color, fontSize: '0.75rem', fontWeight: '900' }}>
-                                👉 {displayCalculatedPortion(food, targetVal)}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </section>
 
       {/* Historial y Evolución */}
       <section id="ev-section" className="glass-panel" style={{ padding: '20px', marginBottom: '40px' }}>

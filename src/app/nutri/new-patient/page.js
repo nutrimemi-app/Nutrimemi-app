@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useUI } from '@/context/UIContext';
 import { createPatient } from '@/lib/patients';
+import R24H from '@/components/R24H';
 
 export default function NewPatient() {
   const { showToast } = useUI();
@@ -24,8 +25,28 @@ export default function NewPatient() {
     tutorName: '',
     tutorPhone: '',
     mealPlan: '3+2 snacks',
-    tags: []
+    tags: [],
+    onboardingAnswers: {
+      favFood: '',
+      nonFavFood: '',
+      mealCount: '',
+      physicalActivity: '',
+      allergies: '',
+      waterGlasses: '',
+      waterLiters: ''
+    }
   });
+  
+  const [reminder, setReminder] = useState({
+    Desayuno: [],
+    'Merienda AM': [],
+    Almuerzo: [],
+    'Merienda PM': [],
+    Cena: [],
+    'Colación Nocturna': []
+  });
+  const [r24hNotes, setR24hNotes] = useState('');
+
   const [currentTag, setCurrentTag] = useState('');
   const [linkGenerated, setLinkGenerated] = useState(null);
   const router = useRouter();
@@ -61,7 +82,21 @@ export default function NewPatient() {
       return;
     }
     try {
-      const created = await createPatient(formData);
+      // Calcular los totales de R24H para el historial
+      let kcal = 0, cho = 0, prot = 0, fat = 0;
+      Object.values(reminder).forEach(mealEntries => {
+        mealEntries.forEach(e => {
+          kcal += e.kcal || 0; cho += e.cho || 0; prot += e.prot || 0; fat += e.fat || 0;
+        });
+      });
+      const totals = { kcal, cho, prot, fat };
+      const finalData = { ...formData, r24hTotals: totals, lastReminderDate: new Date().toISOString().split('T')[0] };
+      
+      const created = await createPatient(finalData);
+      
+      localStorage.setItem(`r24h_${created.id}`, JSON.stringify(reminder));
+      localStorage.setItem(`r24h_notes_${created.id}`, r24hNotes);
+
       if (mode === 'presencial') {
         router.push(`/nutri/patient/${created.id}`);
       } else {
@@ -219,47 +254,7 @@ export default function NewPatient() {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
-            <div>
-              <label style={{ fontSize: '0.85rem', opacity: 0.6, marginBottom: '8px', display: 'block', marginTop: '12px' }}>Altura (cm)</label>
-              <input 
-                type="number" 
-                placeholder="0" 
-                className="input-field"
-                style={{ marginBottom: '4px' }}
-                value={formData.height}
-                onChange={(e) => setFormData({...formData, height: e.target.value})}
-                required
-              />
-            </div>
-            <div>
-              <label style={{ fontSize: '0.85rem', opacity: 0.6, marginBottom: '8px', display: 'block', marginTop: '12px' }}>Peso Inicial (kg)</label>
-              <input 
-                type="number" 
-                step="0.1" 
-                placeholder="0.0" 
-                className="input-field"
-                style={{ marginBottom: '4px' }}
-                value={formData.weight}
-                onChange={(e) => setFormData({...formData, weight: e.target.value})}
-                required
-              />
-            </div>
-          </div>
 
-          <label style={{ fontSize: '0.85rem', opacity: 0.6, marginBottom: '8px', display: 'block', marginTop: '12px' }}>Comidas al día</label>
-          <select
-            className="input-field"
-            style={{ marginBottom: '4px' }}
-            value={formData.mealPlan}
-            onChange={(e) => setFormData({...formData, mealPlan: e.target.value})}
-          >
-            <option value="2 comidas">2 comidas principales</option>
-            <option value="3 comidas">3 comidas principales</option>
-            <option value="3+2 snacks">3 comidas + 2 snacks</option>
-            <option value="3+3 snacks">3 comidas + 3 snacks</option>
-            <option value="2+2 snacks">2 comidas + 2 snacks</option>
-          </select>
         </section>
 
         <section className="glass-panel" style={{ padding: '24px', marginBottom: '24px', borderRadius: '20px' }}>
@@ -312,6 +307,94 @@ export default function NewPatient() {
             value={formData.notes}
             onChange={(e) => setFormData({...formData, notes: e.target.value})}
           />
+        </section>
+
+        <section className="glass-panel" style={{ padding: '24px', marginBottom: '24px', borderRadius: '20px' }}>
+          <h4 style={{ marginBottom: '16px', opacity: 0.5, fontSize: '0.8rem', fontWeight: '800' }}>RECORDATORIO 24 HORAS (Ingreso)</h4>
+          <R24H 
+            reminder={reminder} 
+            setReminder={setReminder} 
+            r24hNotes={r24hNotes} 
+            setR24hNotes={setR24hNotes} 
+          />
+        </section>
+
+        <section className="glass-panel" style={{ padding: '24px', marginBottom: '24px', borderRadius: '20px' }}>
+          <h4 style={{ marginBottom: '16px', opacity: 0.5, fontSize: '0.8rem', fontWeight: '800', color: 'var(--primary)' }}>GUSTOS Y PREFERENCIAS</h4>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            {[
+              { q: "1. Comida favorita", key: "favFood" },
+              { q: "2. Comida y alimento NO favorito", key: "nonFavFood" },
+              { q: "3. Comidas que desea realizar", key: "mealCount" },
+              { q: "4. Actividad física", key: "physicalActivity" },
+              { q: "5. Intolerancia o alergia", key: "allergies" },
+              { q: "6. Consumo Hídrico (Agua al día)", key: "waterGlasses", isWater: true }
+            ].map((item) => (
+              <div key={item.key} style={{ background: 'rgba(0,0,0,0.02)', padding: '12px', borderRadius: '10px', borderLeft: '4px solid var(--primary)' }}>
+                <p style={{ fontWeight: '800', fontSize: '0.8rem', opacity: 0.6, marginBottom: '8px', textTransform: 'uppercase' }}>{item.q}</p>
+                {item.isWater ? (
+                  <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+                    <div>
+                      <span style={{ fontSize: '0.65rem', opacity: 0.5, display: 'block', fontWeight: '800' }}>VASOS DE AGUA:</span>
+                      <input 
+                        type="number" 
+                        step="0.5" 
+                        className="input-field"
+                        value={formData.onboardingAnswers?.waterGlasses || ''} 
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const parsed = parseFloat(val);
+                          setFormData({
+                            ...formData,
+                            onboardingAnswers: {
+                              ...formData.onboardingAnswers,
+                              waterGlasses: val,
+                              waterLiters: val ? (parsed * 0.24).toFixed(2).replace(/\.?0+$/, '') : ''
+                            }
+                          });
+                        }}
+                        style={{ padding: '6px', fontSize: '0.9rem', width: '90px', marginBottom: 0 }} 
+                      />
+                    </div>
+                    <div style={{ fontSize: '1.2rem', fontWeight: '900', color: 'var(--primary)' }}>=</div>
+                    <div>
+                      <span style={{ fontSize: '0.65rem', opacity: 0.5, display: 'block', fontWeight: '800' }}>LITROS DE AGUA:</span>
+                      <input 
+                        type="number" 
+                        step="0.1" 
+                        className="input-field"
+                        value={formData.onboardingAnswers?.waterLiters || ''} 
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const parsed = parseFloat(val);
+                          setFormData({
+                            ...formData,
+                            onboardingAnswers: {
+                              ...formData.onboardingAnswers,
+                              waterLiters: val,
+                              waterGlasses: val ? (parsed / 0.24).toFixed(1).replace(/\.?0+$/, '') : ''
+                            }
+                          });
+                        }}
+                        style={{ padding: '6px', fontSize: '0.9rem', width: '90px', marginBottom: 0 }} 
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <textarea 
+                    className="input-field"
+                    style={{ width: '100%', minHeight: '60px', padding: '10px', fontSize: '0.9rem', marginBottom: 0 }}
+                    value={formData.onboardingAnswers?.[item.key] || ''}
+                    placeholder={`Escribe aquí la respuesta...`}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      onboardingAnswers: { ...formData.onboardingAnswers, [item.key]: e.target.value }
+                    })}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
         </section>
 
         {!linkGenerated ? (
