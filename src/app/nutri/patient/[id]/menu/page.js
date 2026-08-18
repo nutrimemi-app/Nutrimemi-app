@@ -771,7 +771,7 @@ export default function ManageMenu() {
                         </div>
                      </div>
                    );
-                 </div>
+                })}
              </div>
              <div style={{ marginTop: '12px', textAlign: 'center', background: 'var(--card-green-light)', padding: '12px', borderRadius: '12px', border: '1px solid var(--accent)' }}>
                 <p style={{ fontSize: '0.7rem', fontWeight: '900', color: 'var(--primary)', marginBottom: '4px' }}>SUGERIDO CEREALES</p>
