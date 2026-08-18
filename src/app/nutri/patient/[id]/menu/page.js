@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Save, Activity, Search, Clock, SaveAll, X, CheckCircle, AlertCircle, Info } from 'lucide-react';
+import { ArrowLeft, Save, Activity, Search, Clock, SaveAll, X, CheckCircle, AlertCircle, Info, ArrowUp, ArrowDown, Trash2 } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUI } from '@/context/UIContext';
 import { loadFoods } from '@/data/defaultFoods';
@@ -814,9 +814,9 @@ export default function ManageMenu() {
                       title="Editar nombre"
                     />
                     <div style={{ display: 'flex', gap: '4px' }}>
-                      <button onClick={() => moveMealInline(index, -1)} disabled={index === 0} style={{ padding: '2px 6px', fontSize: '0.7rem', borderRadius: '6px', border: '1px solid #ddd', background: index === 0 ? '#f5f5f5' : 'white', cursor: index === 0 ? 'not-allowed' : 'pointer' }} title="Subir">⬆️</button>
-                      <button onClick={() => moveMealInline(index, 1)} disabled={index === mealTypes.length - 1} style={{ padding: '2px 6px', fontSize: '0.7rem', borderRadius: '6px', border: '1px solid #ddd', background: index === mealTypes.length - 1 ? '#f5f5f5' : 'white', cursor: index === mealTypes.length - 1 ? 'not-allowed' : 'pointer' }} title="Bajar">⬇️</button>
-                      <button onClick={() => removeMealInline(index)} style={{ padding: '2px 6px', fontSize: '0.7rem', borderRadius: '6px', border: 'none', background: '#ffebee', color: '#c62828', cursor: 'pointer', fontWeight: 'bold' }} title="Eliminar Comida">🗑️</button>
+                      <button onClick={() => moveMealInline(index, -1)} disabled={index === 0} style={{ padding: '4px 6px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', border: '1px solid #ddd', background: index === 0 ? '#f5f5f5' : 'white', cursor: index === 0 ? 'not-allowed' : 'pointer', color: 'var(--primary)' }} title="Subir"><ArrowUp size={14} /></button>
+                      <button onClick={() => moveMealInline(index, 1)} disabled={index === mealTypes.length - 1} style={{ padding: '4px 6px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', border: '1px solid #ddd', background: index === mealTypes.length - 1 ? '#f5f5f5' : 'white', cursor: index === mealTypes.length - 1 ? 'not-allowed' : 'pointer', color: 'var(--primary)' }} title="Bajar"><ArrowDown size={14} /></button>
+                      <button onClick={() => removeMealInline(index)} style={{ padding: '4px 6px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', border: 'none', background: '#ffebee', color: '#c62828', cursor: 'pointer' }} title="Eliminar Comida"><Trash2 size={14} /></button>
                     </div>
                   </div>
                   <button onClick={() => setMealCalculators({...mealCalculators, [meal.key]: mealCalculators[meal.key] ? null : { kcal: '', prot: '', cho: '', fat: '' }})} style={{ background: 'var(--card-green-light)', border: 'none', color: 'var(--primary)', fontSize: '0.65rem', padding: '6px 10px', borderRadius: '8px', fontWeight: '900', cursor: 'pointer' }}>+ Fórmula Local</button>
@@ -837,7 +837,7 @@ export default function ManageMenu() {
                     return (
                       <div key={group.key} style={{ textAlign: 'center' }}>
                         <p style={{ fontSize: '0.5rem', fontWeight: '900', opacity: 0.4, marginBottom: '2px' }}>{group.name.substring(0,3).toUpperCase()}</p>
-                        <input type="number" step="0.5" value={menu[meal.key].portions?.[group.key] || ''} onChange={e => updatePortion(meal.key, group.key, e.target.value)} style={{ width: '100%', textAlign: 'center', fontSize: '0.9rem', fontWeight: '900', border: '1px solid #eee', borderRadius: '6px', padding: '4px' }} placeholder="0" />
+                        <input type="number" step="0.5" value={menu[meal.key]?.portions?.[group.key] || ''} onChange={e => updatePortion(meal.key, group.key, e.target.value)} style={{ width: '100%', textAlign: 'center', fontSize: '0.9rem', fontWeight: '900', border: '1px solid #eee', borderRadius: '6px', padding: '4px' }} placeholder="0" />
                         {previousControl && prevPortion && parseFloat(prevPortion) > 0 && (
                           <p style={{ fontSize: '0.6rem', color: 'var(--primary)', fontWeight: '800', marginTop: '2.5px' }}>
                             Ant: {prevPortion}
@@ -915,7 +915,7 @@ export default function ManageMenu() {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             {mealTypes.map(meal => {
-              const mealData = menu[meal.key];
+              const mealData = menu[meal.key] || { portions: {}, selectedFoods: [] };
               return (
                 <div key={meal.key} className="glass-panel" style={{ padding: '20px', background: 'white' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -1036,7 +1036,7 @@ export default function ManageMenu() {
                           const name = recipeNames[meal.key];
                           if (!name) return showToast('Escribe un nombre para guardar la receta', 'warning');
                           
-                          const currentMealPortions = menu[meal.key].portions || {};
+                          const currentMealPortions = menu[meal.key]?.portions || {};
                           const recipePortions = {
                             cereales: parseFloat(currentMealPortions.cereales) || 0,
                             proteinas: parseFloat(currentMealPortions.proteinas) || 0,
