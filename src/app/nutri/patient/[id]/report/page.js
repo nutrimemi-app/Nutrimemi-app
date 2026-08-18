@@ -114,17 +114,20 @@ export default function ClinicalReport() {
       <style dangerouslySetInnerHTML={{ __html: `
         /* ESTILOS DE PANTALLA (MÓVIL / ESCRITORIO) */
         .letter-page {
-          background: white !important;
+          background-color: white !important;
+          background-image: url('/Membrete_Mesa%20de%20trabajo%201.png') !important;
+          background-size: contain !important;
+          background-position: top center !important;
+          background-repeat: repeat-y !important;
           width: 100% !important;
           max-width: 800px !important;
           margin: 0 auto !important;
           position: relative !important;
           box-sizing: border-box !important;
           border-radius: 20px !important;
-          overflow: hidden !important;
           box-shadow: 0 12px 36px rgba(0,0,0,0.12) !important;
         }
-        
+
         .report-content-wrapper {
           position: relative;
           z-index: 1;
@@ -172,25 +175,21 @@ export default function ClinicalReport() {
           margin-bottom: 25px;
         }
 
-        .bg-membrete {
-          position: absolute;
-          top: 0;
-          left: 0;
+        .table-responsive {
           width: 100%;
-          height: 100%;
-          z-index: 0;
-          object-fit: fill;
-          pointer-events: none;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
         }
 
         table {
           width: 100% !important;
-          min-width: 600px !important;
+          min-width: 600px;
           table-layout: fixed;
           word-wrap: break-word;
         }
         td, th {
           word-break: break-word;
+          font-size: 0.75rem !important;
         }
 
         /* AJUSTES PARA PANTALLA GRANDE */
@@ -208,15 +207,15 @@ export default function ClinicalReport() {
           .appointment-widget-day { font-size: 2.2rem !important; }
           .appointment-widget-month { font-size: 0.7rem !important; }
           .bg-membrete {
-            object-fit: fill;
-            height: 100%;
+            object-fit: cover;
           }
         }
 
         /* ESTILOS EXACTOS DE IMPRESIÓN */
         @media print {
+          @page { size: letter; margin: 0; }
           .no-print, nav, footer:not(.report-footer), .tab-bar, #tab-bar { display: none !important; }
-          body { background: white !important; margin: 0 !important; padding: 0 !important; }
+          body { background: white !important; margin: 0 !important; padding: 0 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
           .report-container { background: white !important; padding: 0 !important; margin: 0 !important; }
           .letter-page { 
             box-shadow: none !important; 
@@ -224,13 +223,13 @@ export default function ClinicalReport() {
             margin: 0 !important; 
             width: 215.9mm !important; 
             max-width: 215.9mm !important; 
-            height: 279.4mm !important;
             min-height: 279.4mm !important;
             padding: 0 !important;
             border-radius: 0 !important;
-            print-color-adjust: exact !important;
-            -webkit-print-color-adjust: exact !important;
             page-break-after: always;
+            background-size: 215.9mm 279.4mm !important;
+            background-repeat: repeat-y !important;
+            background-position: top center !important;
           }
           .report-content-wrapper { padding: 4.8cm 1.2cm 2cm 1.2cm !important; }
           .appointment-widget {
@@ -249,32 +248,30 @@ export default function ClinicalReport() {
             height: 100% !important;
             min-height: auto !important;
           }
-          table { min-width: 100% !important; }
+          table { min-width: 100% !important; font-size: 0.65rem !important; }
+          td, th { font-size: 0.65rem !important; padding: 6px !important; }
         }
       `}} />
 
       {/* Botones de Acción (No imprimibles) */}
-      <div className="no-print action-buttons-container">
+      <div className="no-print" style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginBottom: '24px', flexWrap: 'wrap', padding: '0 20px' }}>
         <button 
           onClick={() => router.push(`/nutri/patient/${patient.id}`)}
-          className="report-btn"
-          style={{ background: 'white', color: 'var(--text-primary)', border: '1px solid #ddd' }}
+          style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', borderRadius: '12px', fontWeight: '900', border: '2px solid #ddd', background: 'white', color: '#333', cursor: 'pointer', outline: 'none' }}
         >
           <ArrowLeft size={20} /> <span>Volver</span>
         </button>
         {!snapshot && (
           <button 
             onClick={handleSaveReport}
-            className="report-btn"
-            style={{ background: '#1D512D', color: 'white' }}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', borderRadius: '12px', fontWeight: '900', border: 'none', background: '#1D512D', color: 'white', cursor: 'pointer', outline: 'none' }}
           >
             <Save size={20} /> <span>Guardar</span>
           </button>
         )}
         <button 
           onClick={handlePrint}
-          className="report-btn"
-          style={{ background: 'var(--primary)', color: 'white' }}
+          style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', borderRadius: '12px', fontWeight: '900', border: 'none', background: 'var(--primary)', color: 'white', cursor: 'pointer', outline: 'none' }}
         >
           <Printer size={20} /> <span>Imprimir</span>
         </button>
@@ -282,12 +279,7 @@ export default function ClinicalReport() {
 
       <div className="letter-page">
         
-        {/* Fondo Membretado Físico (img tag asegura impresión correcta) */}
-        <img 
-          src="/Membrete_Mesa%20de%20trabajo%201.png"
-          alt="Membrete Oficial"
-          className="bg-membrete"
-        />
+
 
         {/* Contenedor Superior de Datos (zIndex 1 asegura que renderiza sobre el fondo) */}
         <div className="report-content-wrapper">
@@ -409,8 +401,8 @@ export default function ClinicalReport() {
           {/* PLAN DE MENÚ DINÁMICO SEGÚN PACIENTE EN 2 FILAS */}
           <div style={{ border: '2px solid var(--primary)', borderRadius: '12px', background: 'white', overflow: 'hidden', marginBottom: '25px', pageBreakInside: 'avoid' }}>
              <h3 style={{ margin: '0', background: 'var(--primary)', color: 'white', padding: '10px', fontSize: '0.85rem', fontWeight: '900', textAlign: 'center', textTransform: 'uppercase' }}>PLAN DE MENÚ ESTIMADO</h3>
-             <div style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '10px' }}>
-             <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+             <div className="table-responsive" style={{ paddingBottom: '10px' }}>
+             <table style={{ borderCollapse: 'collapse' }}>
                 <thead>
                    <tr style={{ background: 'var(--card-green-light)', color: 'var(--primary)' }}>
                       <th style={{ padding: '8px 5px', fontSize: '0.62rem', fontWeight: '900', border: '1px solid var(--primary)', width: '68px', textAlign: 'center' }}>
