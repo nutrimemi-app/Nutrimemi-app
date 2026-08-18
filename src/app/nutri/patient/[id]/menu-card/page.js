@@ -43,6 +43,16 @@ export default function MenuCard() {
       { label: 'ALMUERZO', key: 'almuerzo' },
       { label: 'CENA', key: 'cena' },
     ],
+    '2 comidas + snack AM': [
+      { label: 'MERIENDA AM', key: 'meriendaAM' },
+      { label: 'ALMUERZO', key: 'almuerzo' },
+      { label: 'CENA', key: 'cena' },
+    ],
+    '2 comidas + snack PM': [
+      { label: 'ALMUERZO', key: 'almuerzo' },
+      { label: 'MERIENDA PM', key: 'meriendaPM' },
+      { label: 'CENA', key: 'cena' },
+    ],
     '3 comidas': [
       { label: 'DESAYUNO', key: 'desayuno' },
       { label: 'ALMUERZO', key: 'almuerzo' },
@@ -74,7 +84,7 @@ export default function MenuCard() {
       { label: 'MERIENDA AM', key: 'meriendaAM' },
       { label: 'ALMUERZO', key: 'almuerzo' },
       { label: 'CENA', key: 'cena' },
-    ],
+    ]
   };
 
   const currentMeals = MEAL_PLANS[mealPlanKey] || MEAL_PLANS['3+2 snacks'];

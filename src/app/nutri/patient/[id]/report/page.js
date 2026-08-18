@@ -8,8 +8,17 @@ import { usePatient } from '@/hooks/usePatient';
 
 const MEAL_PLANS = {
   '2 comidas': [
-    { label: 'DESAYUNO', key: 'desayuno', active: false },
     { label: 'ALMUERZO', key: 'almuerzo' },
+    { label: 'CENA', key: 'cena' },
+  ],
+  '2 comidas + snack AM': [
+    { label: 'MER. AM', key: 'meriendaAM' },
+    { label: 'ALMUERZO', key: 'almuerzo' },
+    { label: 'CENA', key: 'cena' },
+  ],
+  '2 comidas + snack PM': [
+    { label: 'ALMUERZO', key: 'almuerzo' },
+    { label: 'MER. PM', key: 'meriendaPM' },
     { label: 'CENA', key: 'cena' },
   ],
   '3 comidas': [
@@ -215,11 +224,9 @@ export default function ClinicalReport() {
           top: 0;
           left: 0;
           width: 100%;
-          height: auto;
-          min-height: 250px;
+          height: 100%;
           z-index: 0;
-          object-fit: contain;
-          object-position: top;
+          object-fit: fill;
           pointer-events: none;
         }
 

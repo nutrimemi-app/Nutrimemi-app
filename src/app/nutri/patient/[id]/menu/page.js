@@ -86,6 +86,16 @@ export const MEAL_PLANS = {
     { title: 'Almuerzo', key: 'almuerzo' },
     { title: 'Cena', key: 'cena' },
   ],
+  '2 comidas + snack AM': [
+    { title: 'Merienda AM', key: 'meriendaAM' },
+    { title: 'Almuerzo', key: 'almuerzo' },
+    { title: 'Cena', key: 'cena' },
+  ],
+  '2 comidas + snack PM': [
+    { title: 'Almuerzo', key: 'almuerzo' },
+    { title: 'Merienda PM', key: 'meriendaPM' },
+    { title: 'Cena', key: 'cena' },
+  ],
   '3 comidas': [
     { title: 'Desayuno', key: 'desayuno' },
     { title: 'Almuerzo', key: 'almuerzo' },
@@ -783,7 +793,7 @@ export default function ManageMenu() {
           </section>
 
           {/* Grid de Porciones por Comida */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingBottom: '120px' }}>
             {mealTypes.map(meal => (
               <div key={meal.key} className="glass-panel" style={{ padding: '16px', background: 'white' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
