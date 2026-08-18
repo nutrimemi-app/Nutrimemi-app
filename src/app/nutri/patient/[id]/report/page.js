@@ -150,27 +150,110 @@ export default function ClinicalReport() {
     <div className="report-container" style={{ background: '#f5f5f5', minHeight: '100vh', padding: '40px 0', paddingBottom: '100px' }}>
       {/* Estilos para Impresión y Pantalla */}
       <style dangerouslySetInnerHTML={{ __html: `
+        /* ESTILOS DE PANTALLA (MÓVIL / ESCRITORIO) */
         .letter-page {
           background: white !important;
           width: 100% !important;
-          max-width: 215.9mm !important;
-          min-height: 279.4mm !important;
-          box-shadow: 0 12px 36px rgba(0,0,0,0.12) !important;
+          max-width: 800px !important;
           margin: 0 auto !important;
           position: relative !important;
           box-sizing: border-box !important;
-          border-radius: 8px !important;
+          border-radius: 20px !important;
           overflow: hidden !important;
+          box-shadow: 0 12px 36px rgba(0,0,0,0.12) !important;
         }
+        
+        .report-content-wrapper {
+          position: relative;
+          z-index: 1;
+          padding: 180px 20px 40px 20px !important;
+          width: 100%;
+          height: 100%;
+          box-sizing: border-box;
+        }
+
+        .appointment-widget {
+          position: absolute;
+          top: 20px !important;
+          right: 20px !important;
+          width: 100px !important;
+          height: 90px !important;
+          background: white;
+          border: 2px solid #fd9e14;
+          border-radius: 16px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+          z-index: 10;
+        }
+        
+        .appointment-widget-day { font-size: 1.5rem !important; }
+        .appointment-widget-month { font-size: 0.6rem !important; }
+
+        .info-grid-3 {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 10px;
+          margin-bottom: 20px;
+          background: rgba(29, 81, 45, 0.04);
+          padding: 12px;
+          border-radius: 8px;
+        }
+
+        .info-grid-2 {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 15px;
+          margin-bottom: 25px;
+        }
+
+        .bg-membrete {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: auto;
+          min-height: 250px;
+          z-index: 0;
+          object-fit: contain;
+          object-position: top;
+          pointer-events: none;
+        }
+
         table {
           width: 100% !important;
-          max-width: 100% !important;
+          min-width: 600px !important;
           table-layout: fixed;
           word-wrap: break-word;
         }
         td, th {
           word-break: break-word;
         }
+
+        /* AJUSTES PARA PANTALLA GRANDE */
+        @media (min-width: 768px) {
+          .info-grid-3 { grid-template-columns: repeat(3, 1fr); }
+          .info-grid-2 { grid-template-columns: 1.2fr 0.8fr; }
+          .report-content-wrapper { padding: 4.8cm 1.2cm 2cm 1.2cm !important; }
+          .appointment-widget {
+             top: 0.8cm !important;
+             right: 1.2cm !important;
+             width: 120px !important;
+             height: 110px !important;
+             border-radius: 25px;
+          }
+          .appointment-widget-day { font-size: 2.2rem !important; }
+          .appointment-widget-month { font-size: 0.7rem !important; }
+          .bg-membrete {
+            object-fit: fill;
+            height: 100%;
+          }
+        }
+
+        /* ESTILOS EXACTOS DE IMPRESIÓN */
         @media print {
           .no-print, nav, footer:not(.report-footer), .tab-bar, #tab-bar { display: none !important; }
           body { background: white !important; margin: 0 !important; padding: 0 !important; }
@@ -180,13 +263,33 @@ export default function ClinicalReport() {
             border: none !important; 
             margin: 0 !important; 
             width: 215.9mm !important; 
+            max-width: 215.9mm !important; 
             height: 279.4mm !important;
+            min-height: 279.4mm !important;
             padding: 0 !important;
             border-radius: 0 !important;
             print-color-adjust: exact !important;
             -webkit-print-color-adjust: exact !important;
             page-break-after: always;
           }
+          .report-content-wrapper { padding: 4.8cm 1.2cm 2cm 1.2cm !important; }
+          .appointment-widget {
+             top: 0.8cm !important;
+             right: 1.2cm !important;
+             width: 120px !important;
+             height: 110px !important;
+             border-radius: 25px;
+          }
+          .appointment-widget-day { font-size: 2.2rem !important; }
+          .appointment-widget-month { font-size: 0.7rem !important; }
+          .info-grid-3 { grid-template-columns: repeat(3, 1fr) !important; gap: 15px !important; }
+          .info-grid-2 { grid-template-columns: 1.2fr 0.8fr !important; gap: 20px !important; }
+          .bg-membrete {
+            object-fit: fill !important;
+            height: 100% !important;
+            min-height: auto !important;
+          }
+          table { min-width: 100% !important; }
         }
       `}} />
 
@@ -223,46 +326,21 @@ export default function ClinicalReport() {
         <img 
           src="/Membrete_Mesa%20de%20trabajo%201.png"
           alt="Membrete Oficial"
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            zIndex: 0,
-            objectFit: 'fill',
-            pointerEvents: 'none'
-          }}
+          className="bg-membrete"
         />
 
         {/* Contenedor Superior de Datos (zIndex 1 asegura que renderiza sobre el fondo) */}
-        <div style={{ position: 'relative', zIndex: 1, padding: '4.8cm 1.2cm 2cm 1.2cm', width: '100%', height: '100%' }}>
+        <div className="report-content-wrapper">
           
           {/* Widget de Próxima Cita Siempre Visible */}
-          <div style={{
-            position: 'absolute',
-            top: '0.8cm',
-            right: '1.2cm',
-            width: '120px',
-            height: '110px',
-            background: 'white',
-            border: '2px solid #fd9e14', /* Color dorado/anaranjado de la UI */
-            borderRadius: '25px',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            textAlign: 'center',
-            boxShadow: '0 4px 10px rgba(0,0,0,0.05)',
-            zIndex: 10
-          }}>
+          <div className="appointment-widget">
             <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: '800', color: '#333' }}>Próxima cita</p>
             {nextApp ? (
               <>
-                <p style={{ margin: 0, fontSize: '2.2rem', fontWeight: '900', color: '#1d512d', lineHeight: '1' }}>
+                <p className="appointment-widget-day" style={{ margin: 0, fontWeight: '900', color: '#1d512d', lineHeight: '1' }}>
                   {nextApp.date.split('-')[2]}
                 </p>
-                <p style={{ margin: 0, fontSize: '0.7rem', fontWeight: '900', color: '#333', textTransform: 'uppercase' }}>
+                <p className="appointment-widget-month" style={{ margin: 0, fontWeight: '900', color: '#333', textTransform: 'uppercase' }}>
                   {new Date(nextApp.date + 'T00:00:00').toLocaleString('es-ES', { month: 'long' })} {nextApp.date.split('-')[0]}
                 </p>
               </>
@@ -273,7 +351,7 @@ export default function ClinicalReport() {
             )}
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px', marginBottom: '20px', background: 'rgba(29, 81, 45, 0.04)', padding: '12px', borderRadius: '8px' }}>
+          <div className="info-grid-3">
             <div>
                <p style={{ fontSize: '0.6rem', fontWeight: '800', opacity: 0.4, marginBottom: '2px' }}>PACIENTE</p>
                <p style={{ fontSize: '0.85rem', fontWeight: '700' }}>{patient.name}</p>
@@ -288,7 +366,7 @@ export default function ClinicalReport() {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '20px', marginBottom: '25px' }}>
+          <div className="info-grid-2">
              <div style={{ border: '1px solid rgba(0,0,0,0.06)', padding: '12px', borderRadius: '8px', background: 'rgba(255,255,255,0.7)' }}>
                 <h4 style={{ fontSize: '0.7rem', fontWeight: '800', opacity: 0.5, marginBottom: '10px' }}>ESTADO NUTRICIONAL ACTUAL</h4>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
@@ -371,6 +449,7 @@ export default function ClinicalReport() {
           {/* PLAN DE MENÚ DINÁMICO SEGÚN PACIENTE EN 2 FILAS */}
           <div style={{ border: '2px solid var(--primary)', borderRadius: '12px', background: 'white', overflow: 'hidden', marginBottom: '25px', pageBreakInside: 'avoid' }}>
              <h3 style={{ margin: '0', background: 'var(--primary)', color: 'white', padding: '10px', fontSize: '0.85rem', fontWeight: '900', textAlign: 'center', textTransform: 'uppercase' }}>PLAN DE MENÚ ESTIMADO</h3>
+             <div style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '10px' }}>
              <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
                 <thead>
                    <tr style={{ background: 'var(--card-green-light)', color: 'var(--primary)' }}>
@@ -458,6 +537,7 @@ export default function ClinicalReport() {
                    </tr>
                 </tbody>
              </table>
+             </div>
           </div>
 
           <div style={{ marginTop: '20px', background: 'rgba(255,255,255,0.8)', border: '1px dashed var(--accent)', padding: '12px', borderRadius: '8px', pageBreakInside: 'avoid' }}>
