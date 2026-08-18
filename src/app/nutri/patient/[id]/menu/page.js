@@ -7,7 +7,7 @@ import { loadFoods } from '@/data/defaultFoods';
 import { calculateClinicalData, DISTRIBUTION_TEMPLATES } from '@/utils/calculationUtils';
 import { supabase } from '@/lib/supabaseClient';
 import { getPatientById, updatePatient } from '@/lib/patients';
-import MealCustomizerModal from '@/components/MealCustomizerModal';
+import FoodSearchModal from '@/components/FoodSearchModal';
 
 const EXCHANGE_VALUES = {
   lacteos: {
@@ -104,11 +104,47 @@ export default function ManageMenu() {
   const [formulas, setFormulas] = useState({ kcal: '', prot: '', cho: '', fat: '' });
   const [mealCalculators, setMealCalculators] = useState({});
   const [mealPlanKey, setMealPlanKey] = useState('3+2 snacks');
-  const [showCustomizer, setShowCustomizer] = useState(false);
   const [lacteosTipo, setLacteosTipo] = useState('bajaGrasa1');
   const [proteinasTipo, setProteinasTipo] = useState('magra');
 
   const mealTypes = getMealTypes(mealPlanKey);
+
+  const saveCustomMealPlan = (newMeals) => {
+    const customKey = 'custom:' + JSON.stringify(newMeals);
+    setMealPlanKey(customKey);
+  };
+
+  const addMealInline = () => {
+    const key = 'custom_' + Date.now();
+    const newMeals = [...mealTypes, { key, title: 'Nueva Comida', label: 'NUEVA COMIDA', name: 'Nueva Comida' }];
+    saveCustomMealPlan(newMeals);
+  };
+
+  const removeMealInline = (index) => {
+    const newMeals = mealTypes.filter((_, i) => i !== index);
+    saveCustomMealPlan(newMeals);
+  };
+
+  const moveMealInline = (index, dir) => {
+    if (index + dir < 0 || index + dir >= mealTypes.length) return;
+    const newMeals = [...mealTypes];
+    const temp = newMeals[index];
+    newMeals[index] = newMeals[index + dir];
+    newMeals[index + dir] = temp;
+    saveCustomMealPlan(newMeals);
+  };
+
+  const renameMealInline = (index, newName) => {
+    const newMeals = [...mealTypes];
+    newMeals[index] = {
+      ...newMeals[index],
+      title: newName,
+      label: newName.toUpperCase(),
+      name: newName
+    };
+    saveCustomMealPlan(newMeals);
+  };
+
 
   const getExchangeGroup = (group) => {
     if (group === 'lacteos') return EXCHANGE_VALUES.lacteos.variantes[lacteosTipo];
@@ -480,8 +516,9 @@ export default function ManageMenu() {
       });
     });
 
-    const choRestanteAntesDeCereales = targetCho - choBeforeCereales;
-    const suggestedCereales = Math.max(0, Math.floor(choRestanteAntesDeCereales / 15));
+    const suggestedCereales = Math.max(0, Math.round((targetCho - consumedCho) / 15));
+    const suggestedCarnes = Math.max(0, Math.round((targetProt - consumedProt) / 7));
+    const suggestedGrasas = Math.max(0, Math.round((targetFat - consumedFat) / 5));
 
     return {
       target: { prot: targetProt, cho: targetCho, fat: targetFat, kcal: targetKcal },
@@ -491,7 +528,9 @@ export default function ManageMenu() {
         cho: targetCho - consumedCho,
         fat: targetFat - consumedFat
       },
-      suggestedCereales
+      suggestedCereales,
+      suggestedCarnes,
+      suggestedGrasas
     };
   };
 
@@ -666,29 +705,12 @@ export default function ManageMenu() {
                   {(mealPlanKey || '').startsWith('custom:') && <option value="custom">PERSONALIZADO ✍️</option>}
                 </select>
                 <button 
-                  onClick={() => setShowCustomizer(true)}
-                  style={{ background: 'white', color: 'var(--primary)', border: '1px solid var(--primary)', padding: '8px 12px', borderRadius: '8px', fontSize: '0.8rem', fontWeight: '900', cursor: 'pointer' }}
-                >
-                  Personalizar ⚙️
-                </button>
-                <button 
                   onClick={autoDistributeAll}
                   style={{ background: 'var(--accent)', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', fontSize: '0.8rem', fontWeight: '900', cursor: 'pointer' }}
                 >
                   ⚡ Auto-Distribuir Porciones
                 </button>
               </div>
-              
-              {showCustomizer && (
-                <MealCustomizerModal 
-                  currentPlan={mealPlanKey} 
-                  onClose={() => setShowCustomizer(false)} 
-                  onSave={(newPlan) => {
-                    setMealPlanKey(newPlan);
-                    setShowCustomizer(false);
-                  }} 
-                />
-              )}
             </div>
             <div className="responsive-grid-4-2">
               {[
@@ -758,22 +780,47 @@ export default function ManageMenu() {
                    );
                 })}
              </div>
-             <div style={{ marginTop: '12px', textAlign: 'center', background: 'var(--card-green-light)', padding: '12px', borderRadius: '12px', border: '1px solid var(--accent)' }}>
-                <p style={{ fontSize: '0.7rem', fontWeight: '900', color: 'var(--primary)', marginBottom: '4px' }}>SUGERIDO CEREALES</p>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                  <p style={{ fontSize: '1.5rem', fontWeight: '900', color: 'var(--primary)', margin: 0 }}>{liveCalc.suggestedCereales}</p>
-                  <p style={{ fontSize: '0.65rem', opacity: 0.7, margin: 0 }}>raciones<br/>(según CHO libre)</p>
+             <div style={{ marginTop: '12px', background: 'var(--card-green-light)', padding: '12px', borderRadius: '12px', border: '1px solid var(--accent)' }}>
+                <p style={{ fontSize: '0.75rem', fontWeight: '900', color: 'var(--primary)', marginBottom: '8px', textAlign: 'center' }}>SUGERENCIAS RÁPIDAS (para rellenar el restante)</p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', textAlign: 'center' }}>
+                  <div>
+                    <p style={{ fontSize: '1.2rem', fontWeight: '900', color: 'var(--primary)', margin: 0 }}>{liveCalc.suggestedCereales}</p>
+                    <p style={{ fontSize: '0.6rem', opacity: 0.7, margin: 0 }}>Cereales<br/>(+15g CHO)</p>
+                  </div>
+                  <div style={{ borderLeft: '1px solid rgba(0,0,0,0.1)', borderRight: '1px solid rgba(0,0,0,0.1)' }}>
+                    <p style={{ fontSize: '1.2rem', fontWeight: '900', color: 'var(--primary)', margin: 0 }}>{liveCalc.suggestedCarnes}</p>
+                    <p style={{ fontSize: '0.6rem', opacity: 0.7, margin: 0 }}>Carnes<br/>(+7g PROT)</p>
+                  </div>
+                  <div>
+                    <p style={{ fontSize: '1.2rem', fontWeight: '900', color: 'var(--primary)', margin: 0 }}>{liveCalc.suggestedGrasas}</p>
+                    <p style={{ fontSize: '0.6rem', opacity: 0.7, margin: 0 }}>Grasas<br/>(+5g GRASA)</p>
+                  </div>
                 </div>
+                <p style={{ fontSize: '0.6rem', opacity: 0.6, marginTop: '8px', fontStyle: 'italic', textAlign: 'center', lineHeight: '1.2' }}>
+                  Nota: El selector de arriba es solo para esta estimación de grasas. ¡El paciente podrá mezclar opciones libremente en su app!
+                </p>
              </div>
           </section>
 
           {/* Grid de Porciones por Comida */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingBottom: '120px' }}>
-            {mealTypes.map(meal => (
+            {mealTypes.map((meal, index) => (
               <div key={meal.key} className="glass-panel" style={{ padding: '16px', background: 'white' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <h3 style={{ fontSize: '1rem', fontWeight: '900', color: 'var(--primary)' }}>{meal.title}</h3>
-                  <button onClick={() => setMealCalculators({...mealCalculators, [meal.key]: mealCalculators[meal.key] ? null : { kcal: '', prot: '', cho: '', fat: '' }})} style={{ background: 'var(--card-green-light)', border: 'none', color: 'var(--primary)', fontSize: '0.65rem', padding: '4px 10px', borderRadius: '6px', fontWeight: '900' }}>+ Fórmula Local</button>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: '200px' }}>
+                    <input 
+                      value={meal.title} 
+                      onChange={(e) => renameMealInline(index, e.target.value)} 
+                      style={{ fontSize: '1rem', fontWeight: '900', color: 'var(--primary)', border: 'none', background: 'transparent', width: '130px', outline: 'none', borderBottom: '1.5px dashed rgba(0,0,0,0.1)', paddingBottom: '2px' }} 
+                      title="Editar nombre"
+                    />
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      <button onClick={() => moveMealInline(index, -1)} disabled={index === 0} style={{ padding: '2px 6px', fontSize: '0.7rem', borderRadius: '6px', border: '1px solid #ddd', background: index === 0 ? '#f5f5f5' : 'white', cursor: index === 0 ? 'not-allowed' : 'pointer' }} title="Subir">⬆️</button>
+                      <button onClick={() => moveMealInline(index, 1)} disabled={index === mealTypes.length - 1} style={{ padding: '2px 6px', fontSize: '0.7rem', borderRadius: '6px', border: '1px solid #ddd', background: index === mealTypes.length - 1 ? '#f5f5f5' : 'white', cursor: index === mealTypes.length - 1 ? 'not-allowed' : 'pointer' }} title="Bajar">⬇️</button>
+                      <button onClick={() => removeMealInline(index)} style={{ padding: '2px 6px', fontSize: '0.7rem', borderRadius: '6px', border: 'none', background: '#ffebee', color: '#c62828', cursor: 'pointer', fontWeight: 'bold' }} title="Eliminar Comida">🗑️</button>
+                    </div>
+                  </div>
+                  <button onClick={() => setMealCalculators({...mealCalculators, [meal.key]: mealCalculators[meal.key] ? null : { kcal: '', prot: '', cho: '', fat: '' }})} style={{ background: 'var(--card-green-light)', border: 'none', color: 'var(--primary)', fontSize: '0.65rem', padding: '6px 10px', borderRadius: '8px', fontWeight: '900', cursor: 'pointer' }}>+ Fórmula Local</button>
                 </div>
                 
                 {mealCalculators[meal.key] && (
@@ -803,6 +850,29 @@ export default function ManageMenu() {
                 </div>
               </div>
             ))}
+            <button 
+              onClick={addMealInline}
+              style={{
+                background: 'rgba(29, 81, 45, 0.05)',
+                border: '2px dashed var(--primary)',
+                color: 'var(--primary)',
+                padding: '16px',
+                borderRadius: '16px',
+                fontWeight: '900',
+                fontSize: '0.9rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                transition: 'all 0.2s',
+                opacity: 0.8
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+              onMouseLeave={(e) => e.currentTarget.style.opacity = '0.8'}
+            >
+              ➕ Añadir Comida Personalizada
+            </button>
           </div>
 
           <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, padding: '24px', background: 'white', borderTop: '1px solid #eee', zIndex: 100 }}>
