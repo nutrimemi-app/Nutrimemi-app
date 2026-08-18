@@ -7,7 +7,6 @@ import { loadFoods } from '@/data/defaultFoods';
 import { calculateClinicalData, DISTRIBUTION_TEMPLATES } from '@/utils/calculationUtils';
 import { supabase } from '@/lib/supabaseClient';
 import { getPatientById, updatePatient } from '@/lib/patients';
-import FoodSearchModal from '@/components/FoodSearchModal';
 
 const EXCHANGE_VALUES = {
   lacteos: {
