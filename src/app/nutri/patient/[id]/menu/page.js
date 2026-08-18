@@ -7,6 +7,7 @@ import { loadFoods } from '@/data/defaultFoods';
 import { calculateClinicalData, DISTRIBUTION_TEMPLATES } from '@/utils/calculationUtils';
 import { supabase } from '@/lib/supabaseClient';
 import { getPatientById, updatePatient } from '@/lib/patients';
+import MealCustomizerModal from '@/components/MealCustomizerModal';
 
 const EXCHANGE_VALUES = {
   lacteos: {
@@ -81,54 +82,7 @@ const suggestRecipesForPortions = (portions) => {
   return `🍽️ Idea de plato sugerido: Arma el plato combinando: ${parts.join(', ')}.`;
 };
 
-export const MEAL_PLANS = {
-  '2 comidas': [
-    { title: 'Almuerzo', key: 'almuerzo' },
-    { title: 'Cena', key: 'cena' },
-  ],
-  '2 comidas + snack AM': [
-    { title: 'Merienda AM', key: 'meriendaAM' },
-    { title: 'Almuerzo', key: 'almuerzo' },
-    { title: 'Cena', key: 'cena' },
-  ],
-  '2 comidas + snack PM': [
-    { title: 'Almuerzo', key: 'almuerzo' },
-    { title: 'Merienda PM', key: 'meriendaPM' },
-    { title: 'Cena', key: 'cena' },
-  ],
-  '3 comidas': [
-    { title: 'Desayuno', key: 'desayuno' },
-    { title: 'Almuerzo', key: 'almuerzo' },
-    { title: 'Cena', key: 'cena' },
-  ],
-  '3+1 snacks': [
-    { title: 'Desayuno', key: 'desayuno' },
-    { title: 'Almuerzo', key: 'almuerzo' },
-    { title: 'Merienda PM', key: 'meriendaPM' },
-    { title: 'Cena', key: 'cena' },
-  ],
-  '3+2 snacks': [
-    { title: 'Desayuno', key: 'desayuno' },
-    { title: 'Merienda AM', key: 'meriendaAM' },
-    { title: 'Almuerzo', key: 'almuerzo' },
-    { title: 'Merienda PM', key: 'meriendaPM' },
-    { title: 'Cena', key: 'cena' },
-  ],
-  '3+3 snacks': [
-    { title: 'Desayuno', key: 'desayuno' },
-    { title: 'Merienda AM', key: 'meriendaAM' },
-    { title: 'Almuerzo', key: 'almuerzo' },
-    { title: 'Merienda PM', key: 'meriendaPM' },
-    { title: 'Cena', key: 'cena' },
-    { title: 'Snack Nocturno', key: 'snackNoche' },
-  ],
-  '2+2 snacks': [
-    { title: 'Desayuno', key: 'desayuno' },
-    { title: 'Merienda AM', key: 'meriendaAM' },
-    { title: 'Almuerzo', key: 'almuerzo' },
-    { title: 'Cena', key: 'cena' },
-  ],
-};
+import { getMealTypes, MEAL_PLANS } from '@/utils/mealUtils';
 
 export const foodGroups = [
   { name: 'Cereales', color: '#FFA500', key: 'cereales' },
@@ -150,10 +104,11 @@ export default function ManageMenu() {
   const [formulas, setFormulas] = useState({ kcal: '', prot: '', cho: '', fat: '' });
   const [mealCalculators, setMealCalculators] = useState({});
   const [mealPlanKey, setMealPlanKey] = useState('3+2 snacks');
+  const [showCustomizer, setShowCustomizer] = useState(false);
   const [lacteosTipo, setLacteosTipo] = useState('bajaGrasa1');
   const [proteinasTipo, setProteinasTipo] = useState('magra');
 
-  const mealTypes = MEAL_PLANS[mealPlanKey] || MEAL_PLANS['3+2 snacks'];
+  const mealTypes = getMealTypes(mealPlanKey);
 
   const getExchangeGroup = (group) => {
     if (group === 'lacteos') return EXCHANGE_VALUES.lacteos.variantes[lacteosTipo];
@@ -701,12 +656,21 @@ export default function ManageMenu() {
               </h4>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
                 <select 
-                  value={mealPlanKey}
-                  onChange={(e) => setMealPlanKey(e.target.value)}
+                  value={mealPlanKey.startsWith('custom:') ? 'custom' : mealPlanKey}
+                  onChange={(e) => {
+                     if (e.target.value !== 'custom') setMealPlanKey(e.target.value);
+                  }}
                   style={{ padding: '8px 12px', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid #ddd', fontWeight: '900', color: 'var(--primary)', cursor: 'pointer', background: 'white' }}
                 >
                   {Object.keys(MEAL_PLANS).map(k => <option key={k} value={k}>{k.toUpperCase()}</option>)}
+                  {mealPlanKey.startsWith('custom:') && <option value="custom">PERSONALIZADO ✍️</option>}
                 </select>
+                <button 
+                  onClick={() => setShowCustomizer(true)}
+                  style={{ background: 'white', color: 'var(--primary)', border: '1px solid var(--primary)', padding: '8px 12px', borderRadius: '8px', fontSize: '0.8rem', fontWeight: '900', cursor: 'pointer' }}
+                >
+                  Personalizar ⚙️
+                </button>
                 <button 
                   onClick={autoDistributeAll}
                   style={{ background: 'var(--accent)', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', fontSize: '0.8rem', fontWeight: '900', cursor: 'pointer' }}
@@ -714,6 +678,17 @@ export default function ManageMenu() {
                   ⚡ Auto-Distribuir Porciones
                 </button>
               </div>
+              
+              {showCustomizer && (
+                <MealCustomizerModal 
+                  currentPlan={mealPlanKey} 
+                  onClose={() => setShowCustomizer(false)} 
+                  onSave={(newPlan) => {
+                    setMealPlanKey(newPlan);
+                    setShowCustomizer(false);
+                  }} 
+                />
+              )}
             </div>
             <div className="responsive-grid-4-2">
               {[

@@ -6,54 +6,7 @@ import { useUI } from '@/context/UIContext';
 import { calculateClinicalData } from '@/utils/calculationUtils';
 import { usePatient } from '@/hooks/usePatient';
 
-const MEAL_PLANS = {
-  '2 comidas': [
-    { label: 'ALMUERZO', key: 'almuerzo' },
-    { label: 'CENA', key: 'cena' },
-  ],
-  '2 comidas + snack AM': [
-    { label: 'MER. AM', key: 'meriendaAM' },
-    { label: 'ALMUERZO', key: 'almuerzo' },
-    { label: 'CENA', key: 'cena' },
-  ],
-  '2 comidas + snack PM': [
-    { label: 'ALMUERZO', key: 'almuerzo' },
-    { label: 'MER. PM', key: 'meriendaPM' },
-    { label: 'CENA', key: 'cena' },
-  ],
-  '3 comidas': [
-    { label: 'DESAYUNO', key: 'desayuno' },
-    { label: 'ALMUERZO', key: 'almuerzo' },
-    { label: 'CENA', key: 'cena' },
-  ],
-  '3+1 snacks': [
-    { label: 'DESAYUNO', key: 'desayuno' },
-    { label: 'ALMUERZO', key: 'almuerzo' },
-    { label: 'MER. PM', key: 'meriendaPM' },
-    { label: 'CENA', key: 'cena' },
-  ],
-  '3+2 snacks': [
-    { label: 'DESAYUNO', key: 'desayuno' },
-    { label: 'MER. AM', key: 'meriendaAM' },
-    { label: 'ALMUERZO', key: 'almuerzo' },
-    { label: 'MER. PM', key: 'meriendaPM' },
-    { label: 'CENA', key: 'cena' },
-  ],
-  '3+3 snacks': [
-    { label: 'DESAYUNO', key: 'desayuno' },
-    { label: 'MER. AM', key: 'meriendaAM' },
-    { label: 'ALMUERZO', key: 'almuerzo' },
-    { label: 'MER. PM', key: 'meriendaPM' },
-    { label: 'CENA', key: 'cena' },
-    { label: 'S. NOCHE', key: 'snackNoche' },
-  ],
-  '2+2 snacks': [
-    { label: 'DESAYUNO', key: 'desayuno' },
-    { label: 'MER. AM', key: 'meriendaAM' },
-    { label: 'ALMUERZO', key: 'almuerzo' },
-    { label: 'CENA', key: 'cena' },
-  ],
-};
+import { getMealTypes, MEAL_PLANS } from '@/utils/mealUtils';
 
 export default function ClinicalReport() {
   const params = useParams();
@@ -463,7 +416,7 @@ export default function ClinicalReport() {
                       <th style={{ padding: '8px 5px', fontSize: '0.62rem', fontWeight: '900', border: '1px solid var(--primary)', width: '68px', textAlign: 'center' }}>
                          DÍA
                       </th>
-                      {(MEAL_PLANS[targetDetails?.mealPlan] || MEAL_PLANS['3+2 snacks']).map(meal => (
+                      {getMealTypes(targetDetails?.mealPlan).map(meal => (
                         <th key={meal.key} style={{ padding: '8px 4px', fontSize: '0.62rem', fontWeight: '900', border: '1px solid var(--primary)', textAlign: 'center' }}>
                            {meal.label}
                         </th>
@@ -476,7 +429,7 @@ export default function ClinicalReport() {
                       <td style={{ padding: '10px 5px', border: '1px solid var(--primary)', textAlign: 'center', background: 'rgba(29, 81, 45, 0.08)', fontWeight: '900', fontSize: '0.7rem', color: 'var(--primary)' }}>
                         ☀️ DÍA 1
                       </td>
-                      {(MEAL_PLANS[targetDetails?.mealPlan] || MEAL_PLANS['3+2 snacks']).map(meal => {
+                      {getMealTypes(targetDetails?.mealPlan).map(meal => {
                          const mealData = targetMenus?.day1?.[meal.key] || targetMenu?.[meal.key] || {};
                          const portions = mealData.portions || {};
                          const activeP = Object.entries(portions)
@@ -512,7 +465,7 @@ export default function ClinicalReport() {
                       <td style={{ padding: '10px 5px', border: '1px solid var(--primary)', textAlign: 'center', background: '#F9FBE7', fontWeight: '900', fontSize: '0.7rem', color: '#827717' }}>
                         🌙 DÍA 2
                       </td>
-                      {(MEAL_PLANS[targetDetails?.mealPlan] || MEAL_PLANS['3+2 snacks']).map(meal => {
+                      {getMealTypes(targetDetails?.mealPlan).map(meal => {
                          const mealData = targetMenus?.day2?.[meal.key] || {};
                          const portions = mealData.portions || {};
                          const activeP = Object.entries(portions)

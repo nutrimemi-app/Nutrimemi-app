@@ -4,6 +4,8 @@ import { useAuth } from '@/context/AuthContext';
 
 import { ChefHat, BookOpen, CheckCircle, Info } from 'lucide-react';
 import { usePatientByEmail } from '@/hooks/usePatient';
+import { getMealTypes } from '@/utils/mealUtils';
+import { useRouter } from 'next/navigation';
 
 const FOOD_GROUPS = [
   { key: 'cereales',  name: 'Cereales',  color: '#E07B00', bg: '#FFF3E0', dot: '#FFA500' },
@@ -24,6 +26,7 @@ const EXCHANGE_EXAMPLES = {
 };
 
 export default function PatientMenu() {
+  const router = useRouter();
   const { user } = useAuth();
   const { patient, status } = usePatientByEmail(user?.email);
   const [tab, setTab] = useState('plan'); // 'plan' | 'menu'
@@ -31,47 +34,7 @@ export default function PatientMenu() {
 
   const menu = patient?.menu || {};
   const mealPlanKey = patient?.details?.mealPlan || '3+2 snacks';
-
-  const MEAL_PLANS = {
-    '2 comidas': [
-      { label: 'Almuerzo', key: 'almuerzo' },
-      { label: 'Cena', key: 'cena' },
-    ],
-    '3 comidas': [
-      { label: 'Desayuno', key: 'desayuno' },
-      { label: 'Almuerzo', key: 'almuerzo' },
-      { label: 'Cena', key: 'cena' },
-    ],
-    '3+1 snacks': [
-      { label: 'Desayuno', key: 'desayuno' },
-      { label: 'Almuerzo', key: 'almuerzo' },
-      { label: 'Merienda PM', key: 'meriendaPM' },
-      { label: 'Cena', key: 'cena' },
-    ],
-    '3+2 snacks': [
-      { label: 'Desayuno', key: 'desayuno' },
-      { label: 'Merienda AM', key: 'meriendaAM' },
-      { label: 'Almuerzo', key: 'almuerzo' },
-      { label: 'Merienda PM', key: 'meriendaPM' },
-      { label: 'Cena', key: 'cena' },
-    ],
-    '3+3 snacks': [
-      { label: 'Desayuno', key: 'desayuno' },
-      { label: 'Merienda AM', key: 'meriendaAM' },
-      { label: 'Almuerzo', key: 'almuerzo' },
-      { label: 'Merienda PM', key: 'meriendaPM' },
-      { label: 'Cena', key: 'cena' },
-      { label: 'Snack Noche', key: 'snackNoche' },
-    ],
-    '2+2 snacks': [
-      { label: 'Desayuno', key: 'desayuno' },
-      { label: 'Merienda AM', key: 'meriendaAM' },
-      { label: 'Almuerzo', key: 'almuerzo' },
-      { label: 'Cena', key: 'cena' },
-    ],
-  };
-
-  const currentMeals = MEAL_PLANS[mealPlanKey] || MEAL_PLANS['3+2 snacks'];
+  const currentMeals = getMealTypes(mealPlanKey);
 
   const mealsWithData = currentMeals.filter(m => {
     const d = menu[m.key];

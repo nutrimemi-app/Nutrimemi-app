@@ -9,44 +9,7 @@ import { getAnthropometricIconSrc } from '@/utils/anthropometricIcon';
 import { updatePatient } from '@/lib/patients';
 import { usePatient } from '@/hooks/usePatient';
 
-const MEAL_PLANS = {
-  '2 comidas': [
-    { key: 'almuerzo', name: 'Almuerzo' },
-    { key: 'cena', name: 'Cena' },
-  ],
-  '3 comidas': [
-    { key: 'desayuno', name: 'Desayuno' },
-    { key: 'almuerzo', name: 'Almuerzo' },
-    { key: 'cena', name: 'Cena' },
-  ],
-  '3+1 snacks': [
-    { key: 'desayuno', name: 'Desayuno' },
-    { key: 'almuerzo', name: 'Almuerzo' },
-    { key: 'meriendaPM', name: 'Merienda PM' },
-    { key: 'cena', name: 'Cena' },
-  ],
-  '3+2 snacks': [
-    { key: 'desayuno', name: 'Desayuno' },
-    { key: 'meriendaAM', name: 'Merienda AM' },
-    { key: 'almuerzo', name: 'Almuerzo' },
-    { key: 'meriendaPM', name: 'Merienda PM' },
-    { key: 'cena', name: 'Cena' },
-  ],
-  '3+3 snacks': [
-    { key: 'desayuno', name: 'Desayuno' },
-    { key: 'meriendaAM', name: 'Merienda AM' },
-    { key: 'almuerzo', name: 'Almuerzo' },
-    { key: 'meriendaPM', name: 'Merienda PM' },
-    { key: 'cena', name: 'Cena' },
-    { key: 'snackNoche', name: 'Snack Nocturno' },
-  ],
-  '2+2 snacks': [
-    { key: 'desayuno', name: 'Desayuno' },
-    { key: 'meriendaAM', name: 'Merienda AM' },
-    { key: 'almuerzo', name: 'Almuerzo' },
-    { key: 'cena', name: 'Cena' },
-  ],
-};
+import { getMealTypes, MEAL_PLANS } from '@/utils/mealUtils';
 
 const EXCHANGE_GUIDE_DB = {
   cereales: {
@@ -249,7 +212,7 @@ export default function PatientFile() {
   }, [patient?.id]);
 
   const mealPlanKey = patient?.details?.mealPlan || '3+2 snacks';
-  const mealsForPatient = MEAL_PLANS[mealPlanKey] || MEAL_PLANS['3+2 snacks'];
+  const mealsForPatient = getMealTypes(mealPlanKey);
 
   useEffect(() => {
     if (mealsForPatient && mealsForPatient.length > 0 && !selectedExchangeMeal) {

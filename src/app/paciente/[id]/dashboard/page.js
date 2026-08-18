@@ -5,44 +5,7 @@ import { Activity, Calendar, User, History, Camera, Upload } from 'lucide-react'
 import { updatePatient } from '@/lib/patients';
 import { usePatient } from '@/hooks/usePatient';
 
-const MEAL_PLANS = {
-  '2 comidas': [
-    { name: 'Almuerzo', key: 'almuerzo' },
-    { name: 'Cena', key: 'cena' },
-  ],
-  '3 comidas': [
-    { name: 'Desayuno', key: 'desayuno' },
-    { name: 'Almuerzo', key: 'almuerzo' },
-    { name: 'Cena', key: 'cena' },
-  ],
-  '3+1 snacks': [
-    { name: 'Desayuno', key: 'desayuno' },
-    { name: 'Almuerzo', key: 'almuerzo' },
-    { name: 'Merienda PM', key: 'meriendaPM' },
-    { name: 'Cena', key: 'cena' },
-  ],
-  '3+2 snacks': [
-    { name: 'Desayuno', key: 'desayuno' },
-    { name: 'Merienda AM', key: 'meriendaAM' },
-    { name: 'Almuerzo', key: 'almuerzo' },
-    { name: 'Merienda PM', key: 'meriendaPM' },
-    { name: 'Cena', key: 'cena' },
-  ],
-  '3+3 snacks': [
-    { name: 'Desayuno', key: 'desayuno' },
-    { name: 'Merienda AM', key: 'meriendaAM' },
-    { name: 'Almuerzo', key: 'almuerzo' },
-    { name: 'Merienda PM', key: 'meriendaPM' },
-    { name: 'Cena', key: 'cena' },
-    { name: 'Snack Nocturno', key: 'snackNoche' },
-  ],
-  '2+2 snacks': [
-    { name: 'Desayuno', key: 'desayuno' },
-    { name: 'Merienda AM', key: 'meriendaAM' },
-    { name: 'Almuerzo', key: 'almuerzo' },
-    { name: 'Cena', key: 'cena' },
-  ],
-};
+import { getMealTypes, MEAL_PLANS } from '@/utils/mealUtils';
 
 const EXCHANGE_GUIDE_DB = {
   cereales: {
@@ -212,7 +175,7 @@ export default function PatientDashboard() {
   };
 
   const mealPlanKey = patient?.details?.mealPlan || '3+2 snacks';
-  const currentMeals = MEAL_PLANS[mealPlanKey] || MEAL_PLANS['3+2 snacks'];
+  const currentMeals = getMealTypes(mealPlanKey);
 
   useEffect(() => {
     if (patient) {

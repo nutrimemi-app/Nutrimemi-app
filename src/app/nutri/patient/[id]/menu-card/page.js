@@ -23,6 +23,8 @@ const EXCHANGE_EXAMPLES = {
   grasas:    '1 RACIÓN = 1 cda aceite / 30 g aguacate / 6 almendras.',
 };
 
+import { getMealTypes, MEAL_PLANS } from '@/utils/mealUtils';
+
 export default function MenuCard() {
   const params = useParams();
   const router = useRouter();
@@ -37,57 +39,7 @@ export default function MenuCard() {
   if (!patient) return null;
 
   const mealPlanKey = patient.details?.mealPlan || '3+2 snacks';
-
-  const MEAL_PLANS = {
-    '2 comidas': [
-      { label: 'ALMUERZO', key: 'almuerzo' },
-      { label: 'CENA', key: 'cena' },
-    ],
-    '2 comidas + snack AM': [
-      { label: 'MERIENDA AM', key: 'meriendaAM' },
-      { label: 'ALMUERZO', key: 'almuerzo' },
-      { label: 'CENA', key: 'cena' },
-    ],
-    '2 comidas + snack PM': [
-      { label: 'ALMUERZO', key: 'almuerzo' },
-      { label: 'MERIENDA PM', key: 'meriendaPM' },
-      { label: 'CENA', key: 'cena' },
-    ],
-    '3 comidas': [
-      { label: 'DESAYUNO', key: 'desayuno' },
-      { label: 'ALMUERZO', key: 'almuerzo' },
-      { label: 'CENA', key: 'cena' },
-    ],
-    '3+1 snacks': [
-    { label: 'DESAYUNO', key: 'desayuno' },
-    { label: 'ALMUERZO', key: 'almuerzo' },
-    { label: 'MERIENDA PM', key: 'meriendaPM' },
-    { label: 'CENA', key: 'cena' },
-  ],
-  '3+2 snacks': [
-      { label: 'DESAYUNO', key: 'desayuno' },
-      { label: 'MERIENDA AM', key: 'meriendaAM' },
-      { label: 'ALMUERZO', key: 'almuerzo' },
-      { label: 'MERIENDA PM', key: 'meriendaPM' },
-      { label: 'CENA', key: 'cena' },
-    ],
-    '3+3 snacks': [
-      { label: 'DESAYUNO', key: 'desayuno' },
-      { label: 'MERIENDA AM', key: 'meriendaAM' },
-      { label: 'ALMUERZO', key: 'almuerzo' },
-      { label: 'MERIENDA PM', key: 'meriendaPM' },
-      { label: 'CENA', key: 'cena' },
-      { label: 'SNACK NOCHE', key: 'snackNoche' },
-    ],
-    '2+2 snacks': [
-      { label: 'DESAYUNO', key: 'desayuno' },
-      { label: 'MERIENDA AM', key: 'meriendaAM' },
-      { label: 'ALMUERZO', key: 'almuerzo' },
-      { label: 'CENA', key: 'cena' },
-    ]
-  };
-
-  const currentMeals = MEAL_PLANS[mealPlanKey] || MEAL_PLANS['3+2 snacks'];
+  const currentMeals = getMealTypes(mealPlanKey);
   const targetMenus = patient.menus || { day1: patient.menu || {} };
 
   const KCAL = { cereales: 70, proteinas: 55, vegetales: 25, frutas: 60, lacteos: 120, grasas: 45 };
