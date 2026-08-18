@@ -4,9 +4,10 @@ import { ArrowLeft, Save, Activity, Search, Clock, SaveAll, X, CheckCircle, Aler
 import { useParams, useRouter } from 'next/navigation';
 import { useUI } from '@/context/UIContext';
 import { loadFoods } from '@/data/defaultFoods';
-import { calculateClinicalData, DISTRIBUTION_TEMPLATES } from '@/utils/calculationUtils';
+import { calculateClinicalData, DISTRIBUTION_TEMPLATES, suggestPortionsFromMacros } from '@/utils/calculationUtils';
 import { supabase } from '@/lib/supabaseClient';
 import { getPatientById, updatePatient } from '@/lib/patients';
+import PortionCalculator from '@/components/PortionCalculator';
 
 const EXCHANGE_VALUES = {
   lacteos: {
@@ -25,7 +26,7 @@ const EXCHANGE_VALUES = {
       gorda: { label: 'Gorda', prot: 7, fat: 8, cho: 0, kcal: 100 }
     }
   },
-  grasas: { prot: 0, fat: 5, cho: 0, kcal: 45 }
+  grasas: { prot: 0, fat: 7.5, cho: 0, kcal: 67.5 }
 };
 
 const PRESET_RECIPES = [
@@ -169,6 +170,7 @@ export default function ManageMenu() {
   const [expandedSuggestions, setExpandedSuggestions] = useState({});
   const [customRecipes, setCustomRecipes] = useState([]);
   const [recipeNames, setRecipeNames] = useState({});
+  const [dailyPortions, setDailyPortions] = useState(null);
   
   const [quickFoodName, setQuickFoodName] = useState('');
   const [quickFoodGroup, setQuickFoodGroup] = useState('cereales');
@@ -239,14 +241,25 @@ export default function ManageMenu() {
           const pctProt = (found.dietForm.pctProt !== undefined && found.dietForm.pctProt !== null && found.dietForm.pctProt !== '') ? parseFloat(found.dietForm.pctProt) : sugProt;
           const pctCho = (found.dietForm.pctCho !== undefined && found.dietForm.pctCho !== null && found.dietForm.pctCho !== '') ? parseFloat(found.dietForm.pctCho) : sugCho;
           const pctLip = Math.max(0, 100 - pctProt - pctCho);
+          const tProt = ((parseFloat(rct) * pctProt) / 100 / 4);
+          const tCho = ((parseFloat(rct) * pctCho) / 100 / 4);
+          const tFat = ((parseFloat(rct) * pctLip) / 100 / 9);
+
           setFormulas({
             kcal: rct.toString(),
-            prot: ((parseFloat(rct) * pctProt) / 100 / 4).toFixed(1).toString(),
-            cho: ((parseFloat(rct) * pctCho) / 100 / 4).toFixed(1).toString(),
-            fat: ((parseFloat(rct) * pctLip) / 100 / 9).toFixed(1).toString()
+            prot: tProt.toFixed(1).toString(),
+            cho: tCho.toFixed(1).toString(),
+            fat: tFat.toFixed(1).toString()
           });
+
+          setDailyPortions(suggestPortionsFromMacros(tProt, tCho, tFat));
         } else if (found.formulas) {
           setFormulas(found.formulas);
+          setDailyPortions(suggestPortionsFromMacros(
+            parseFloat(found.formulas.prot) || 0,
+            parseFloat(found.formulas.cho) || 0,
+            parseFloat(found.formulas.fat) || 0
+          ));
         }
       }
     };
@@ -497,11 +510,13 @@ export default function ManageMenu() {
     let consumedFat = 0;
     let choBeforeCereales = 0;
 
+    const consumedPortions = { cereales: 0, proteinas: 0, vegetales: 0, frutas: 0, lacteos: 0, grasas: 0 };
     mealTypes.forEach(mealDef => {
       const m = menu[mealDef.key];
       if (!m) return;
       Object.entries(m.portions || {}).forEach(([group, amount]) => {
         const a = parseFloat(amount) || 0;
+        if (consumedPortions[group] !== undefined) consumedPortions[group] += a;
         const exchange = getExchangeGroup(group);
         if (exchange) {
            consumedProt += a * exchange.prot;
@@ -522,6 +537,7 @@ export default function ManageMenu() {
     return {
       target: { prot: targetProt, cho: targetCho, fat: targetFat, kcal: targetKcal },
       consumed: { prot: consumedProt, cho: consumedCho, fat: consumedFat },
+      consumedPortions,
       remaining: {
         prot: targetProt - consumedProt,
         cho: targetCho - consumedCho,
@@ -737,6 +753,23 @@ export default function ManageMenu() {
             </div>
           </section>
 
+          {/* Tabla de Equivalencias (Paso 1.5) */}
+          <section className="glass-panel" style={{ padding: '20px', background: 'white', marginBottom: '24px', border: '1px solid rgba(0,0,0,0.1)' }}>
+            <div style={{ marginBottom: '16px' }}>
+              <h4 style={{ color: 'var(--primary)', fontSize: '0.9rem', fontWeight: '900', marginBottom: '4px' }}>🍽️ OBJETIVO DE RACIONES DIARIAS</h4>
+              <p style={{ fontSize: '0.75rem', opacity: 0.6 }}>Define cuántas raciones totales quieres recetar al día para cumplir la fórmula.</p>
+            </div>
+            {dailyPortions && (
+              <PortionCalculator 
+                portions={dailyPortions} 
+                onChange={setDailyPortions} 
+                targetProt={evalFormula(formulas.prot) || 0} 
+                targetCho={evalFormula(formulas.cho) || 0} 
+                targetLip={evalFormula(formulas.fat) || 0} 
+              />
+            )}
+          </section>
+
           {/* Calculadora en Vivo */}
           <section className="glass-panel" style={{ padding: '20px', background: 'white', marginBottom: '24px', border: '1.5px solid var(--primary)', borderRadius: '16px', position: 'sticky', top: '10px', zIndex: 50, boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }}>
              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
@@ -780,23 +813,27 @@ export default function ManageMenu() {
                 })}
              </div>
              <div style={{ marginTop: '12px', background: 'var(--card-green-light)', padding: '12px', borderRadius: '12px', border: '1px solid var(--accent)' }}>
-                <p style={{ fontSize: '0.75rem', fontWeight: '900', color: 'var(--primary)', marginBottom: '8px', textAlign: 'center' }}>SUGERENCIAS RÁPIDAS (para rellenar el restante)</p>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', textAlign: 'center' }}>
-                  <div>
-                    <p style={{ fontSize: '1.2rem', fontWeight: '900', color: 'var(--primary)', margin: 0 }}>{liveCalc.suggestedCereales}</p>
-                    <p style={{ fontSize: '0.6rem', opacity: 0.7, margin: 0 }}>Cereales<br/>(+15g CHO)</p>
-                  </div>
-                  <div style={{ borderLeft: '1px solid rgba(0,0,0,0.1)', borderRight: '1px solid rgba(0,0,0,0.1)' }}>
-                    <p style={{ fontSize: '1.2rem', fontWeight: '900', color: 'var(--primary)', margin: 0 }}>{liveCalc.suggestedCarnes}</p>
-                    <p style={{ fontSize: '0.6rem', opacity: 0.7, margin: 0 }}>Carnes<br/>(+7g PROT)</p>
-                  </div>
-                  <div>
-                    <p style={{ fontSize: '1.2rem', fontWeight: '900', color: 'var(--primary)', margin: 0 }}>{liveCalc.suggestedGrasas}</p>
-                    <p style={{ fontSize: '0.6rem', opacity: 0.7, margin: 0 }}>Grasas<br/>(+5g GRASA)</p>
-                  </div>
+                <p style={{ fontSize: '0.75rem', fontWeight: '900', color: 'var(--primary)', marginBottom: '8px', textAlign: 'center', textTransform: 'uppercase' }}>Raciones Disponibles por Asignar</p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '4px', textAlign: 'center' }}>
+                  {foodGroups.map((g, i) => {
+                    const targetPortion = dailyPortions ? (dailyPortions[g.key] || 0) : 0;
+                    const consumedPortion = liveCalc.consumedPortions[g.key] || 0;
+                    const remaining = targetPortion - consumedPortion;
+                    const isOver = remaining < 0;
+                    return (
+                      <div key={g.key} style={{ borderRight: i < 5 ? '1px solid rgba(0,0,0,0.1)' : 'none', padding: '0 2px' }}>
+                        <p style={{ fontSize: '1rem', fontWeight: '900', color: isOver ? '#EF5350' : (remaining === 0 ? '#4CAF50' : 'var(--primary)'), margin: 0 }}>
+                          {remaining > 0 ? '+' : ''}{remaining % 1 === 0 ? remaining : remaining.toFixed(1)}
+                        </p>
+                        <p style={{ fontSize: '0.5rem', opacity: 0.8, margin: 0, fontWeight: '700', textTransform: 'uppercase' }}>
+                          {g.name.substring(0,4)}
+                        </p>
+                      </div>
+                    );
+                  })}
                 </div>
                 <p style={{ fontSize: '0.6rem', opacity: 0.6, marginTop: '8px', fontStyle: 'italic', textAlign: 'center', lineHeight: '1.2' }}>
-                  Nota: El selector de arriba es solo para esta estimación de grasas. ¡El paciente podrá mezclar opciones libremente en su app!
+                  Estos números bajarán a medida que asocies raciones a cada comida abajo. ¡Intenta llevarlos a 0!
                 </p>
              </div>
           </section>
@@ -1051,15 +1088,14 @@ export default function ManageMenu() {
                           const { error } = await supabase.from('custom_recipes').insert([newRecipe]);
                           
                           if (error) {
-                            showToast('Error al guardar en la nube', 'error');
-                            console.error(error);
-                            return;
+                            console.warn('Fallback to localStorage due to supabase error:', error);
                           }
 
                           const updatedRecipes = [...customRecipes, newRecipe];
                           setCustomRecipes(updatedRecipes);
+                          localStorage.setItem('nutri_custom_dishes', JSON.stringify(updatedRecipes));
                           setRecipeNames({...recipeNames, [meal.key]: ''});
-                          showToast(`Receta "${name}" guardada con éxito en la nube`, 'success');
+                          showToast(`Receta "${name}" guardada con éxito`, 'success');
                         }}
                         style={{ background: '#1D512D', color: 'white', border: 'none', padding: '6px 12px', fontSize: '0.7rem', fontWeight: '800', borderRadius: '6px', cursor: 'pointer' }}
                       >

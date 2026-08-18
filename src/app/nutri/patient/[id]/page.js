@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, Activity, Printer, Calendar, Save, History, Camera, FileText, BookOpen, BarChart2, MessageCircle, FileDown } from 'lucide-react';
 import { useUI } from '@/context/UIContext';
 import { calculateClinicalData, getBodyFatProfile, suggestPortionsFromMacros } from '@/utils/calculationUtils';
+import PortionCalculator from '@/components/PortionCalculator';
 import { getAnthropometricIconSrc } from '@/utils/anthropometricIcon';
 import { updatePatient } from '@/lib/patients';
 import { usePatient } from '@/hooks/usePatient';
@@ -1108,39 +1109,13 @@ export default function PatientFile() {
               borderRadius: '20px',
               padding: '16px'
             }}>
-              <h5 style={{ margin: '0 0 10px 0', fontSize: '0.8rem', fontWeight: '900', color: '#1d512d', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                ✨ Sugerencia de Distribución de Raciones (Equivalencias)
-              </h5>
-              <p style={{ margin: '0 0 12px 0', fontSize: '0.7rem', opacity: 0.8, color: '#1d512d', lineHeight: '1.4' }}>
-                Basado en tu prescripción, esta es la distribución teórica diaria sugerida:
-              </p>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '14px' }}>
-                {[
-                  { name: 'Cereales', val: suggestions.cereales, key: 'cereales', color: '#FFA500' },
-                  { name: 'Proteínas', val: suggestions.proteinas, key: 'proteinas', color: '#FF0000' },
-                  { name: 'Vegetales', val: suggestions.vegetales !== undefined ? suggestions.vegetales : 2, key: 'vegetales', note: '(Fijo)' },
-                  { name: 'Frutas', val: suggestions.frutas, key: 'frutas', color: '#BA55D3' },
-                  { name: 'Lácteos', val: suggestions.lacteos !== undefined ? suggestions.lacteos : 1, key: 'lacteos', note: '(Fijo)' },
-                  { name: 'Grasas', val: suggestions.grasas, key: 'grasas', color: '#FFD700' },
-                ].map((g, idx) => (
-                  <div key={idx} style={{ background: 'white', border: '1px solid rgba(0,0,0,0.05)', padding: '10px 8px', borderRadius: '12px', textAlign: 'center' }}>
-                    <p style={{ margin: 0, fontSize: '0.55rem', fontWeight: '850', color: '#1d512d', textTransform: 'uppercase' }}>{g.name}</p>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', marginTop: '4px' }}>
-                      <input 
-                        type="number" 
-                        value={g.val}
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value) || 0;
-                          setCustomSuggestions({ ...(customSuggestions || calculatedSuggestions), [g.key]: val });
-                        }}
-                        style={{ width: '40px', textAlign: 'center', border: '1px solid #ddd', borderRadius: '6px', fontSize: '1.1rem', fontWeight: '950', color: '#1d512d', padding: '2px' }}
-                      />
-                      <span style={{ fontSize: '0.65rem', fontWeight: '750', opacity: 0.6 }}>rac.</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <PortionCalculator 
+                portions={suggestions} 
+                onChange={setCustomSuggestions} 
+                targetProt={targetProtGrams} 
+                targetCho={targetChoGrams} 
+                targetLip={targetFatGrams} 
+              />
 
               <button
                 type="button"

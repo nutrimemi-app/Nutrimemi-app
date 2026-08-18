@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { calculateClinicalData, suggestPortionsFromMacros } from '@/utils/calculationUtils';
+import PortionCalculator from '@/components/PortionCalculator';
 import { addHistoryEntry, getPatientById, updatePatient } from '@/lib/patients';
 
 export default function ControlPage({ params }) {
@@ -405,6 +406,40 @@ export default function ControlPage({ params }) {
             </table>
           </div>
         </div>
+
+        {/* Sugerencia de Raciones */}
+        {(() => {
+          const rct = parseFloat(controlData.rct) || parseFloat(patient.dietForm?.rct) || 1700;
+          const getSuggestedPct = (key) => {
+            const prof = liveClinical?.profile ? liveClinical.profile.toUpperCase() : 'NORMOPESO';
+            if (prof === 'BAJO PESO') return key === 'pctProt' ? 18 : key === 'pctCho' ? 50 : 32;
+            else if (prof === 'SOBREPESO' || prof.startsWith('OBESIDAD')) return key === 'pctProt' ? 20 : key === 'pctCho' ? 55 : 25;
+            else return key === 'pctProt' ? 15 : key === 'pctCho' ? 55 : 30;
+          };
+          const pctProt = controlData.pctProt !== '' ? parseFloat(controlData.pctProt) : getSuggestedPct('pctProt');
+          const pctCho = controlData.pctCho !== '' ? parseFloat(controlData.pctCho) : getSuggestedPct('pctCho');
+          const pctLipStr = (100 - pctProt - pctCho);
+          const pctLip = pctLipStr > 0 ? pctLipStr : 0;
+
+          const targetProtGrams = (rct * pctProt / 100) / 4;
+          const targetChoGrams = (rct * pctCho / 100) / 4;
+          const targetFatGrams = (rct * pctLip / 100) / 9;
+
+          const calculatedSuggestions = suggestPortionsFromMacros(targetProtGrams, targetChoGrams, targetFatGrams);
+          const suggestions = customSuggestions || calculatedSuggestions;
+
+          return (
+            <div style={{ marginBottom: '20px' }}>
+              <PortionCalculator 
+                portions={suggestions} 
+                onChange={setCustomSuggestions} 
+                targetProt={targetProtGrams} 
+                targetCho={targetChoGrams} 
+                targetLip={targetFatGrams} 
+              />
+            </div>
+          );
+        })()}
 
         {/* Notas de evolución en este control */}
         <div style={{ marginBottom: '24px' }}>
