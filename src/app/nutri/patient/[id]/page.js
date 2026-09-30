@@ -570,6 +570,85 @@ export default function PatientFile() {
         </div>
       </header>
 
+      {/* Caja de Ajustes de Peso */}
+      <section className="glass-panel shadow-premium" style={{ padding: '24px', background: 'white', borderRadius: '24px', border: '1px solid rgba(0,0,0,0.08)', marginBottom: '20px' }}>
+        <h4 style={{ fontSize: '0.85rem', fontWeight: '900', color: 'var(--primary)', marginBottom: '14px', letterSpacing: '1px', textTransform: 'uppercase' }}>
+          ⚖️ Cálculos y Ajustes de Peso (Lorentz / Devine)
+        </h4>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ background: 'rgba(0,0,0,0.015)', padding: '12px 16px', borderRadius: '16px', fontSize: '0.75rem', lineHeight: '1.45', borderLeft: '3px solid var(--primary)' }}>
+            <p style={{ margin: 0, fontWeight: '750', color: 'var(--primary)' }}>Fórmulas Clínicas:</p>
+            <p style={{ margin: '4px 0 0 0', opacity: 0.8 }}>
+              <strong>Peso Ideal (PI):</strong> {gender === 'female' ? 'PI = 45.5 + 2.3 * ((Talla_cm / 2.54) - 60)' : 'PI = 50.0 + 2.3 * ((Talla_cm / 2.54) - 60)'}
+            </p>
+            <p style={{ margin: '4px 0 0 0', opacity: 0.8 }}>
+              <strong>Peso Ajustado (PA):</strong> PA = ((Peso Actual - PI) * 0.25) + PI (Recomendado para sobrepeso y obesidad)
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px' }}>
+            <div>
+              <label style={{ fontSize: '0.7rem', fontWeight: '850', opacity: 0.6, display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>P. ACTUAL</label>
+              <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,0.05)', borderRadius: '10px', padding: '2px 8px' }}>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={patient.details?.weight || ''}
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value) || 0;
+                    const updatedDetails = { ...patient.details, weight: val };
+                    const updatedPatient = { ...patient, details: updatedDetails };
+                    savePatientUpdate(updatedPatient);
+                  }}
+                  style={{ width: '100%', background: 'none', border: 'none', outline: 'none', fontSize: '0.9rem', fontWeight: '800', padding: '8px 2px', textAlign: 'center' }}
+                />
+                <span style={{ fontSize: '0.7rem', fontWeight: '800', opacity: 0.5 }}>kg</span>
+              </div>
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.7rem', fontWeight: '850', opacity: 0.6, display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>P. IDEAL (PI)</label>
+              <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,0.05)', borderRadius: '10px', padding: '2px 8px' }}>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={patient.details?.manualPi || ''}
+                  placeholder={clinical.suggestedPi}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const updatedDetails = { ...patient.details, manualPi: val };
+                    const updatedPatient = { ...patient, details: updatedDetails };
+                    savePatientUpdate(updatedPatient);
+                  }}
+                  style={{ width: '100%', background: 'none', border: 'none', outline: 'none', fontSize: '0.9rem', fontWeight: '800', padding: '8px 2px', textAlign: 'center' }}
+                />
+                <span style={{ fontSize: '0.7rem', fontWeight: '800', opacity: 0.5 }}>kg</span>
+              </div>
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.7rem', fontWeight: '850', opacity: 0.6, display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>P. AJUSTADO (PA)</label>
+              <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,0.05)', borderRadius: '10px', padding: '2px 8px' }}>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={patient.details?.manualPa || ''}
+                  placeholder={clinical.suggestedPa}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const updatedDetails = { ...patient.details, manualPa: val };
+                    const updatedPatient = { ...patient, details: updatedDetails };
+                    savePatientUpdate(updatedPatient);
+                  }}
+                  style={{ width: '100%', background: 'none', border: 'none', outline: 'none', fontSize: '0.9rem', fontWeight: '800', padding: '8px 2px', textAlign: 'center' }}
+                />
+                <span style={{ fontSize: '0.7rem', fontWeight: '800', opacity: 0.5 }}>kg</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Tarjeta Antropometría (Coral) */}
       <section className="glass-panel" style={{
         background: gender === 'female' ? '#FFF0F5' : '#E6F2FF',
@@ -1151,86 +1230,7 @@ export default function PatientFile() {
       </section>
 
 
-        {/* Caja de Ajustes de Peso */}
-        <section className="glass-panel shadow-premium" style={{ padding: '24px', background: 'white', borderRadius: '24px', border: '1px solid rgba(0,0,0,0.08)' }}>
-          <h4 style={{ fontSize: '0.85rem', fontWeight: '900', color: 'var(--primary)', marginBottom: '14px', letterSpacing: '1px', textTransform: 'uppercase' }}>
-            ⚖️ Cálculos y Ajustes de Peso (Lorentz / Devine)
-          </h4>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ background: 'rgba(0,0,0,0.015)', padding: '12px 16px', borderRadius: '16px', fontSize: '0.75rem', lineHeight: '1.45', borderLeft: '3px solid var(--primary)' }}>
-              <p style={{ margin: 0, fontWeight: '750', color: 'var(--primary)' }}>Fórmulas Clínicas:</p>
-              <p style={{ margin: '4px 0 0 0', opacity: 0.8 }}>
-                <strong>Peso Ideal (PI):</strong> {gender === 'female' ? 'PI = 45.5 + 2.3 * ((Talla_cm / 2.54) - 60)' : 'PI = 50.0 + 2.3 * ((Talla_cm / 2.54) - 60)'}
-              </p>
-              <p style={{ margin: '4px 0 0 0', opacity: 0.8 }}>
-                <strong>Peso Ajustado (PA):</strong> PA = ((Peso Actual - PI) * 0.25) + PI (Recomendado para sobrepeso y obesidad)
-              </p>
-            </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px' }}>
-              <div>
-                <label style={{ fontSize: '0.7rem', fontWeight: '850', opacity: 0.6, display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>P. ACTUAL</label>
-                <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,0.05)', borderRadius: '10px', padding: '2px 8px' }}>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={patient.details?.weight || ''}
-                    onChange={(e) => {
-                      const val = parseFloat(e.target.value) || 0;
-                      const updatedDetails = { ...patient.details, weight: val };
-                      const updatedPatient = { ...patient, details: updatedDetails };
-                      savePatientUpdate(updatedPatient);
-                    }}
-                    style={{ width: '100%', background: 'none', border: 'none', outline: 'none', fontSize: '0.9rem', fontWeight: '800', padding: '8px 2px', textAlign: 'center' }}
-                  />
-                  <span style={{ fontSize: '0.7rem', fontWeight: '800', opacity: 0.5 }}>kg</span>
-                </div>
-              </div>
-
-              <div>
-                <label style={{ fontSize: '0.7rem', fontWeight: '850', opacity: 0.6, display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>P. IDEAL (PI)</label>
-                <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,0.05)', borderRadius: '10px', padding: '2px 8px' }}>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={patient.details?.manualPi || ''}
-                    placeholder={clinical.suggestedPi}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      const updatedDetails = { ...patient.details, manualPi: val };
-                      const updatedPatient = { ...patient, details: updatedDetails };
-                      savePatientUpdate(updatedPatient);
-                    }}
-                    style={{ width: '100%', background: 'none', border: 'none', outline: 'none', fontSize: '0.9rem', fontWeight: '800', padding: '8px 2px', textAlign: 'center' }}
-                  />
-                  <span style={{ fontSize: '0.7rem', fontWeight: '800', opacity: 0.5 }}>kg</span>
-                </div>
-              </div>
-
-              <div>
-                <label style={{ fontSize: '0.7rem', fontWeight: '850', opacity: 0.6, display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>P. AJUSTADO (PA)</label>
-                <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,0.05)', borderRadius: '10px', padding: '2px 8px' }}>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={patient.details?.manualPa || ''}
-                    placeholder={clinical.suggestedPa}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      const updatedDetails = { ...patient.details, manualPa: val };
-                      const updatedPatient = { ...patient, details: updatedDetails };
-                      savePatientUpdate(updatedPatient);
-                    }}
-                    style={{ width: '100%', background: 'none', border: 'none', outline: 'none', fontSize: '0.9rem', fontWeight: '800', padding: '8px 2px', textAlign: 'center' }}
-                  />
-                  <span style={{ fontSize: '0.7rem', fontWeight: '800', opacity: 0.5 }}>kg</span>
-                </div>
-              </div>
-
-
-            </div>
-          </div>
-        </section>
 
         {/* Notas del Nutricionista */}
       <section className="glass-panel" style={{ padding: '20px', marginBottom: '20px', background: 'rgba(0,0,0,0.02)' }}>
@@ -1258,6 +1258,7 @@ export default function PatientFile() {
           }}
         />
       </section>
+
 
 
 
@@ -1318,90 +1319,26 @@ export default function PatientFile() {
       </div>
 
 
-      {/* Resumen del Recordatorio de 24 Horas (R24H) */}
-      <section className="glass-panel" style={{ padding: '24px', marginBottom: '20px', background: 'white', border: '1.5px dashed var(--accent)', borderRadius: '24px' }}>
+      {/* Recordatorio de Hábitos (R24H) */}
+      <section className="glass-panel" style={{ padding: '24px', marginBottom: '20px', background: 'var(--card-yellow-light)', borderRadius: '24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <h4 style={{ fontSize: '1rem', fontWeight: '955', color: 'var(--primary)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-            🍏 Consulta / Resumen R24H (Última Ingesta)
+          <h4 style={{ color: 'var(--text-primary)', fontSize: '1.2rem', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            🍏 Hábitos Alimenticios (R24H)
           </h4>
-          {patient.lastReminderDate && (
-            <span style={{ fontSize: '0.7rem', fontWeight: '800', background: 'var(--card-yellow-light)', color: 'var(--accent)', padding: '4px 10px', borderRadius: '12px' }}>
-              Modificado: {patient.lastReminderDate.split('-').reverse().join('/')}
-            </span>
-          )}
         </div>
-
-        {!savedR24h ? (
-          <div style={{ padding: '16px', textAlign: 'center', opacity: 0.6, fontSize: '0.85rem' }}>
-            No hay recordatorio de 24 horas guardado todavía. 
-            <div style={{ marginTop: '10px' }}>
-              <Link href={`/nutri/patient/${patient.id}/reminder`} className="btn-secondary" style={{ textDecoration: 'none', display: 'inline-block', padding: '8px 16px', borderRadius: '10px', fontSize: '0.75rem' }}>
-                + Llenar R24H
-              </Link>
-            </div>
-          </div>
-        ) : (
-          <div>
-            {/* Totales Nutricionales */}
-            {patient.r24hTotals && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', textAlign: 'center', marginBottom: '16px', background: 'var(--bg-primary)', padding: '12px', borderRadius: '16px' }}>
-                <div>
-                  <p style={{ fontSize: '0.55rem', fontWeight: '800', opacity: 0.6 }}>CALORÍAS</p>
-                  <p style={{ fontSize: '0.95rem', fontWeight: '900', color: 'var(--primary)', marginTop: '2px' }}>{patient.r24hTotals.kcal?.toFixed(0)} <span style={{ fontSize: '0.6rem' }}>kcal</span></p>
-                </div>
-                <div>
-                  <p style={{ fontSize: '0.55rem', fontWeight: '800', opacity: 0.6, color: '#FFA500' }}>CHO</p>
-                  <p style={{ fontSize: '0.95rem', fontWeight: '900', color: '#FFA500', marginTop: '2px' }}>{patient.r24hTotals.cho?.toFixed(1)}g</p>
-                </div>
-                <div>
-                  <p style={{ fontSize: '0.55rem', fontWeight: '800', opacity: 0.6, color: '#EF5350' }}>PROT</p>
-                  <p style={{ fontSize: '0.95rem', fontWeight: '900', color: '#EF5350', marginTop: '2px' }}>{patient.r24hTotals.prot?.toFixed(1)}g</p>
-                </div>
-                <div>
-                  <p style={{ fontSize: '0.55rem', fontWeight: '800', opacity: 0.6, color: '#CBBC1E' }}>GRASA</p>
-                  <p style={{ fontSize: '0.95rem', fontWeight: '900', color: '#CBBC1E', marginTop: '2px' }}>{patient.r24hTotals.fat?.toFixed(1)}g</p>
-                </div>
-              </div>
-            )}
-
-            {/* Listado de Alimentos por comida */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'visible', paddingRight: '4px', marginBottom: '16px' }}>
-              {['Desayuno', 'Merienda AM', 'Almuerzo', 'Merienda PM', 'Cena', 'Colación Nocturna'].map(meal => {
-                const entries = savedR24h[meal] || [];
-                if (entries.length === 0) return null;
-                return (
-                  <div key={meal} style={{ background: 'rgba(0,0,0,0.015)', padding: '10px 14px', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.03)' }}>
-                    <p style={{ fontSize: '0.75rem', fontWeight: '900', color: 'var(--primary)', marginBottom: '4px' }}>{meal.toUpperCase()}</p>
-                    <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '0.8rem', color: '#555' }}>
-                      {entries.map(e => (
-                        <li key={e.id}>
-                          <span style={{ fontWeight: '700', color: '#222' }}>{e.portionsQty} rac. de {e.name}</span>
-                          <span style={{ fontSize: '0.7rem', opacity: 0.6, marginLeft: '6px' }}>({(e.kcal).toFixed(0)} kcal)</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Notas Manuales */}
-            {savedR24hNotes && (
-              <div style={{ background: '#FFFDF0', borderLeft: '3.5px solid var(--accent)', padding: '12px 14px', borderRadius: '0 12px 12px 0', fontSize: '0.85rem' }}>
-                <p style={{ margin: '0 0 4px 0', fontWeight: '900', fontSize: '0.7rem', opacity: 0.7, color: 'var(--accent)', textTransform: 'uppercase' }}>Notas Manuales del Recordatorio:</p>
-                <p style={{ margin: 0, color: '#555', fontStyle: 'italic', whiteSpace: 'pre-wrap' }}>{savedR24hNotes}</p>
-              </div>
-            )}
-
-            <div style={{ marginTop: '14px', display: 'flex', justifyContent: 'flex-end' }}>
-              <Link href={`/nutri/patient/${patient.id}/reminder`} style={{ textDecoration: 'none' }}>
-                <button className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <History size={14} /> Editar Recordatorio
-                </button>
-              </Link>
-            </div>
-          </div>
-        )}
+        <p style={{ fontSize: '0.85rem', opacity: 0.7, marginBottom: '10px' }}>
+          Anotaciones de ingestas, horarios y hábitos del paciente:
+        </p>
+        <textarea 
+          className="input-field" 
+          placeholder="Anota aquí qué comió el paciente en las últimas 24 horas (hábitos, horarios, preferencias)..." 
+          style={{ minHeight: '120px', paddingTop: '12px', marginBottom: '4px', width: '100%', fontSize: '0.9rem', padding: '16px', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.1)', background: 'white' }}
+          value={savedR24hNotes}
+          onChange={(e) => {
+            setSavedR24hNotes(e.target.value);
+            localStorage.setItem(`r24h_notes_${patient.id}`, e.target.value);
+          }}
+        />
       </section>
 
 

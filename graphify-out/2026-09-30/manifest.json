@@ -1,0 +1,172 @@
+{
+  "jsconfig.json": {
+    "mtime": 1781958982.5581396,
+    "ast_hash": "68768cea106010e102a316884b373c0a",
+    "semantic_hash": "68768cea106010e102a316884b373c0a"
+  },
+  "package.json": {
+    "mtime": 1782132070.6229138,
+    "ast_hash": "df3d9199ddaa426a9d33e378962ad0bf",
+    "semantic_hash": "df3d9199ddaa426a9d33e378962ad0bf"
+  },
+  "public/sw.js": {
+    "mtime": 1782132267.4738941,
+    "ast_hash": "2001e22e294aaefcdfc88adfbd8ad25d",
+    "semantic_hash": "2001e22e294aaefcdfc88adfbd8ad25d"
+  },
+  "scripts/seed-alimentos.js": {
+    "mtime": 1782223272.1394892,
+    "ast_hash": "f89e7dbcfe4e1c8a9df7b24487542740",
+    "semantic_hash": "f89e7dbcfe4e1c8a9df7b24487542740"
+  },
+  "src/app/api/send-push/route.js": {
+    "mtime": 1782132183.0633118,
+    "ast_hash": "f113ed97655049edbe9631102ac2e539",
+    "semantic_hash": "f113ed97655049edbe9631102ac2e539"
+  },
+  "src/app/layout.js": {
+    "mtime": 1782093622.56711,
+    "ast_hash": "27ebd17d6a7f7de17c9840e82c96991a",
+    "semantic_hash": "27ebd17d6a7f7de17c9840e82c96991a"
+  },
+  "src/app/manifest.js": {
+    "mtime": 1782097111.0307791,
+    "ast_hash": "d2935bef252dea64c39ea98ebb8b0f5a",
+    "semantic_hash": "d2935bef252dea64c39ea98ebb8b0f5a"
+  },
+  "src/app/nutri/agenda/page.js": {
+    "mtime": 1782134205.648377,
+    "ast_hash": "cf1c9e469cab7ada1d6b060ea6bdc3a9",
+    "semantic_hash": "cf1c9e469cab7ada1d6b060ea6bdc3a9"
+  },
+  "src/app/nutri/dashboard/page.js": {
+    "mtime": 1782099881.8349166,
+    "ast_hash": "18def1befd8112faf58d4248cde86b28",
+    "semantic_hash": "18def1befd8112faf58d4248cde86b28"
+  },
+  "src/app/nutri/foods/page.js": {
+    "mtime": 1782135526.0035017,
+    "ast_hash": "2143ed9a20a5cb055f9535f640e3b9d2",
+    "semantic_hash": "2143ed9a20a5cb055f9535f640e3b9d2"
+  },
+  "src/app/nutri/new-patient/page.js": {
+    "mtime": 1782130943.900339,
+    "ast_hash": "2b7f29653bc6d73bcb2a4862e2bc93b0",
+    "semantic_hash": "2b7f29653bc6d73bcb2a4862e2bc93b0"
+  },
+  "src/app/nutri/patient/[id]/menu/page.js": {
+    "mtime": 1782133420.4155772,
+    "ast_hash": "b4bb4960da35038fc78ece24b6f085f6",
+    "semantic_hash": "b4bb4960da35038fc78ece24b6f085f6"
+  },
+  "src/app/nutri/patient/[id]/page.js": {
+    "mtime": 1782231865.4247003,
+    "ast_hash": "e2ecf2b6ff0febbafb40cabf0580dbce",
+    "semantic_hash": "e2ecf2b6ff0febbafb40cabf0580dbce"
+  },
+  "src/app/nutri/patient/[id]/report/page.js": {
+    "mtime": 1782152149.3187196,
+    "ast_hash": "faf6f5494fcbcc34dad7f49a002af751",
+    "semantic_hash": "faf6f5494fcbcc34dad7f49a002af751"
+  },
+  "src/app/nutri/profile/page.js": {
+    "mtime": 1782135554.9388828,
+    "ast_hash": "813536f32f5cada4f6a6180e76edda09",
+    "semantic_hash": "813536f32f5cada4f6a6180e76edda09"
+  },
+  "src/app/paciente/[id]/dashboard/page.js": {
+    "mtime": 1782054694.468325,
+    "ast_hash": "67b6a0f3ef9c0f8cac6a50484dcb32bc",
+    "semantic_hash": "67b6a0f3ef9c0f8cac6a50484dcb32bc"
+  },
+  "src/app/paciente/[id]/layout.js": {
+    "mtime": 1782053335.3595889,
+    "ast_hash": "747304fba157b018057a0870302530a8",
+    "semantic_hash": "747304fba157b018057a0870302530a8"
+  },
+  "src/app/paciente/[id]/measurements/page.js": {
+    "mtime": 1782246343.9777544,
+    "ast_hash": "ee37b94bee0c109a96ad11b139e4bc9a",
+    "semantic_hash": "ee37b94bee0c109a96ad11b139e4bc9a"
+  },
+  "src/app/paciente/[id]/page.js": {
+    "mtime": 1782244926.2948868,
+    "ast_hash": "098af8c3f5f8a93e8ba13edaedf98d16",
+    "semantic_hash": "098af8c3f5f8a93e8ba13edaedf98d16"
+  },
+  "src/app/paciente/[id]/photos/page.js": {
+    "mtime": 1782245186.885612,
+    "ast_hash": "9edc110846b91dce9b203663be899f71",
+    "semantic_hash": "9edc110846b91dce9b203663be899f71"
+  },
+  "src/app/paciente/[id]/questions/page.js": {
+    "mtime": 1782245072.1995392,
+    "ast_hash": "1e6b27bbe754de7284d2718e1fe9101c",
+    "semantic_hash": "1e6b27bbe754de7284d2718e1fe9101c"
+  },
+  "src/app/page.js": {
+    "mtime": 1782101481.4986193,
+    "ast_hash": "89b466f6400fd26708025d9b8506b832",
+    "semantic_hash": "89b466f6400fd26708025d9b8506b832"
+  },
+  "src/app/patient/home/page.js": {
+    "mtime": 1782093113.9131844,
+    "ast_hash": "084e8edc47fa5466683f9ffeb3995d23",
+    "semantic_hash": "084e8edc47fa5466683f9ffeb3995d23"
+  },
+  "src/app/patient/menu/page.js": {
+    "mtime": 1782131376.9588304,
+    "ast_hash": "4c26962726e907b8407bf7fe8d5eb083",
+    "semantic_hash": "4c26962726e907b8407bf7fe8d5eb083"
+  },
+  "src/app/patient/profile/page.js": {
+    "mtime": 1782132429.9998515,
+    "ast_hash": "d8ba49d27c4dc77412b4ec06a40516c6",
+    "semantic_hash": "d8ba49d27c4dc77412b4ec06a40516c6"
+  },
+  "src/app/patient/register/[id]/page.js": {
+    "mtime": 1782092504.5657134,
+    "ast_hash": "f96f61866bbb3271f12e3fb6e78ef5fd",
+    "semantic_hash": "f96f61866bbb3271f12e3fb6e78ef5fd"
+  },
+  "src/app/patient/shopping-list/page.js": {
+    "mtime": 1782131001.0504012,
+    "ast_hash": "a543ad41b99eba6b5caefd429f2b29a1",
+    "semantic_hash": "a543ad41b99eba6b5caefd429f2b29a1"
+  },
+  "src/components/BottomNav.js": {
+    "mtime": 1782231854.8620229,
+    "ast_hash": "ef0344ce3e9fcd1248a1f7b0e21c0bac",
+    "semantic_hash": "ef0344ce3e9fcd1248a1f7b0e21c0bac"
+  },
+  "src/components/patient/TabBar.js": {
+    "mtime": 1781998800.3986516,
+    "ast_hash": "182d4e49efcce1124d21f6a3c64dad33",
+    "semantic_hash": "182d4e49efcce1124d21f6a3c64dad33"
+  },
+  "src/context/AuthContext.js": {
+    "mtime": 1782227410.84233,
+    "ast_hash": "89b0bc36d9f8ce41eaf8922ce4fb1d21",
+    "semantic_hash": "89b0bc36d9f8ce41eaf8922ce4fb1d21"
+  },
+  "src/context/UIContext.js": {
+    "mtime": 1782222760.9916272,
+    "ast_hash": "7b19ac7b3e3c88957098823fd83838b5",
+    "semantic_hash": "7b19ac7b3e3c88957098823fd83838b5"
+  },
+  "src/data/defaultFoods.js": {
+    "mtime": 1782005777.218733,
+    "ast_hash": "b9cb857172cb93e2985d35eb02a609af",
+    "semantic_hash": "b9cb857172cb93e2985d35eb02a609af"
+  },
+  "src/hooks/usePushNotifications.js": {
+    "mtime": 1782132363.8011086,
+    "ast_hash": "de4e74686168ec3038b61f09fce767c7",
+    "semantic_hash": "de4e74686168ec3038b61f09fce767c7"
+  },
+  "src/utils/calculationUtils.js": {
+    "mtime": 1782007865.3901472,
+    "ast_hash": "d4ce6ff4cc50497b731cf54fd214ffb2",
+    "semantic_hash": "d4ce6ff4cc50497b731cf54fd214ffb2"
+  }
+}

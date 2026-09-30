@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useUI } from '@/context/UIContext';
 import { createPatient } from '@/lib/patients';
-import R24H from '@/components/R24H';
 
 export default function NewPatient() {
   const { showToast } = useUI();
@@ -82,19 +81,10 @@ export default function NewPatient() {
       return;
     }
     try {
-      // Calcular los totales de R24H para el historial
-      let kcal = 0, cho = 0, prot = 0, fat = 0;
-      Object.values(reminder).forEach(mealEntries => {
-        mealEntries.forEach(e => {
-          kcal += e.kcal || 0; cho += e.cho || 0; prot += e.prot || 0; fat += e.fat || 0;
-        });
-      });
-      const totals = { kcal, cho, prot, fat };
-      const finalData = { ...formData, r24hTotals: totals, lastReminderDate: new Date().toISOString().split('T')[0] };
+      const finalData = { ...formData, lastReminderDate: new Date().toISOString().split('T')[0] };
       
       const created = await createPatient(finalData);
       
-      localStorage.setItem(`r24h_${created.id}`, JSON.stringify(reminder));
       localStorage.setItem(`r24h_notes_${created.id}`, r24hNotes);
 
       if (mode === 'presencial') {
@@ -310,12 +300,16 @@ export default function NewPatient() {
         </section>
 
         <section className="glass-panel" style={{ padding: '24px', marginBottom: '24px', borderRadius: '20px' }}>
-          <h4 style={{ marginBottom: '16px', opacity: 0.5, fontSize: '0.8rem', fontWeight: '800' }}>RECORDATORIO 24 HORAS (Ingreso)</h4>
-          <R24H 
-            reminder={reminder} 
-            setReminder={setReminder} 
-            r24hNotes={r24hNotes} 
-            setR24hNotes={setR24hNotes} 
+          <h4 style={{ marginBottom: '16px', opacity: 0.5, fontSize: '0.8rem', fontWeight: '800' }}>RECORDATORIO 24 HORAS (Hábitos del Paciente)</h4>
+          <p style={{ fontSize: '0.85rem', opacity: 0.7, marginBottom: '12px' }}>
+            Anota lo que consumió el paciente en las últimas 24 horas, sus horarios habituales y preferencias alimenticias:
+          </p>
+          <textarea 
+            className="input-field" 
+            placeholder="Ej: Desayuno 8am: 2 arepas con queso. Almuerzo 1pm: Arroz con pollo y tajadas..." 
+            style={{ minHeight: '120px', paddingTop: '12px', marginBottom: '4px', width: '100%', fontSize: '0.9rem', padding: '16px', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.1)' }}
+            value={r24hNotes}
+            onChange={(e) => setR24hNotes(e.target.value)}
           />
         </section>
 
