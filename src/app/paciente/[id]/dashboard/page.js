@@ -158,13 +158,25 @@ export default function PatientDashboard() {
         const updatedGallery = [...(patient.photosGallery || []), newPhotoItem];
         const updatedPatient = { ...patient, photosGallery: updatedGallery };
         
-        updatePatient(patient.id, { photosGallery: updatedGallery }).then(() => {
-          setPatient(updatedPatient);
+        updatePatient(patient.id, {
+          photosGallery: updatedGallery,
+          _expectedUpdatedAt: patient.updated_at,
+          _patientBase: patient
+        }).then(updated => {
+          if (updated?.updated_at) {
+            setPatient({ ...updatedPatient, updated_at: updated.updated_at });
+          } else {
+            setPatient(updatedPatient);
+          }
           setPhotoFile(null);
           alert('Foto subida con éxito');
         }).catch(err => {
           console.error('Error uploading photo:', err);
-          alert('Error al subir foto');
+          if (err.code === 'VERSION_CONFLICT' || err.code === 'CLINICAL_FIELD_CONFLICT') {
+            alert('El expediente fue modificado concurrentemente. Por favor recarga.');
+          } else {
+            alert('Error al subir foto');
+          }
         });
         
         const fileInput = document.getElementById('patient-photo-input');

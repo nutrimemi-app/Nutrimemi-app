@@ -165,6 +165,10 @@ export default function ManageMenu() {
     day1: { ...initialMenuStructure },
     day2: { ...initialMenuStructure }
   });
+
+  // Metadatos de concurrencia optimista (OCC)
+  const [menuBaseSnapshot, setMenuBaseSnapshot] = useState(null);
+  const [baseUpdatedAt, setBaseUpdatedAt] = useState(null);
   
   const [searchTerms, setSearchTerms] = useState({});
   const [expandedSuggestions, setExpandedSuggestions] = useState({});
@@ -197,6 +201,16 @@ export default function ManageMenu() {
       const found = await getPatientById(params.id);
       if (found) {
         setPatient(found);
+
+        // Capturar snapshot inmutable de base para Three-Way Merge y OCC
+        try {
+          const rawBase = found.menu || {};
+          setMenuBaseSnapshot(JSON.parse(JSON.stringify(rawBase)));
+        } catch (e) {
+          setMenuBaseSnapshot({});
+        }
+        setBaseUpdatedAt(found.updated_at || null);
+
         if (found.details?.mealPlan) {
           setMealPlanKey(found.details.mealPlan);
         }
@@ -588,12 +602,22 @@ export default function ManageMenu() {
         menus: menus,
         menu: menus.day1, // Compatibilidad con vistas simples heredadas
         formulas: finalFormulas,
-        dietForm: updatedDietForm
+        dietForm: updatedDietForm,
+        _menuBase: menuBaseSnapshot,
+        _expectedUpdatedAt: baseUpdatedAt,
+        _patientBase: patient
       });
       showToast('Plan nutricional guardado con éxito', 'success');
       router.back();
     } catch (err) {
-      showToast('Error al guardar plan nutricional', 'error');
+      console.error('Error al guardar plan nutricional:', err);
+      if (err.code === 'PERSISTENCE_CONFLICT') {
+        showToast('Conflicto clínico concurrente en el menú. Persistencia bloqueada para no perder datos.', 'error');
+      } else if (err.code === 'VERSION_CONFLICT') {
+        showToast('El expediente fue actualizado por otra sesión. Recarga los datos.', 'error');
+      } else {
+        showToast('Error al guardar plan nutricional', 'error');
+      }
     }
   };
 

@@ -155,7 +155,14 @@ export default function ControlPage({ params }) {
       // Save patient to LocalStorage
       const saved = JSON.parse(localStorage.getItem('nutri_patients') || '[]');
       localStorage.setItem('nutri_patients', JSON.stringify(saved.map(p => p.id === patient.id ? updatedPatient : p)));
-      updatePatient(patient.id, updatedPatient);
+      // Persistir únicamente los campos clínicos modificados en este control con CAS y base clínica
+      await updatePatient(patient.id, {
+        details: updatedDetails,
+        measurements: updatedMeasurements,
+        dietForm: updatedDietForm,
+        _expectedUpdatedAt: patient.updated_at,
+        _patientBase: patient
+      });
       
       showToast("¡Consulta de control guardada con éxito!", "success");
       
@@ -165,7 +172,11 @@ export default function ControlPage({ params }) {
 
     } catch (err) {
       console.error(err);
-      showToast("Error al guardar el control. Reintente.", "error");
+      if (err.code === 'VERSION_CONFLICT' || err.code === 'CLINICAL_FIELD_CONFLICT') {
+        showToast("Conflicto concurrente: el paciente fue modificado por otra sesión. Recarga los datos.", "error");
+      } else {
+        showToast("Error al guardar el control. Reintente.", "error");
+      }
     }
   };
 
