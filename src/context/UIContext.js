@@ -29,16 +29,22 @@ export function UIProvider({ children }) {
       navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW error', err));
     }
 
+    // Si el usuario ya rechazó el prompt, no volvemos a mostrarlo
+    if (typeof window !== 'undefined' && localStorage.getItem('pwa_install_dismissed') === 'true') {
+      return;
+    }
+
     // Detect OS
     const ua = window.navigator.userAgent;
     if (/iPhone|iPad|iPod/.test(ua)) setOs('ios');
 
     // Android: mostrar banner SOLO cuando Chrome confirma que la app es instalable
-    window.addEventListener('beforeinstallprompt', (e) => {
+    const handleBeforeInstall = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
       setPwaPrompt(true);
-    });
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
 
     // iOS Safari: mostrar instrucciones manuales
     const isIOS = /iPhone|iPad|iPod/.test(ua);
@@ -53,6 +59,10 @@ export function UIProvider({ children }) {
     if (window.matchMedia('(display-mode: standalone)').matches) {
       setPwaPrompt(false);
     }
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+    };
   }, []);
 
   const handleInstallClick = async () => {
@@ -207,7 +217,7 @@ export function UIProvider({ children }) {
              {os === 'ios' ? (
                 <div style={{ fontSize: '0.9rem', lineHeight: '1.5', color: '#1d512d', fontWeight: '600' }}>
                    1. Toca el botón <strong>Compartir</strong> <Share size={18} style={{ verticalAlign: 'middle', margin: '0 4px' }} /> abajo en Safari.<br/>
-                   2. Pulsa en <strong>"Añadir a pantalla de inicio"</strong> <Download size={18} style={{ verticalAlign: 'middle', margin: '0 4px' }} />.<br/>
+                   2. Pulsa en <strong>&quot;Añadir a pantalla de inicio&quot;</strong> <Download size={18} style={{ verticalAlign: 'middle', margin: '0 4px' }} />.<br/>
                    3. ¡Listo! Tendrás acceso directo en tu iPhone.
                 </div>
              ) : (
@@ -220,7 +230,10 @@ export function UIProvider({ children }) {
           
           <div style={{ display: 'flex', gap: '12px' }}>
              <button 
-               onClick={() => setPwaPrompt(false)} 
+               onClick={() => {
+               setPwaPrompt(false);
+               try { localStorage.setItem('pwa_install_dismissed', 'true'); } catch(e) {}
+             }} 
                style={{ flex: 1, padding: '16px', borderRadius: '16px', border: 'none', background: 'rgba(0,0,0,0.05)', fontWeight: '900', color: '#666', fontSize: '0.9rem' }}
              >
                Quizás luego

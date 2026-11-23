@@ -47,23 +47,37 @@ export function AuthProvider({ children }) {
     // Buscar paciente real en Supabase
     const { data: patient, error } = await supabase
       .from('patients')
-      .select('name, email, password')
+      .select('id, name, email, password, onboarding_answers')
       .eq('email', emailClean)
       .single();
 
     if (patient && patient.password === passClean) {
       const userData = { 
+        id: patient.id,
         email: emailClean, 
         role: 'Paciente', 
         name: patient.name 
       };
       setUser(userData);
       localStorage.setItem('nutri_user', JSON.stringify(userData));
-      router.push('/patient/home');
+
+      const onboardingStatus = patient.onboarding_answers?.onboardingStatus;
+      if (onboardingStatus === 'completed') {
+        router.push('/patient/home');
+      } else {
+        router.push(`/paciente/${patient.id}`);
+      }
       return;
     }
 
     showToast('Credenciales incorrectas', 'error');
+  };
+
+  const setSessionUser = (userData) => {
+    setUser(userData);
+    try {
+      localStorage.setItem('nutri_user', JSON.stringify(userData));
+    } catch (e) {}
   };
 
   const logout = () => {
@@ -73,7 +87,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, mounted }}>
+    <AuthContext.Provider value={{ user, login, logout, setSessionUser, mounted }}>
       {children}
     </AuthContext.Provider>
   );

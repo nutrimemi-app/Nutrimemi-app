@@ -31,6 +31,11 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(event.request.url);
   
+  // 0. Rutas dinámicas de administración (/nutri/*) y APIs: bypass directo a red sin intercepción
+  if (url.pathname.startsWith('/nutri') || url.pathname.startsWith('/api')) {
+    return;
+  }
+
   // 1. Recursos estáticos e imágenes: CACHE-FIRST
   if (STATIC_ASSETS.includes(url.pathname)) {
     event.respondWith(
@@ -65,8 +70,10 @@ self.addEventListener('fetch', (event) => {
           }
           return response;
         })
-        .catch(() => {
-          return caches.match(event.request);
+        .catch(async () => {
+          const cached = await caches.match(event.request);
+          if (cached) return cached;
+          return new Response('Network unavailable', { status: 503, statusText: 'Service Unavailable' });
         })
     );
     return;

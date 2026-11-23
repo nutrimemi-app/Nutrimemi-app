@@ -4,7 +4,7 @@ import {
   ArrowLeft, ArrowRight, UserPlus, Smartphone, ShieldCheck, 
   CheckCircle2, Clock, Info, User, Phone, Mail, 
   FileText, ExternalLink, Target, Utensils, Activity, 
-  Droplets, ShieldAlert, Ruler, Camera, Save, Check, X 
+  Droplets, ShieldAlert, Ruler, Camera, Save, Check, X, Send
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -171,8 +171,44 @@ function NewPatientContent() {
   // Estado Modalidad 2: Invitar a registrarse (onboarding remoto)
   const [inviteForm, setInviteForm] = useState({
     name: '',
-    phone: ''
+    phone: '',
+    gender: '' // 'female' | 'male' | '' (no indicado)
   });
+  const [invitePatientId, setInvitePatientId] = useState(null); // ID del expediente creado para el invitado
+  const [inviteLinkCopied, setInviteLinkCopied] = useState(false);
+  const [isSavingInvite, setIsSavingInvite] = useState(false);
+
+  // Genera el enlace personal del paciente invitado
+  const getPatientInviteLink = (patientId) => {
+    if (typeof window === 'undefined') return '';
+    return `${window.location.origin}/paciente/${patientId}`;
+  };
+
+  // Crea el expediente mínimo y genera el enlace de invitación
+  const handleCreateInvite = async () => {
+    const trimmedName = inviteForm.name.trim();
+    if (!trimmedName) {
+      showToast('El nombre del paciente es obligatorio para generar el enlace', 'error');
+      return;
+    }
+    setIsSavingInvite(true);
+    try {
+      const created = await createPatient({
+        name: trimmedName,
+        phone: inviteForm.phone.trim() || '',
+        gender: inviteForm.gender || 'female',
+        status: 'Pendiente',
+        lastReminderDate: new Date().toISOString().split('T')[0]
+      });
+      setInvitePatientId(created.id);
+      showToast('Expediente creado. Enlace personal disponible.', 'success');
+    } catch (err) {
+      console.error('Error creando expediente para invitación:', err);
+      showToast('Error al crear el expediente. Verifica la conexión.', 'error');
+    } finally {
+      setIsSavingInvite(false);
+    }
+  };
 
   // Cálculo de edad automático
   const calculateAge = (dateString) => {
@@ -666,7 +702,9 @@ function NewPatientContent() {
           <button 
             type="button"
             onClick={() => {
-              if (currentStep > 1) {
+              if (isEditingExisting) {
+                router.push(`/nutri/patient/${patientIdParam || createdPatientId}`);
+              } else if (currentStep > 1) {
                 setCurrentStep(currentStep - 1);
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               } else {
@@ -2009,206 +2047,189 @@ function NewPatientContent() {
             marginBottom: '20px'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-              <div style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '10px',
-                background: 'rgba(2, 132, 199, 0.08)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#0284C7'
-              }}>
+              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(2, 132, 199, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0284C7' }}>
                 <Smartphone size={20} />
               </div>
               <div>
-                <h2 style={{ fontSize: '1.15rem', fontWeight: '900', margin: 0 }}>
-                  Invitación para Registro Remoto
-                </h2>
-                <span style={{ fontSize: '0.72rem', color: '#0284C7', fontWeight: '800', textTransform: 'uppercase' }}>
-                  Autocompletado desde el móvil del paciente
-                </span>
+                <h2 style={{ fontSize: '1.15rem', fontWeight: '900', margin: 0 }}>Invitación para Registro Remoto</h2>
+                <span style={{ fontSize: '0.72rem', color: '#0284C7', fontWeight: '800', textTransform: 'uppercase' }}>Autocompletado desde el móvil del paciente</span>
               </div>
             </div>
-
             <p style={{ fontSize: '0.83rem', opacity: 0.7, margin: '8px 0 20px', lineHeight: '1.4' }}>
-              El paciente recibirá un enlace seguro para ingresar sus datos personales, objetivos de salud, cuestionario de hábitos y medidas preliminares antes de acudir a consulta.
+              Crea el expediente e inmediatamente comparte el enlace personal con el paciente para que complete su información desde su teléfono.
             </p>
 
-            {/* Nombre Completo del paciente */}
-            <div style={{ marginBottom: '16px' }}>
+            {/* Nombre del paciente */}
+            <div style={{ marginBottom: '14px' }}>
               <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', fontWeight: '850', marginBottom: '6px' }}>
                 <span>Nombre Completo del Paciente</span>
                 <span style={{ color: '#DC2626', fontSize: '0.75rem', fontWeight: '800' }}>* Obligatorio</span>
               </label>
               <input
                 type="text"
-                placeholder="Ej. Roberto Díaz"
+                placeholder="Ej. María Pérez"
                 className="input-field"
                 style={{ width: '100%', padding: '14px 16px', fontSize: '0.95rem', borderRadius: '14px', marginBottom: 0 }}
                 value={inviteForm.name}
                 onChange={(e) => setInviteForm({ ...inviteForm, name: e.target.value })}
-                required
+                disabled={Boolean(invitePatientId)}
               />
             </div>
 
-            {/* Teléfono móvil con código de país */}
-            <div style={{ marginBottom: '16px' }}>
+            {/* Género */}
+            <div style={{ marginBottom: '14px' }}>
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '850', marginBottom: '6px' }}>
+                Género <span style={{ opacity: 0.5, fontWeight: '600' }}>(Opcional — para personalizar el mensaje)</span>
+              </label>
+              <select
+                className="input-field"
+                style={{ width: '100%', padding: '12px 14px', fontSize: '0.92rem', borderRadius: '12px', marginBottom: 0 }}
+                value={inviteForm.gender}
+                onChange={(e) => setInviteForm({ ...inviteForm, gender: e.target.value })}
+                disabled={Boolean(invitePatientId)}
+              >
+                <option value="">No indicado (mensaje neutral)</option>
+                <option value="female">Femenino — «Bienvenida»</option>
+                <option value="male">Masculino — «Bienvenido»</option>
+              </select>
+            </div>
+
+            {/* Teléfono */}
+            <div style={{ marginBottom: '20px' }}>
               <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', fontWeight: '850', marginBottom: '6px' }}>
-                <span>Teléfono Móvil con Código de País</span>
-                <span style={{ color: '#DC2626', fontSize: '0.75rem', fontWeight: '800' }}>* Obligatorio</span>
+                <span>Teléfono Móvil (WhatsApp)</span>
+                <span style={{ opacity: 0.5, fontWeight: '600', fontSize: '0.75rem' }}>Opcional</span>
               </label>
               <input
                 type="tel"
-                placeholder="Ej. +58 412 9876543 o +34 612 345 678"
+                placeholder="Ej. +58 412 9876543"
                 className="input-field"
                 style={{ width: '100%', padding: '14px 16px', fontSize: '0.95rem', borderRadius: '14px', marginBottom: 0 }}
                 value={inviteForm.phone}
                 onChange={(e) => setInviteForm({ ...inviteForm, phone: e.target.value })}
-                required
+                disabled={Boolean(invitePatientId)}
               />
-              <span style={{ fontSize: '0.72rem', opacity: 0.6, marginTop: '4px', display: 'block' }}>
-                Requerido para el envío personalizado vía WhatsApp y validación de seguridad.
-              </span>
             </div>
 
-            {/* Resumen del flujo para el paciente */}
-            <div style={{
-              background: 'rgba(0,0,0,0.02)',
-              border: '1px solid rgba(0,0,0,0.06)',
-              borderRadius: '16px',
-              padding: '14px 16px',
-              marginTop: '16px'
-            }}>
-              <span style={{ fontSize: '0.72rem', fontWeight: '850', color: '#4B5563', textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>
-                ¿Cómo funciona el flujo para el paciente?
-              </span>
-              <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '0.8rem', lineHeight: '1.5', opacity: 0.8 }}>
-                <li>Recibe un enlace cifrado de un solo uso en su teléfono móvil.</li>
-                <li>Completa desde su navegador: datos, objetivos, distribución de comidas y hábitos.</li>
-                <li>Registra sus medidas corporales (o las pospone para tomarlas en consulta).</li>
-                <li>Sus respuestas aparecen en tu panel en la sección <strong>«Pendientes de revisión»</strong>.</li>
-              </ul>
-            </div>
-          </section>
+            {/* Botón crear expediente e invitación */}
+            {!invitePatientId ? (
+              <button
+                type="button"
+                onClick={handleCreateInvite}
+                disabled={isSavingInvite || !inviteForm.name.trim()}
+                style={{
+                  width: '100%', padding: '16px', borderRadius: '14px', border: 'none',
+                  background: inviteForm.name.trim() ? '#0284C7' : '#D1D5DB',
+                  color: 'white', fontWeight: '900', fontSize: '0.95rem', cursor: inviteForm.name.trim() ? 'pointer' : 'not-allowed',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+                }}
+              >
+                <ShieldCheck size={18} />
+                {isSavingInvite ? 'Creando expediente...' : 'Crear Expediente y Generar Enlace'}
+              </button>
+            ) : (
+              <div>
+                {/* Enlace generado */}
+                <div style={{ background: 'rgba(29,81,45,0.05)', border: '1.5px solid rgba(29,81,45,0.2)', borderRadius: '14px', padding: '14px 16px', marginBottom: '16px' }}>
+                  <p style={{ fontSize: '0.68rem', fontWeight: '900', opacity: 0.5, textTransform: 'uppercase', marginBottom: '6px' }}>Enlace personal del paciente</p>
+                  <p style={{ fontSize: '0.82rem', fontWeight: '700', wordBreak: 'break-all', color: '#0284C7', margin: '0 0 10px' }}>
+                    {getPatientInviteLink(invitePatientId)}
+                  </p>
+                  <p style={{ fontSize: '0.72rem', opacity: 0.6, margin: 0 }}>
+                    Este enlace lleva directamente al portal personal del paciente, vinculado a su expediente.
+                  </p>
+                </div>
 
-          {/* Tarjeta de estado de enlaces seguros (Fase 3 Backend) */}
-          <section style={{
-            background: '#FFFFFF',
-            borderRadius: '24px',
-            padding: '24px',
-            border: '1.5px dashed rgba(2, 132, 199, 0.35)',
-            boxShadow: 'var(--shadow-subtle)',
-            textAlign: 'center'
-          }}>
-            <div style={{
-              width: '48px',
-              height: '48px',
-              borderRadius: '50%',
-              background: 'rgba(2, 132, 199, 0.08)',
-              color: '#0284C7',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 12px'
-            }}>
-              <ShieldCheck size={26} />
-            </div>
+                {/* Vista previa del mensaje */}
+                <div style={{ background: '#F9FAFB', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '14px', padding: '14px 16px', marginBottom: '16px' }}>
+                  <p style={{ fontSize: '0.68rem', fontWeight: '900', opacity: 0.5, textTransform: 'uppercase', marginBottom: '8px' }}>Vista previa del mensaje (WhatsApp)</p>
+                  <p style={{ fontSize: '0.82rem', fontStyle: 'italic', background: '#FFFFFF', padding: '12px 14px', borderRadius: '10px', border: '1px solid rgba(0,0,0,0.08)', margin: 0, color: '#374151', lineHeight: '1.5' }}>
+                    {`¡Hola, ${inviteForm.name.trim() || '[Nombre]'}! ${inviteForm.gender === 'female' ? '¡Bienvenida' : inviteForm.gender === 'male' ? '¡Bienvenido' : '¡Bienvenid@'} a Nutrimemi! Tu nutricionista te ha invitado a completar tu información inicial. Accede desde tu enlace personal:\n\n${getPatientInviteLink(invitePatientId)}`}
+                  </p>
+                </div>
 
-            <h3 style={{ fontSize: '1.05rem', fontWeight: '900', margin: '0 0 6px', color: 'var(--text-primary)' }}>
-              Generación de Enlaces Seguros
-            </h3>
+                {/* Acciones */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(getPatientInviteLink(invitePatientId)).then(() => {
+                        setInviteLinkCopied(true);
+                        showToast('Enlace copiado al portapapeles', 'success');
+                        setTimeout(() => setInviteLinkCopied(false), 2500);
+                      }).catch(() => {
+                        showToast('No se pudo copiar automáticamente. Copia el enlace de arriba.', 'error');
+                      });
+                    }}
+                    style={{
+                      padding: '12px', borderRadius: '12px', border: '1.5px solid #0284C7',
+                      background: inviteLinkCopied ? '#0284C7' : '#FFFFFF',
+                      color: inviteLinkCopied ? 'white' : '#0284C7',
+                      fontWeight: '800', fontSize: '0.82rem', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
+                    }}
+                  >
+                    {inviteLinkCopied ? <CheckCircle2 size={16} /> : <ExternalLink size={16} />}
+                    {inviteLinkCopied ? 'Copiado' : 'Copiar Enlace'}
+                  </button>
 
-            <p style={{ fontSize: '0.82rem', opacity: 0.75, margin: '0 auto 16px', maxWidth: '440px', lineHeight: '1.4' }}>
-              Para garantizar la confidencialidad médica y evitar la exposición pública de identificadores clínicos, los enlaces de invitación requieren tokens cifrados de un solo uso con caducidad.
-            </p>
+                  {inviteForm.phone.trim() ? (
+                    <a
+                      href={`https://wa.me/${inviteForm.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`¡Hola, ${inviteForm.name.trim()}! ${inviteForm.gender === 'female' ? '¡Bienvenida' : inviteForm.gender === 'male' ? '¡Bienvenido' : '¡Bienvenid@'} a Nutrimemi! Tu nutricionista te ha invitado a completar tu información inicial. Accede desde tu enlace personal: ${getPatientInviteLink(invitePatientId)}`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ textDecoration: 'none' }}
+                    >
+                      <button
+                        type="button"
+                        style={{
+                          width: '100%', padding: '12px', borderRadius: '12px', border: 'none',
+                          background: '#25D366', color: 'white', fontWeight: '800', fontSize: '0.82rem',
+                          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
+                        }}
+                      >
+                        <Send size={16} /> Enviar por WhatsApp
+                      </button>
+                    </a>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (navigator.share) {
+                          navigator.share({
+                            title: 'Invitación Nutrimemi',
+                            text: `¡Hola, ${inviteForm.name.trim()}! Tu nutricionista te ha invitado a Nutrimemi.`,
+                            url: getPatientInviteLink(invitePatientId)
+                          }).catch(() => {});
+                        } else {
+                          showToast('Agrega un teléfono para enviar por WhatsApp, o copia el enlace.', 'info');
+                        }
+                      }}
+                      style={{
+                        padding: '12px', borderRadius: '12px', border: 'none',
+                        background: '#25D366', color: 'white', fontWeight: '800', fontSize: '0.82rem',
+                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
+                      }}
+                    >
+                      <Send size={16} /> Compartir Enlace
+                    </button>
+                  )}
+                </div>
 
-            <div style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              background: 'rgba(217, 119, 6, 0.08)',
-              color: '#B45309',
-              border: '1px solid rgba(217, 119, 6, 0.25)',
-              borderRadius: '999px',
-              padding: '6px 14px',
-              fontSize: '0.76rem',
-              fontWeight: '800',
-              marginBottom: '18px'
-            }}>
-              <Clock size={14} />
-              <span>Módulo de tokens de un solo uso en preparación para la Fase 3</span>
-            </div>
-
-            {/* Vista previa corregida */}
-            <div style={{
-              background: 'rgba(0,0,0,0.02)',
-              borderRadius: '16px',
-              padding: '16px',
-              border: '1px solid rgba(0,0,0,0.06)',
-              textAlign: 'left'
-            }}>
-              <span style={{ fontSize: '0.72rem', fontWeight: '850', opacity: 0.6, textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>
-                Vista previa del mensaje preconfigurado (WhatsApp):
-              </span>
-              <p style={{ 
-                fontSize: '0.8rem', 
-                fontStyle: 'italic', 
-                background: '#FFFFFF', 
-                padding: '12px 14px', 
-                borderRadius: '10px', 
-                border: '1px solid rgba(0,0,0,0.08)',
-                margin: '0 0 12px',
-                color: '#374151',
-                lineHeight: '1.4'
-              }}>
-                &ldquo;¡Hola {inviteForm.name.trim() || '[Nombre del Paciente]'}! Bienvenido a Nutrimemi. Tu enlace personal de registro estará disponible cuando se active el sistema de invitaciones.&rdquo;
-              </p>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                {/* Ir al expediente */}
                 <button
                   type="button"
-                  disabled
-                  style={{
-                    padding: '12px',
-                    borderRadius: '12px',
-                    border: '1px solid rgba(0,0,0,0.12)',
-                    background: '#F3F4F6',
-                    color: '#9CA3AF',
-                    fontWeight: '800',
-                    fontSize: '0.82rem',
-                    cursor: 'not-allowed',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px'
-                  }}
+                  onClick={() => router.push(`/nutri/patient/${invitePatientId}`)}
+                  style={{ width: '100%', marginTop: '12px', padding: '12px', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.1)', background: 'transparent', fontSize: '0.85rem', fontWeight: '800', cursor: 'pointer', color: 'var(--primary)' }}
                 >
-                  <span>Copiar Enlace</span>
-                </button>
-
-                <button
-                  type="button"
-                  disabled
-                  style={{
-                    padding: '12px',
-                    borderRadius: '12px',
-                    border: 'none',
-                    background: '#D1FAE5',
-                    color: '#065F46',
-                    fontWeight: '800',
-                    fontSize: '0.82rem',
-                    cursor: 'not-allowed',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                    opacity: 0.7
-                  }}
-                >
-                  <span>Enviar por WhatsApp</span>
+                  Ir al expediente del paciente →
                 </button>
               </div>
+            )}
+
+            {/* Aviso honesto de canales */}
+            <div style={{ marginTop: '20px', background: 'rgba(217,119,6,0.06)', border: '1px solid rgba(217,119,6,0.2)', borderRadius: '12px', padding: '12px 14px', fontSize: '0.74rem', lineHeight: '1.4', color: '#92400E' }}>
+              <strong>ℹ️ Sobre el envío:</strong> El enlace se genera inmediatamente y es funcional. El envío automático por SMS o correo electrónico requiere configuración de un proveedor externo (no está configurado actualmente). Puedes compartir el enlace por WhatsApp (si indicaste teléfono) o copiarlo para enviarlo por cualquier otro medio.
             </div>
           </section>
         </div>

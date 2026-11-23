@@ -9,6 +9,7 @@ import {
   threeWayPathMerge,
   mergeFoodArrays,
   mergePatientMenu,
+  reconcileClinicalFields,
   MERGE_CONFLICTS
 } from '../threeWayMerge.js';
 import { MISSING } from '../identity.js';
@@ -282,6 +283,319 @@ function runMenuMergeTests() {
     assert(merged._days.day1.almuerzo.length === 1, 'Alimento añadido por servidor debe estar presente');
   });
 
+  // T19: Regresión — No resucitar día eliminado concurrentemente en el servidor
+  test('T19: Día eliminado en el servidor no se resucita desde base cuando local no lo envía', () => {
+    const day1Foods = [food('uuid-d1', 'Avena', 50)];
+    const day2Foods = [food('uuid-d2', 'Pollo', 150)];
+
+    const base = {
+      _days: {
+        day1: { desayuno: day1Foods },
+        day2: { almuerzo: day2Foods }
+      }
+    };
+    // El servidor eliminó day2 concurrentemente
+    const server = {
+      _days: {
+        day1: { desayuno: day1Foods }
+      }
+    };
+    // Local solo editó day1 (day2 no viene en payload local)
+    const local = {
+      _days: {
+        day1: { desayuno: [...day1Foods, food('uuid-d1-b', 'Nueces', 20)] }
+      }
+    };
+
+    const { merged, conflicts, isPersistenceAllowed } = mergePatientMenu(base, server, local);
+    assert(isPersistenceAllowed, 'Persistencia permitida');
+    assert(conflicts.length === 0, 'No debe haber conflictos');
+    assert(merged._days.day1.desayuno.length === 2, 'day1 debe actualizarse con el alimento nuevo');
+    assert(merged._days.day2 === undefined, 'day2 NO debe resucitarse de base si fue eliminado en el servidor');
+  });
+
+  // T20: Regresión — Comida omitida en payload local NO se interpreta como comida vacía
+  test('T20: Comida omitida en payload local preserva alimentos del servidor sin vaciar el slot', () => {
+    const fDesayuno = food('uuid-des', 'Huevos', 2);
+    const fCena1 = food('uuid-c1', 'Sopa', 250);
+    const fCena2 = food('uuid-c2', 'Pan', 50);
+
+    const base = {
+      _days: {
+        day1: {
+          desayuno: [fDesayuno],
+          cena: [fCena1, fCena2]
+        }
+      }
+    };
+    const server = {
+      _days: {
+        day1: {
+          desayuno: [fDesayuno],
+          cena: [fCena1, fCena2]
+        }
+      }
+    };
+    // Local solo envía desayuno; cena queda omitida (undefined) en local._days.day1
+    const local = {
+      _days: {
+        day1: {
+          desayuno: [fDesayuno, food('uuid-des-2', 'Aguacate', 30)]
+        }
+      }
+    };
+
+    const { merged, conflicts, isPersistenceAllowed } = mergePatientMenu(base, server, local);
+    assert(isPersistenceAllowed, 'Persistencia permitida');
+    assert(conflicts.length === 0, 'No debe haber conflictos');
+    assert(merged._days.day1.desayuno.length === 2, 'Desayuno local debe incorporarse');
+    assert(Array.isArray(merged._days.day1.cena), 'Cena debe existir como array');
+    assert(merged._days.day1.cena.length === 2, `Cena omitida debe conservar sus 2 alimentos del servidor, obtenidos ${merged._days.day1.cena.length}`);
+    assert(merged._days.day1.cena[0].instanceId === 'uuid-c1', 'Alimento 1 de cena intacto');
+    assert(merged._days.day1.cena[1].instanceId === 'uuid-c2', 'Alimento 2 de cena intacto');
+  });
+
+  // T21: Regresión — Eliminación explícita (array vacío []) sí vacía la comida
+  test('T21: Eliminación explícita de comida (array []) sí vacía el slot correctamente', () => {
+    const fCena = food('uuid-c1', 'Sopa', 250);
+
+    const base = {
+      _days: {
+        day1: { cena: [fCena] }
+      }
+    };
+    const server = {
+      _days: {
+        day1: { cena: [fCena] }
+      }
+    };
+    // Local explícitamente envía array vacío para eliminar los alimentos de la cena
+    const local = {
+      _days: {
+        day1: { cena: [] }
+      }
+    };
+
+    const { merged, isPersistenceAllowed } = mergePatientMenu(base, server, local);
+    assert(isPersistenceAllowed, 'Persistencia permitida');
+    assert(Array.isArray(merged._days.day1.cena), 'Cena debe ser array');
+    assert(merged._days.day1.cena.length === 0, 'Cena debe quedar vacía por eliminación explícita del usuario');
+  });
+
+  // T22: Regresión — Fusión en estructura de comida tipo objeto ({ time, selectedFoods, portions })
+  test('T22: Fusión de estructura de comida tipo objeto preserva selectedFoods y metadatos', () => {
+    const f1 = food('uuid-f1', 'Pescado', 150);
+    const f2 = food('uuid-f2', 'Ensalada', 80);
+
+    const base = {
+      _days: {
+        day1: {
+          almuerzo: { time: '13:00', selectedFoods: [f1], portions: { proteinas: '1' } }
+        }
+      }
+    };
+    // Servidor cambió time a 13:30
+    const server = {
+      _days: {
+        day1: {
+          almuerzo: { time: '13:30', selectedFoods: [f1], portions: { proteinas: '1' } }
+        }
+      }
+    };
+    // Local añadió ensalada a selectedFoods
+    const local = {
+      _days: {
+        day1: {
+          almuerzo: { time: '13:00', selectedFoods: [f1, f2], portions: { proteinas: '1' } }
+        }
+      }
+    };
+
+    const { merged, isPersistenceAllowed } = mergePatientMenu(base, server, local);
+    assert(isPersistenceAllowed, 'Persistencia permitida');
+    const alm = merged._days.day1.almuerzo;
+    assert(alm.time === '13:30', `time del servidor (13:30) debe prevalecer, obtenido ${alm.time}`);
+    assert(alm.selectedFoods.length === 2, `selectedFoods debe contener 2 alimentos, obtenidos ${alm.selectedFoods.length}`);
+    assert(alm.portions.proteinas === '1', 'portions debe preservarse');
+  });
+
+  // T23: Claves desconocidas — cambio solo en servidor: gana servidor
+  test('T23: Claves desconocidas — cambio solo en servidor: gana servidor', () => {
+    const base = { customClinicCode: 'CLINIC-10' };
+    const server = { customClinicCode: 'CLINIC-20' }; // Servidor actualizó código
+    const local = { customClinicCode: 'CLINIC-10' };  // Local no lo cambió
+
+    const { merged, conflicts, isPersistenceAllowed } = mergePatientMenu(base, server, local);
+    assert(isPersistenceAllowed, 'Persistencia permitida');
+    assert(conflicts.length === 0, 'Cero conflictos');
+    assert(merged.customClinicCode === 'CLINIC-20', `Gana servidor: esperado CLINIC-20, obtenido ${merged.customClinicCode}`);
+  });
+
+  // T24: Claves desconocidas — cambio solo en local: gana local
+  test('T24: Claves desconocidas — cambio solo en local: gana local', () => {
+    const base = { customClinicCode: 'CLINIC-10' };
+    const server = { customClinicCode: 'CLINIC-10' }; // Servidor intacto
+    const local = { customClinicCode: 'CLINIC-30' };  // Local actualizó
+
+    const { merged, conflicts, isPersistenceAllowed } = mergePatientMenu(base, server, local);
+    assert(isPersistenceAllowed, 'Persistencia permitida');
+    assert(conflicts.length === 0, 'Cero conflictos');
+    assert(merged.customClinicCode === 'CLINIC-30', `Gana local: esperado CLINIC-30, obtenido ${merged.customClinicCode}`);
+  });
+
+  // T25: Claves desconocidas — ambos cambian al mismo valor: convergencia limpia
+  test('T25: Claves desconocidas — ambos cambian al mismo valor: convergencia sin conflicto', () => {
+    const base = { noteDoctor: 'Nota inicial' };
+    const server = { noteDoctor: 'Nota convergente' };
+    const local = { noteDoctor: 'Nota convergente' };
+
+    const { merged, conflicts, isPersistenceAllowed } = mergePatientMenu(base, server, local);
+    assert(isPersistenceAllowed, 'Persistencia permitida');
+    assert(conflicts.length === 0, 'Cero conflictos en convergencia');
+    assert(merged.noteDoctor === 'Nota convergente', 'Valor convergente adoptado');
+  });
+
+  // T26: Claves desconocidas — ambos cambian a valores distintos: conflicto y bloqueo
+  test('T26: Claves desconocidas — ambos cambian a valores distintos: conflicto y persistencia bloqueada', () => {
+    const base = { customTag: 'tag-A' };
+    const server = { customTag: 'tag-B' }; // Servidor puso B
+    const local = { customTag: 'tag-C' };  // Local puso C
+
+    const { merged, conflicts, isPersistenceAllowed } = mergePatientMenu(base, server, local);
+    assert(!isPersistenceAllowed, 'Persistencia DEBE bloquearse ante conflicto en clave desconocida');
+    assert(conflicts.length > 0, 'Debe registrarse el conflicto');
+    assert(conflicts.some(c => c.path === 'customTag'), 'El path del conflicto debe señalar a customTag');
+    assert(merged.customTag === 'tag-C', 'Valor provisional debe ser local');
+  });
+
+  // T27: Claves desconocidas — propiedad omitida en local: conservar versión de servidor
+  test('T27: Claves desconocidas — omitida en local: conserva la del servidor sin resucitar base', () => {
+    const base = { serverCode: 'SC-1', deletedCode: 'DEL-1' };
+    const server = { serverCode: 'SC-2' }; // Servidor actualizó serverCode y eliminó deletedCode
+    const local = {};                       // Local no envió ninguna clave desconocida
+
+    const { merged, conflicts, isPersistenceAllowed } = mergePatientMenu(base, server, local);
+    assert(isPersistenceAllowed, 'Persistencia permitida');
+    assert(merged.serverCode === 'SC-2', 'serverCode del servidor debe conservarse');
+    assert(merged.deletedCode === undefined, 'deletedCode eliminado en servidor NO debe resucitarse de base');
+  });
+
+  // T28: Claves desconocidas — eliminación explícita (null) se respeta
+  test('T28: Claves desconocidas — eliminación explícita (null) elimina la clave', () => {
+    const base = { extraNote: 'Aviso anterior' };
+    const server = { extraNote: 'Aviso anterior' };
+    const local = { extraNote: null }; // Eliminación explícita mediante null
+
+    const { merged, isPersistenceAllowed } = mergePatientMenu(base, server, local);
+    assert(isPersistenceAllowed, 'Persistencia permitida');
+    assert(merged.extraNote === null || merged.extraNote === undefined, 'extraNote debe eliminarse');
+  });
+
+  return summary();
+}
+
+// ---------------------------------------------------------------------------
+// Tests de reconcileClinicalFields (Reconciliación Clínica)
+// ---------------------------------------------------------------------------
+function runClinicalReconciliationTests() {
+  const { test, assert, summary } = createRunner('threeWayMerge — Reconciliación Clínica');
+
+  // CR1: Modificar una propiedad de details no elimina las demás
+  test('CR1: Modificar una propiedad de details conserva las demás del servidor', () => {
+    const base = {
+      details: { name: 'Ana', phone: '0414-111', ci: 'V-1234', weight: 65 }
+    };
+    const server = {
+      details: { name: 'Ana', phone: '0414-111', ci: 'V-1234', weight: 65, medications: 'Eutirox' }
+    };
+    // Local solo modificó phone
+    const local = {
+      details: { phone: '0414-222' }
+    };
+
+    const { mergedUpdate, isPersistenceAllowed } = reconcileClinicalFields(base, server, local);
+    assert(isPersistenceAllowed, 'Persistencia permitida');
+    assert(mergedUpdate.details.phone === '0414-222', 'phone local aplicado');
+    assert(mergedUpdate.details.name === 'Ana', 'name preservado');
+    assert(mergedUpdate.details.ci === 'V-1234', 'ci preservada');
+    assert(mergedUpdate.details.weight === 65, 'weight preservado');
+    assert(mergedUpdate.details.medications === 'Eutirox', 'medications añadida por servidor preservada');
+  });
+
+  // CR2: Modificar una medición no elimina otras mediciones
+  test('CR2: Modificar una medición no elimina otras mediciones del servidor', () => {
+    const base = {
+      measurements: { PESO: '70', CINTURA: '85', CUELLO: '38' }
+    };
+    const server = {
+      measurements: { PESO: '70', CINTURA: '85', CUELLO: '38', BRAZO: '32' }
+    };
+    // Local solo modificó CINTURA
+    const local = {
+      measurements: { CINTURA: '82' }
+    };
+
+    const { mergedUpdate, isPersistenceAllowed } = reconcileClinicalFields(base, server, local);
+    assert(isPersistenceAllowed, 'Persistencia permitida');
+    assert(mergedUpdate.measurements.CINTURA === '82', 'CINTURA local aplicada');
+    assert(mergedUpdate.measurements.PESO === '70', 'PESO intacto');
+    assert(mergedUpdate.measurements.CUELLO === '38', 'CUELLO intacto');
+    assert(mergedUpdate.measurements.BRAZO === '32', 'BRAZO del servidor intacto');
+  });
+
+  // CR3: Un campo omitido no se interpreta como eliminado
+  test('CR3: Campo omitido en local no se interpreta como eliminación', () => {
+    const base = { details: { email: 'ana@mail.com', notas: 'Paciente con reflujo' } };
+    const server = { details: { email: 'ana@mail.com', notas: 'Paciente con reflujo' } };
+    const local = { details: { notas: 'Reflujo controlado' } }; // email omitido
+
+    const { mergedUpdate, isPersistenceAllowed } = reconcileClinicalFields(base, server, local);
+    assert(isPersistenceAllowed, 'Persistencia permitida');
+    assert(mergedUpdate.details.email === 'ana@mail.com', 'email omitido no debe eliminarse');
+    assert(mergedUpdate.details.notas === 'Reflujo controlado', 'notas actualizadas');
+  });
+
+  // CR4: Eliminación explícita sí se respeta
+  test('CR4: Eliminación explícita (null) en details se respeta', () => {
+    const base = { details: { tutorPhone: '0412-555' } };
+    const server = { details: { tutorPhone: '0412-555' } };
+    const local = { details: { tutorPhone: null } }; // Eliminación explícita
+
+    const { mergedUpdate, isPersistenceAllowed } = reconcileClinicalFields(base, server, local);
+    assert(isPersistenceAllowed, 'Persistencia permitida');
+    assert(mergedUpdate.details.tutorPhone === null, 'tutorPhone explícitamente eliminado a null');
+  });
+
+  // CR5: Dos cambios independientes se fusionan limpiamente
+  test('CR5: Dos cambios independientes (servidor modificó peso, local modificó teléfono) se fusionan', () => {
+    const base = {
+      details: { weight: 68, phone: '0414-000' }
+    };
+    const server = {
+      details: { weight: 70, phone: '0414-000' } // Servidor cambió weight
+    };
+    const local = {
+      details: { weight: 68, phone: '0414-999' } // Local cambió phone (con weight de base)
+    };
+
+    const { mergedUpdate, isPersistenceAllowed } = reconcileClinicalFields(base, server, local);
+    assert(isPersistenceAllowed, 'Persistencia permitida');
+    assert(mergedUpdate.details.weight === 70, `Weight del servidor (70) preservado, obtenido ${mergedUpdate.details.weight}`);
+    assert(mergedUpdate.details.phone === '0414-999', 'Phone de local aplicado');
+  });
+
+  // CR6: Dos cambios incompatibles en el mismo campo generan conflicto y bloquean la escritura
+  test('CR6: Dos cambios incompatibles en el mismo campo generan conflicto y bloquean persistencia', () => {
+    const base = { details: { weight: 68 } };
+    const server = { details: { weight: 70 } }; // Servidor registró 70
+    const local = { details: { weight: 72 } };  // Local registró 72
+
+    const { conflicts, isPersistenceAllowed } = reconcileClinicalFields(base, server, local);
+    assert(!isPersistenceAllowed, 'Persistencia bloqueada ante conflicto en mismo campo clínico');
+    assert(conflicts.length > 0, 'Debe haber conflictos');
+    assert(conflicts[0].field === 'details.weight', 'Conflicto debe señalar details.weight');
+  });
+
   return summary();
 }
 
@@ -292,16 +606,17 @@ export function runThreeWayMergeTests() {
   const r1 = runScalarMergeTests();
   const r2 = runFoodArrayTests();
   const r3 = runMenuMergeTests();
+  const r4 = runClinicalReconciliationTests();
 
-  const total  = r1.total  + r2.total  + r3.total;
-  const passed = r1.passed + r2.passed + r3.passed;
-  const failed = r1.failed + r2.failed + r3.failed;
+  const total  = r1.total  + r2.total  + r3.total  + r4.total;
+  const passed = r1.passed + r2.passed + r3.passed + r4.passed;
+  const failed = r1.failed + r2.failed + r3.failed + r4.failed;
 
   return {
     module: 'threeWayMerge',
     total,
     passed,
     failed,
-    suites: [r1, r2, r3]
+    suites: [r1, r2, r3, r4]
   };
 }

@@ -10,7 +10,7 @@ import {
   IDENTIFIER_KIND,
   IDENTITY_CONFLICTS,
   MISSING
-} from '../identity';
+} from '../identity.js';
 
 export function runIdentityTests() {
   const results = [];

@@ -11,7 +11,7 @@
  * 5. Proyección de colecciones a identidades unificadas para el motor de ordenamiento.
  */
 
-import { canonicalJsonSerialize } from './jsonContract';
+import { canonicalJsonSerialize } from './jsonContract.js';
 
 export const MISSING = Symbol('NUTRIMEMI_MISSING');
 

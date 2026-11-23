@@ -430,7 +430,81 @@ function _mergeDay(baseDay, serverDay, localDay, dayPath, conflicts) {
     const lSlot = lDay[slot];
     const slotPath = `${dayPath}.${slot}`;
 
-    // Si es array de alimentos
+    // Si local no incluye este slot (comida omitida en el payload local):
+    // No interpretar como comida vacía ni como eliminación intencional.
+    if (lSlot === undefined) {
+      if (sSlot !== undefined) {
+        mergedDay[slot] = _clone(sSlot);
+        const foodsToCheck = Array.isArray(sSlot)
+          ? sSlot
+          : (sSlot && typeof sSlot === 'object' && Array.isArray(sSlot.selectedFoods) ? sSlot.selectedFoods : null);
+        if (foodsToCheck) {
+          for (let i = 0; i < foodsToCheck.length; i++) {
+            const item = foodsToCheck[i];
+            if (item && typeof item === 'object' && !isPersistentId(item.instanceId)) {
+              legacyItemsToMigrate.push({
+                path: Array.isArray(sSlot) ? `${slotPath}[${i}]` : `${slotPath}.selectedFoods[${i}]`,
+                item: _clone(item),
+                reason: 'legacy_id'
+              });
+            }
+          }
+        }
+      }
+      // Si sSlot es undefined (eliminado en servidor), NO resucitar de bSlot
+      continue;
+    }
+
+    // Si es un objeto de comida estructurada ({ time, selectedFoods, portions })
+    const isStructuredMeal = (
+      (lSlot && typeof lSlot === 'object' && !Array.isArray(lSlot) && Array.isArray(lSlot.selectedFoods)) ||
+      (sSlot && typeof sSlot === 'object' && !Array.isArray(sSlot) && Array.isArray(sSlot.selectedFoods)) ||
+      (bSlot && typeof bSlot === 'object' && !Array.isArray(bSlot) && Array.isArray(bSlot.selectedFoods))
+    );
+
+    if (isStructuredMeal) {
+      const bObj = (bSlot && typeof bSlot === 'object' && !Array.isArray(bSlot)) ? bSlot : {};
+      const sObj = (sSlot && typeof sSlot === 'object' && !Array.isArray(sSlot)) ? sSlot : {};
+      const lObj = (lSlot && typeof lSlot === 'object' && !Array.isArray(lSlot)) ? lSlot : {};
+
+      const bFoods = Array.isArray(bObj.selectedFoods) ? bObj.selectedFoods : [];
+      const sFoods = Array.isArray(sObj.selectedFoods) ? sObj.selectedFoods : [];
+      const lFoods = Array.isArray(lObj.selectedFoods) ? lObj.selectedFoods : [];
+
+      const foodsResult = mergeFoodArrays(bFoods, sFoods, lFoods, `${slotPath}.selectedFoods`);
+      for (const c of foodsResult.conflicts) conflicts.push(c);
+      for (const item of foodsResult.legacyItemsToMigrate) legacyItemsToMigrate.push(item);
+      if (!foodsResult.isPersistenceAllowed) isPersistenceAllowed = false;
+
+      // Fusionar time
+      const timeMerged = _mergeField(
+        bObj.time === undefined ? MISSING : bObj.time,
+        sObj.time === undefined ? MISSING : sObj.time,
+        lObj.time === undefined ? MISSING : lObj.time,
+        `${slotPath}.time`,
+        conflicts
+      );
+
+      // Fusionar portions
+      const portionsMerged = _mergeField(
+        bObj.portions === undefined ? MISSING : bObj.portions,
+        sObj.portions === undefined ? MISSING : sObj.portions,
+        lObj.portions === undefined ? MISSING : lObj.portions,
+        `${slotPath}.portions`,
+        conflicts
+      );
+
+      mergedDay[slot] = {
+        ..._clone(sObj),
+        ..._clone(lObj),
+        selectedFoods: foodsResult.merged,
+        ...(timeMerged !== undefined ? { time: timeMerged } : {}),
+        ...(portionsMerged !== undefined ? { portions: portionsMerged } : {})
+      };
+      continue;
+    }
+
+    // Si es array directo de alimentos (local explícitamente envió un array para este slot)
     if (Array.isArray(lSlot) || Array.isArray(sSlot) || Array.isArray(bSlot)) {
       const bFoods = Array.isArray(bSlot) ? bSlot : [];
       const sFoods = Array.isArray(sSlot) ? sSlot : [];
@@ -444,7 +518,7 @@ function _mergeDay(baseDay, serverDay, localDay, dayPath, conflicts) {
       continue;
     }
 
-    // Campo escalar o de objeto
+    // Campo escalar o de objeto plano general
     const effectiveB = bSlot === undefined ? MISSING : bSlot;
     const effectiveS = sSlot === undefined ? MISSING : sSlot;
     const effectiveL = lSlot === undefined ? MISSING : lSlot;
@@ -515,14 +589,13 @@ export function mergePatientMenu(base, server, local) {
       const sDay = sDays[dayKey];
       const lDay = lDays[dayKey];
 
-      // Si local no incluye este día en el payload actual, tomar del servidor
-      // (preserva day2 cuando el usuario solo envía day1 y viceversa)
+      // Si local no incluye este día en el payload actual, significa que esta operación no pretende modificarlo.
+      // Si existe en el servidor, conservar la versión del servidor.
+      // Si no existe en el servidor (fue eliminado concurrentemente o nunca existió), NO recuperarlo desde base.
+      // No resucitar días eliminados.
       if (lDay === undefined) {
-        // Local no tiene este día → tomarlo del servidor si existe
         if (sDay !== undefined) {
           merged._days[dayKey] = _clone(sDay);
-        } else if (bDay !== undefined) {
-          merged._days[dayKey] = _clone(bDay);
         }
         continue;
       }
@@ -562,17 +635,40 @@ export function mergePatientMenu(base, server, local) {
     merged.formulas = _clone(b.formulas);
   }
 
-  // 4. Propagar claves desconocidas que existan en local y no hayan sido procesadas
+  // 4. Fusión tripartita de claves desconocidas (campos personalizados en la raíz de JSONB)
   const knownKeys = new Set(['_days', 'dietForm', 'formulas']);
-  for (const key of Object.keys(l)) {
-    if (!knownKeys.has(key)) {
-      merged[key] = _clone(l[key]);
+  const allUnknownKeys = new Set([
+    ...Object.keys(b).filter(k => !knownKeys.has(k)),
+    ...Object.keys(s).filter(k => !knownKeys.has(k)),
+    ...Object.keys(l).filter(k => !knownKeys.has(k))
+  ]);
+
+  for (const key of allUnknownKeys) {
+    const keyPath = key;
+    const inB = key in b;
+    const inS = key in s;
+    const inL = key in l;
+
+    // Si la clave no está en local: omitida en el payload local.
+    // Conservar la versión del servidor si existe. Si el servidor también la eliminó, no resucitar de base.
+    if (!inL) {
+      if (inS) {
+        merged[key] = _clone(s[key]);
+      }
+      continue;
     }
-  }
-  // También conservar claves del servidor no presentes en local
-  for (const key of Object.keys(s)) {
-    if (!knownKeys.has(key) && !(key in merged)) {
-      merged[key] = _clone(s[key]);
+
+    // Local incluyó la clave explícitamente (adición, modificación o eliminación explícita)
+    const effectiveB = inB ? b[key] : MISSING;
+    const effectiveS = inS ? s[key] : MISSING;
+    const effectiveL = inL ? l[key] : MISSING;
+
+    const resolved = _mergeField(effectiveB, effectiveS, effectiveL, keyPath, conflicts);
+    if (resolved !== undefined) {
+      merged[key] = resolved;
+    }
+    if (conflicts.some(c => c.path === keyPath || c.path.startsWith(`${keyPath}.`))) {
+      isPersistenceAllowed = false;
     }
   }
 

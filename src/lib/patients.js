@@ -205,6 +205,9 @@ export const updatePatient = async (id, partialData) => {
   if (partialData.name !== undefined) dbUpdate.name = partialData.name;
   if (partialData.goal !== undefined) dbUpdate.goal = partialData.goal;
   if (partialData.status !== undefined) dbUpdate.status = partialData.status;
+  // Campos de primer nivel para activación de cuenta del paciente
+  if (partialData.email !== undefined) dbUpdate.email = partialData.email;
+  if (partialData.password !== undefined) dbUpdate.password = partialData.password;
   
   if (partialData.details) {
     if (partialData.details.name !== undefined) dbUpdate.name = partialData.details.name;

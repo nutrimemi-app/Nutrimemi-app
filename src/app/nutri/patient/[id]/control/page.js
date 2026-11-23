@@ -76,6 +76,33 @@ export default function ControlPage({ params }) {
 
   if (!patient || !clinical) return <div style={{ padding: '40px', textAlign: 'center' }}>Cargando paciente...</div>;
 
+  // Última consulta del historial para comparación
+  const sortedHistory = [...(patient.history || [])].sort((a, b) => new Date(b.date) - new Date(a.date));
+  const lastEntry = sortedHistory.length > 0 ? sortedHistory[0] : null;
+  const prevWeight = lastEntry?.details?.weight ? parseFloat(lastEntry.details.weight) : null;
+  const prevImc    = lastEntry?.imc ? parseFloat(lastEntry.imc) : null;
+  const prevProfile = lastEntry?.profile || null;
+  const prevGc     = lastEntry ? (() => {
+    const lm = lastEntry.measurements || {};
+    const cintura = parseFloat(lm.CINTURA) || 0;
+    const cuello  = parseFloat(lm.CUELLO)  || 0;
+    const cadera  = parseFloat(lm.CADERA)  || 0;
+    const h = parseFloat(lastEntry.details?.height || patient.details?.height) || 0;
+    const isMale = ['male','m','h','hombre','masculino'].includes((lastEntry.details?.gender || patient.details?.gender || 'female').toLowerCase());
+    if (cintura > 0 && cuello > 0 && h > 0) {
+      let g = 0;
+      if (isMale && (cintura - cuello) > 0) {
+        const d = 1.0324 - 0.19077 * Math.log10(cintura - cuello) + 0.15456 * Math.log10(h);
+        g = d > 0 ? (495 / d) - 450 : 0;
+      } else if (!isMale && cadera > 0 && (cintura + cadera - cuello) > 0) {
+        const d = 1.29579 - 0.35004 * Math.log10(cintura + cadera - cuello) + 0.22100 * Math.log10(h);
+        g = d > 0 ? (495 / d) - 450 : 0;
+      }
+      return g > 0 ? g.toFixed(2) : null;
+    }
+    return null;
+  })() : null;
+
   const currentWeight = parseFloat(controlData.weight) || patient.details?.weight;
   const liveClinical = calculateClinicalData({
     weight: currentWeight,
@@ -84,6 +111,10 @@ export default function ControlPage({ params }) {
     manualPi: controlData.manualPi !== '' ? parseFloat(controlData.manualPi) : null,
     manualPa: controlData.manualPa !== '' ? parseFloat(controlData.manualPa) : null,
     manualPc: controlData.manualPc !== '' ? parseFloat(controlData.manualPc) : null
+  }, {
+    CINTURA: controlData.CINTURA !== '' ? controlData.CINTURA : patient.measurements?.CINTURA,
+    CUELLO:  controlData.CUELLO  !== '' ? controlData.CUELLO  : patient.measurements?.CUELLO,
+    CADERA:  controlData.CADERA  !== '' ? controlData.CADERA  : patient.measurements?.CADERA,
   });
 
   const measurements = [
@@ -203,6 +234,93 @@ export default function ControlPage({ params }) {
         </header>
 
         <form onSubmit={handleSaveFollowUp}>
+        {/* ── COMPARACIÓN CON CONSULTA ANTERIOR ── */}
+        {lastEntry ? (
+          <div style={{ background: 'white', border: '1.5px solid rgba(29,81,45,0.15)', borderRadius: '20px', padding: '18px', marginBottom: '20px' }}>
+            <p style={{ fontSize: '0.65rem', fontWeight: '900', opacity: 0.5, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '12px' }}>
+              Comparación con última consulta — {new Date(lastEntry.date + 'T12:00:00').toLocaleDateString('es-VE', { day: '2-digit', month: 'short', year: 'numeric' })}
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '10px' }}>
+              {/* Peso */}
+              {prevWeight !== null && (
+                <div style={{ background: 'rgba(29,81,45,0.04)', borderRadius: '14px', padding: '12px', textAlign: 'center' }}>
+                  <p style={{ fontSize: '0.6rem', fontWeight: '900', opacity: 0.5, marginBottom: '4px' }}>PESO</p>
+                  <p style={{ fontSize: '0.75rem', opacity: 0.5, marginBottom: '2px' }}>Anterior: <strong>{prevWeight} kg</strong></p>
+                  {controlData.weight && (
+                    <p style={{
+                      fontSize: '0.9rem', fontWeight: '900',
+                      color: parseFloat(controlData.weight) - prevWeight <= 0 ? '#1d512d' : '#EF5350'
+                    }}>
+                      {parseFloat(controlData.weight) > prevWeight ? '▲' : '▼'} {Math.abs(parseFloat(controlData.weight) - prevWeight).toFixed(1)} kg
+                    </p>
+                  )}
+                </div>
+              )}
+              {/* IMC */}
+              {prevImc !== null && (
+                <div style={{ background: 'rgba(29,81,45,0.04)', borderRadius: '14px', padding: '12px', textAlign: 'center' }}>
+                  <p style={{ fontSize: '0.6rem', fontWeight: '900', opacity: 0.5, marginBottom: '4px' }}>IMC</p>
+                  <p style={{ fontSize: '0.75rem', opacity: 0.5, marginBottom: '2px' }}>Anterior: <strong>{prevImc.toFixed(2)}</strong></p>
+                  {liveClinical.imc !== '—' && (
+                    <p style={{
+                      fontSize: '0.9rem', fontWeight: '900',
+                      color: parseFloat(liveClinical.imc) - prevImc <= 0 ? '#1d512d' : '#EF5350'
+                    }}>
+                      {parseFloat(liveClinical.imc) > prevImc ? '▲' : '▼'} {Math.abs(parseFloat(liveClinical.imc) - prevImc).toFixed(2)}
+                    </p>
+                  )}
+                </div>
+              )}
+              {/* Clasificación */}
+              {prevProfile && (
+                <div style={{ background: 'rgba(29,81,45,0.04)', borderRadius: '14px', padding: '12px', textAlign: 'center' }}>
+                  <p style={{ fontSize: '0.6rem', fontWeight: '900', opacity: 0.5, marginBottom: '4px' }}>CLASIFICACIÓN</p>
+                  <p style={{ fontSize: '0.65rem', opacity: 0.5, marginBottom: '4px' }}>Antes: <strong>{prevProfile}</strong></p>
+                  <p style={{ fontSize: '0.68rem', fontWeight: '900', color: liveClinical.profile === prevProfile ? '#888' : (liveClinical.profile?.startsWith('OBESIDAD') || liveClinical.profile === 'SOBREPESO' ? '#EF5350' : '#1d512d') }}>
+                    {liveClinical.profile === prevProfile ? 'Sin cambio' : `→ ${liveClinical.profile}`}
+                  </p>
+                </div>
+              )}
+              {/* % Grasa */}
+              {prevGc !== null && (
+                <div style={{ background: 'rgba(29,81,45,0.04)', borderRadius: '14px', padding: '12px', textAlign: 'center' }}>
+                  <p style={{ fontSize: '0.6rem', fontWeight: '900', opacity: 0.5, marginBottom: '4px' }}>% GRASA</p>
+                  <p style={{ fontSize: '0.75rem', opacity: 0.5, marginBottom: '2px' }}>Anterior: <strong>{prevGc}%</strong></p>
+                  {liveClinical.gc !== '—' && (
+                    <p style={{
+                      fontSize: '0.9rem', fontWeight: '900',
+                      color: parseFloat(liveClinical.gc) - parseFloat(prevGc) <= 0 ? '#1d512d' : '#EF5350'
+                    }}>
+                      {parseFloat(liveClinical.gc) > parseFloat(prevGc) ? '▲' : '▼'} {Math.abs(parseFloat(liveClinical.gc) - parseFloat(prevGc)).toFixed(2)}%
+                    </p>
+                  )}
+                </div>
+              )}
+              {/* Medidas */}
+              {['CINTURA','CADERA','BRAZO'].map(key => {
+                const prevVal = lastEntry.measurements?.[key] ? parseFloat(lastEntry.measurements[key]) : null;
+                const curVal  = controlData[key] !== '' ? parseFloat(controlData[key]) : (patient.measurements?.[key] ? parseFloat(patient.measurements[key]) : null);
+                if (prevVal === null) return null;
+                return (
+                  <div key={key} style={{ background: 'rgba(29,81,45,0.04)', borderRadius: '14px', padding: '12px', textAlign: 'center' }}>
+                    <p style={{ fontSize: '0.6rem', fontWeight: '900', opacity: 0.5, marginBottom: '4px' }}>{key}</p>
+                    <p style={{ fontSize: '0.75rem', opacity: 0.5, marginBottom: '2px' }}>Ant: <strong>{prevVal} cm</strong></p>
+                    {curVal !== null && (
+                      <p style={{ fontSize: '0.9rem', fontWeight: '900', color: curVal - prevVal <= 0 ? '#1d512d' : '#EF5350' }}>
+                        {curVal > prevVal ? '▲' : '▼'} {Math.abs(curVal - prevVal).toFixed(1)} cm
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          <div style={{ background: 'rgba(29,81,45,0.04)', borderRadius: '16px', padding: '14px 18px', marginBottom: '20px', fontSize: '0.8rem', fontWeight: '700', opacity: 0.6, textAlign: 'center' }}>
+            Primera consulta de control — no hay historial previo para comparar.
+          </div>
+        )}
+
         {/* Comparación de peso y calorías principales */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', background: 'rgba(29, 81, 45, 0.05)', padding: '20px', borderRadius: '20px', marginBottom: '20px' }}>
             <div>

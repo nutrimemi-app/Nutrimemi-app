@@ -1,10 +1,11 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { updatePatient } from '@/lib/patients';
 import { usePatient } from '@/hooks/usePatient';
 import { useUI } from '@/context/UIContext';
-import { ArrowLeft, ArrowRight, Ruler, Info, CheckCircle2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Ruler, Info, CheckCircle2 } from 'lucide-react';
+import { getAnthropometricIconSrc } from '@/utils/anthropometricIcon';
 
 export default function MeasurementsPage() {
   const params = useParams();
@@ -54,9 +55,38 @@ export default function MeasurementsPage() {
   ];
 
   const isFemale = patient?.details?.gender === 'female' || patient?.gender === 'female' || patient?.gender === 'Femenino';
-  const silhouetteSrc = isFemale 
-    ? '/ICONO ANTROPOMETRIA FEMENINO/FEMENINO_NORMOPESO.svg' 
-    : '/ICONO ANTROPOMETRIA MASCULINO/MASCULINO_NORMO PESO.svg';
+
+  // ── CÁLCULO IMC EN TIEMPO REAL ──
+  const liveImc = useMemo(() => {
+    const p = parseFloat(measurements.PESO);
+    const h = parseFloat(measurements.ESTATURA);
+    if (!p || !h || h < 50) return null;
+    const hm = h / 100;
+    return p / (hm * hm);
+  }, [measurements.PESO, measurements.ESTATURA]);
+
+  const liveProfile = useMemo(() => {
+    if (!liveImc) return null;
+    if (liveImc < 18.5) return 'BAJO PESO';
+    if (liveImc < 25) return 'NORMOPESO';
+    if (liveImc < 30) return 'SOBREPESO';
+    if (liveImc < 35) return 'OBESIDAD GRADO I';
+    if (liveImc < 40) return 'OBESIDAD GRADO II';
+    return 'OBESIDAD GRADO III (MÓRBIDA)';
+  }, [liveImc]);
+
+  const imcColor = useMemo(() => {
+    if (!liveProfile) return '#6B7280';
+    if (liveProfile === 'NORMOPESO') return '#16A34A';
+    if (liveProfile === 'BAJO PESO') return '#2563EB';
+    if (liveProfile === 'SOBREPESO') return '#D97706';
+    return '#DC2626';
+  }, [liveProfile]);
+
+  const silhouetteSrc = getAnthropometricIconSrc(
+    isFemale ? 'female' : 'male',
+    liveProfile || 'NORMOPESO'
+  );
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -97,8 +127,14 @@ export default function MeasurementsPage() {
       }
 
       // No se pasa `details` para no tocar patients.weight ni patients.height
+      const existingAnswers = patient?.onboardingAnswers || {};
       await updatePatient(params.id, {
         measurements: payloadMeasurements,
+        onboardingAnswers: {
+          ...existingAnswers,
+          lastCompletedStep: 'measurements',
+          lastUpdatedAt: new Date().toISOString()
+        },
         _expectedUpdatedAt: expectedUpdatedAt,
         _patientBase: patient
       });
@@ -140,17 +176,17 @@ export default function MeasurementsPage() {
 
   return (
     <div style={{ 
-      padding: '16px 20px 100px', 
+      padding: '16px 20px 32px', 
       color: 'var(--text-primary)', 
-      minHeight: '100dvh', 
+      minHeight: '100dvh',
+      overflowY: 'auto',
       maxWidth: '520px',
       margin: '0 auto',
       display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'space-between'
+      flexDirection: 'column'
     }}>
       
-      <div>
+      <div style={{ flex: 1 }}>
         {/* ── CABECERA ── */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
           <button
@@ -353,6 +389,45 @@ export default function MeasurementsPage() {
         </div>
 
       </div>
+
+      {/* ── IMC EN TIEMPO REAL ── */}
+      {liveImc && (
+        <div style={{
+          marginTop: '16px',
+          background: '#FFFFFF',
+          borderRadius: '16px',
+          padding: '14px 16px',
+          border: `1.5px solid ${imcColor}30`,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '14px'
+        }}>
+          <div style={{
+            minWidth: '56px',
+            height: '56px',
+            borderRadius: '14px',
+            background: `${imcColor}12`,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            border: `1.5px solid ${imcColor}25`
+          }}>
+            <span style={{ fontSize: '1.1rem', fontWeight: '900', color: imcColor }}>
+              {liveImc.toFixed(1)}
+            </span>
+            <span style={{ fontSize: '0.56rem', fontWeight: '750', color: imcColor, opacity: 0.8 }}>IMC</span>
+          </div>
+          <div>
+            <p style={{ margin: '0 0 2px', fontSize: '0.76rem', fontWeight: '850', color: imcColor }}>
+              {liveProfile}
+            </p>
+            <p style={{ margin: 0, fontSize: '0.7rem', color: '#6B7280', lineHeight: '1.3' }}>
+              Calculado con tu peso y estatura. Dato orientativo para la nutricionista.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* ── BOTÓN DE GUARDAR Y AVANZAR ── */}
       <div style={{ marginTop: '20px' }}>

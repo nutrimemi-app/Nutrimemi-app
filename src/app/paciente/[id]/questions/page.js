@@ -91,6 +91,7 @@ export default function QuestionsPage() {
           _status:         'pending_review',
           // Estado de onboarding (se consolida en photos/page.js al finalizar)
           onboardingStatus: existingAnswers.onboardingStatus || 'in_progress',
+          lastCompletedStep: 'questions',
           lastUpdatedAt:   now,
           source:          'patient_form'
         };

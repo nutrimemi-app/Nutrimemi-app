@@ -2,7 +2,7 @@
  * jsonContract.test.js — Pruebas Unitarias del Módulo 1 (Contrato JSON)
  */
 
-import { safeValidateAndCloneJson, canonicalJsonSerialize, MISSING } from '../jsonContract';
+import { safeValidateAndCloneJson, canonicalJsonSerialize, MISSING } from '../jsonContract.js';
 
 export function runJsonContractTests() {
   const results = [];

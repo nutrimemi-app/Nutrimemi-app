@@ -5,12 +5,14 @@ import { Camera, Upload, CheckCircle2, ArrowLeft, ArrowRight, ShieldCheck, Info,
 import { useUI } from '@/context/UIContext';
 import { updatePatient } from '@/lib/patients';
 import { usePatient } from '@/hooks/usePatient';
+import { useAuth } from '@/context/AuthContext';
 
 export default function PhotosPage() {
   const params = useParams();
   const router = useRouter();
   const { showToast } = useUI();
   const { patient, status } = usePatient(params.id);
+  const { user, setSessionUser } = useAuth();
 
   const [consentGranted, setConsentGranted] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -124,8 +126,18 @@ export default function PhotosPage() {
     );
   }
 
+  // Calcular antes de cualquier early return condicional
+  const uploadedCount = Object.values(photos).filter(Boolean).length;
+
   // ── PANTALLA FINAL DE CONFIRMACIÓN (SOLO TRAS RESPUESTA REAL EXITOSA) ──
   if (success) {
+    const firstName = patient?.name ? patient.name.trim().split(' ')[0] : '';
+    const completedStages = [
+      '✅ Objetivos y hábitos',
+      '✅ Medidas corporales',
+      uploadedCount > 0 ? '✅ Fotografías' : '⏭ Fotografías (omitidas)',
+    ];
+
     return (
       <div className="fade-in" style={{ 
         padding: '24px 20px', 
@@ -160,45 +172,58 @@ export default function PhotosPage() {
             <CheckCircle2 size={46} color="var(--primary)" />
           </div>
 
-          <h1 style={{ fontSize: '1.8rem', fontWeight: '900', margin: '0 0 10px', color: 'var(--text-primary)' }}>
-            ¡Registro completado!
+          <h1 style={{ fontSize: '1.8rem', fontWeight: '900', margin: '0 0 6px', color: 'var(--text-primary)' }}>
+            ¡Listo{firstName ? `, ${firstName}` : ''}!
           </h1>
           <p style={{ fontSize: '0.94rem', fontWeight: '700', lineHeight: '1.4', margin: '0 0 20px', color: '#374151' }}>
-            Tus respuestas y medidas han sido guardadas en tu expediente. Tu nutricionista las revisará para estructurar tu plan.
+            Tu registro inicial ha sido completado. Tu nutricionista revisará tu información para estructurar tu plan personalizado.
           </p>
 
+          {/* Etapas completadas */}
+          <div style={{
+            background: 'rgba(29, 81, 45, 0.04)',
+            borderRadius: '16px',
+            padding: '14px 16px',
+            marginBottom: '14px',
+            border: '1px solid rgba(29, 81, 45, 0.1)',
+            textAlign: 'left'
+          }}>
+            <p style={{ fontSize: '0.74rem', fontWeight: '900', color: 'var(--primary)', margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Etapas completadas
+            </p>
+            {completedStages.map((s, i) => (
+              <p key={i} style={{ fontSize: '0.82rem', fontWeight: '750', color: '#374151', margin: i < completedStages.length - 1 ? '0 0 6px' : 0 }}>
+                {s}
+              </p>
+            ))}
+          </div>
+
+          {/* Aviso de revisión */}
           <div style={{ 
             background: 'rgba(253, 158, 20, 0.08)', 
-            padding: '16px', 
-            borderRadius: '16px', 
-            marginBottom: '16px', 
+            padding: '14px 16px', 
+            borderRadius: '14px', 
+            marginBottom: '20px', 
             border: '1px solid rgba(253, 158, 20, 0.25)',
             textAlign: 'left'
           }}>
-            <p style={{ fontSize: '0.82rem', fontWeight: '850', color: '#92400E', margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Info size={16} /> Próximo paso:
-            </p>
-            <p style={{ fontSize: '0.78rem', color: '#78350F', margin: 0, lineHeight: '1.35' }}>
-              Tu nutricionista revisará tus datos autorreportados para estructurar tu plan alimentario personalizado.
-            </p>
-          </div>
-
-          {/* Aviso honesto sobre fotografías */}
-          <div style={{ 
-            background: 'rgba(2, 132, 199, 0.06)', 
-            padding: '14px 16px', 
-            borderRadius: '14px', 
-            marginBottom: '24px', 
-            border: '1px solid rgba(2, 132, 199, 0.18)',
-            textAlign: 'left'
-          }}>
-            <p style={{ fontSize: '0.76rem', color: '#0369A1', margin: 0, lineHeight: '1.4' }}>
-              <strong>Fotografías:</strong> Este paso es opcional. Cuando esté disponible la funcionalidad de carga segura, podrás adjuntarlas desde tu portal o consultando directamente a tu nutricionista.
+            <p style={{ fontSize: '0.78rem', color: '#78350F', margin: 0, lineHeight: '1.4' }}>
+              <strong>Próximo paso:</strong> Tu nutricionista validará tus datos autorreportados y activará tu plan nutricional. Podrás verlo en tu portal en cualquier momento.
             </p>
           </div>
 
           <button 
-            onClick={() => router.push(`/paciente/${params.id}/dashboard`)}
+            onClick={() => {
+              if (setSessionUser && patient && (!user || user.id !== patient.id)) {
+                setSessionUser({
+                  id: patient.id,
+                  email: patient.email || patient.details?.email || '',
+                  role: 'Paciente',
+                  name: patient.name
+                });
+              }
+              router.push('/patient/home');
+            }}
             style={{
               width: '100%',
               background: 'var(--primary)',
@@ -210,10 +235,15 @@ export default function PhotosPage() {
               border: 'none',
               cursor: 'pointer',
               boxShadow: '0 6px 18px rgba(29, 81, 45, 0.25)',
-              minHeight: '52px'
+              minHeight: '52px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px'
             }}
           >
-            Ir a mi portal
+            <span>ENTRAR A MI PORTAL</span>
+            <ArrowRight size={18} />
           </button>
         </div>
 
@@ -223,8 +253,6 @@ export default function PhotosPage() {
       </div>
     );
   }
-
-  const uploadedCount = Object.values(photos).filter(Boolean).length;
 
   return (
     <div style={{ 

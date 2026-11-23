@@ -10,9 +10,31 @@ export const calculateClinicalData = (patient, measurements = {}) => {
   const heightM = heightCm / 100;
   const sex = (patient.sex || 'female').toLowerCase();
   const isMale = isMaleGender(sex);
+  const rawAge = parseFloat(patient.age);
+  const isPediatric = Boolean(patient.isPediatric) || (!isNaN(rawAge) && rawAge > 0 && rawAge < 18);
 
-  const imc = heightM > 0 ? (weight / (heightM * heightM)) : 0;
+  const imc = heightM > 0 && weight > 0 ? (weight / (heightM * heightM)) : 0;
   
+  // ── PROTECCIÓN PEDIÁTRICA ──
+  // Los pacientes pediátricos NO deben recibir automáticamente diagnósticos ni fórmulas adultas.
+  if (isPediatric) {
+    return {
+      imc: imc > 0 ? imc.toFixed(2) : '—',
+      profile: 'PEDIÁTRICO (Evaluar con Percentiles/Z-Score OMS)',
+      pi: 'Requiere percentiles OMS',
+      pa: 'No aplica en pediatría',
+      pc: weight > 0 ? weight.toFixed(2) : '—',
+      gc: 'Requiere evaluación pediátrica',
+      grasaMagra: '—',
+      suggestedPi: 'Requiere percentiles OMS',
+      suggestedPa: 'No aplica en pediatría',
+      suggestedPc: weight > 0 ? weight.toFixed(2) : '—',
+      piDevine: 'No aplica (fórmula adulta)',
+      piLorentz: 'No aplica (fórmula adulta)',
+      isPediatric: true
+    };
+  }
+
   let profile = 'Normopeso';
   if (imc < 18.5) profile = 'BAJO PESO';
   else if (imc < 25) profile = 'NORMOPESO';
@@ -21,17 +43,32 @@ export const calculateClinicalData = (patient, measurements = {}) => {
   else if (imc < 40) profile = 'OBESIDAD GRADO II';
   else profile = 'OBESIDAD GRADO III (MÓRBIDA)';
 
-  // Peso Ideal (Fórmula de Devine)
-  // Mujeres: 45.5 + 2.3 * ((Talla / 2.54) - 60)
-  // Hombres: 50.0 + 2.3 * ((Talla / 2.54) - 60)
+  // Peso Ideal Adulto (Fórmula de Devine)
+  // Mujeres: 45.5 + 2.3 * ((Talla_cm / 2.54) - 60)
+  // Hombres: 50.0 + 2.3 * ((Talla_cm / 2.54) - 60)
   const inches = (heightCm / 2.54);
   const baseWeight = isMale ? 50.0 : 45.5;
   let calculatedPi = heightCm > 152.4 ? (baseWeight + 2.3 * (inches - 60)) : baseWeight;
 
+  // Peso Ideal Adulto (Fórmula de Lorentz)
+  // Hombres: (Talla - 100) - ((Talla - 150) / 4)
+  // Mujeres: (Talla - 100) - ((Talla - 150) / 2.5)
+  let calculatedPiLorentz = 0;
+  if (heightCm > 0) {
+    calculatedPiLorentz = isMale
+      ? (heightCm - 100 - ((heightCm - 150) / 4))
+      : (heightCm - 100 - ((heightCm - 150) / 2.5));
+    if (calculatedPiLorentz < 0) calculatedPiLorentz = 0;
+  }
+
+  // Si la nutricionista fijó un PI manual, tiene prioridad
   const pi = patient.manualPi ? parseFloat(patient.manualPi) : calculatedPi;
 
-  // Peso Ajustado (PA)
+  // Peso Ajustado (PA) para sobrepeso y obesidad:
+  // PA = PI + 0.25 * (Peso Actual - PI)
   let calculatedPa = pi + (0.25 * (weight - pi));
+  let calculatedPaLorentz = calculatedPiLorentz > 0 ? calculatedPiLorentz + (0.25 * (weight - calculatedPiLorentz)) : 0;
+  
   let pa = 0;
   if (profile === 'SOBREPESO' || profile.startsWith('OBESIDAD')) {
     pa = patient.manualPa ? parseFloat(patient.manualPa) : calculatedPa;
@@ -49,7 +86,7 @@ export const calculateClinicalData = (patient, measurements = {}) => {
 
   const pc = patient.manualPc ? parseFloat(patient.manualPc) : calculatedPc;
 
-  // % Grasa Corporal (Fórmula de la Marina de EE. UU. / US Navy Body Fat)
+  // % Grasa Corporal Adulto (Fórmula de la Marina de EE. UU. / US Navy Body Fat)
   let gc = 0;
   let grasaMagra = 0;
   const cintura = parseFloat(measurements?.CINTURA) || 0;
@@ -58,7 +95,6 @@ export const calculateClinicalData = (patient, measurements = {}) => {
 
   if (cintura > 0 && cuello > 0 && heightCm > 0) {
     if (isMale) {
-      // Hombres: %GC = 495 / (1.0324 - 0.19077 * log10(cintura - cuello) + 0.15456 * log10(altura)) - 450
       if ((cintura - cuello) > 0) {
         const valLog1 = Math.log10(cintura - cuello);
         const valLog2 = Math.log10(heightCm);
@@ -66,7 +102,6 @@ export const calculateClinicalData = (patient, measurements = {}) => {
         gc = denom > 0 ? (495 / denom) - 450 : 0;
       }
     } else {
-      // Mujeres: %GC = 495 / (1.29579 - 0.35004 * log10(cintura + cadera - cuello) + 0.22100 * log10(altura)) - 450
       if (cadera > 0 && (cintura + cadera - cuello) > 0) {
         const valLog1 = Math.log10(cintura + cadera - cuello);
         const valLog2 = Math.log10(heightCm);
@@ -82,16 +117,20 @@ export const calculateClinicalData = (patient, measurements = {}) => {
   }
 
   return {
-    imc: imc.toFixed(1),
+    imc: imc > 0 ? imc.toFixed(2) : '—',
     profile,
-    pi: pi.toFixed(1),
-    pa: pa > 0 ? pa.toFixed(1) : '—',
-    pc: pc.toFixed(1),
-    gc: gc > 0 ? gc.toFixed(1) : '—',
-    grasaMagra: grasaMagra > 0 ? grasaMagra.toFixed(1) : '—',
-    suggestedPi: calculatedPi.toFixed(1),
-    suggestedPa: calculatedPa > 0 ? calculatedPa.toFixed(1) : '—',
-    suggestedPc: calculatedPc.toFixed(1)
+    pi: pi > 0 ? pi.toFixed(2) : '—',
+    pa: pa > 0 ? pa.toFixed(2) : '—',
+    pc: pc > 0 ? pc.toFixed(2) : '—',
+    gc: gc > 0 ? gc.toFixed(2) : '—',
+    grasaMagra: grasaMagra > 0 ? grasaMagra.toFixed(2) : '—',
+    suggestedPi: calculatedPi > 0 ? calculatedPi.toFixed(2) : '—',
+    suggestedPa: calculatedPa > 0 ? calculatedPa.toFixed(2) : '—',
+    suggestedPc: calculatedPc > 0 ? calculatedPc.toFixed(2) : '—',
+    piDevine: calculatedPi > 0 ? calculatedPi.toFixed(2) : '—',
+    piLorentz: calculatedPiLorentz > 0 ? calculatedPiLorentz.toFixed(2) : '—',
+    paLorentz: calculatedPaLorentz > 0 ? calculatedPaLorentz.toFixed(2) : '—',
+    isPediatric: false
   };
 };
 
@@ -169,3 +208,57 @@ export const getBodyFatProfile = (sex, age, gc) => {
     }
   }
 };
+
+/**
+ * Factores de Actividad Física reconocidos clínicamente (FAO/OMS / ADA)
+ */
+export const ACTIVITY_FACTORS = [
+  { key: 'sedentario', label: 'Sedentario (trabajo de escritorio, sin ejercicio estructurado)', factor: 1.2 },
+  { key: 'ligero', label: 'Ligero (ejercicio suave / caminata 1-3 días/semana)', factor: 1.375 },
+  { key: 'moderado', label: 'Moderado (entrenamiento deportivo 3-5 días/semana)', factor: 1.55 },
+  { key: 'intenso', label: 'Intenso (ejercicio vigoroso 6-7 días/semana)', factor: 1.725 },
+  { key: 'muy_intenso', label: 'Muy Intenso (atletas de alto rendimiento / doble turno)', factor: 1.9 }
+];
+
+/**
+ * Cálculo de Tasa Metabólica Basal (TMB)
+ * - Mifflin-St Jeor (1990) - Recomendado como gold standard clínico en adultos
+ * - Harris-Benedict Revisada (Roza y Shizgal, 1984)
+ * 
+ * Reglas clínicas obligatorias:
+ * 1. Si faltan datos obligatorios (peso, talla o edad), retorna null para reflejar cálculo pendiente (no inventa datos).
+ * 2. Protección pediátrica: no aplica fórmulas de adultos a pacientes pediátricos o menores de 18 años.
+ * 3. Conserva precisión completa sin redondeos intermedios.
+ * 
+ * @param {Object} params { weight, height, age, sex, formula, isPediatric }
+ * @returns {number|null} TMB en kcal/día con precisión completa
+ */
+export const calculateTMB = ({ weight, height, age, sex, formula = 'mifflin', isPediatric = false }) => {
+  const w = parseFloat(weight);
+  const h = parseFloat(height);
+  const a = parseFloat(age);
+  const isMale = isMaleGender(sex);
+
+  // Validación estricta: datos obligatorios presentes
+  if (isNaN(w) || w <= 0 || isNaN(h) || h <= 0 || isNaN(a) || a <= 0) {
+    return null; // Datos incompletos
+  }
+
+  // Protección pediátrica: fórmulas adultas no aplican a infantes
+  if (isPediatric || a < 18) {
+    return null; // Requiere evaluación metabólica pediátrica específica
+  }
+
+  if (formula === 'harris') {
+    // Harris-Benedict Revisada (Roza y Shizgal, 1984)
+    return isMale
+      ? (88.362 + (13.397 * w) + (4.799 * h) - (5.677 * a))
+      : (447.593 + (9.247 * w) + (3.098 * h) - (4.330 * a));
+  }
+
+  // Mifflin-St Jeor (1990)
+  return isMale
+    ? ((10 * w) + (6.25 * h) - (5 * a) + 5)
+    : ((10 * w) + (6.25 * h) - (5 * a) - 161);
+};
+

@@ -1,17 +1,18 @@
 import { NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 /**
- * Endpoint de pruebas de persistencia — SOLO desarrollo.
+ * Endpoint de pruebas de persistencia — EXCLUSIVO de desarrollo local.
  *
- * Protección: devuelve 404 en cualquier entorno que no sea development.
- * No modifica autenticación ni Supabase; es una restricción de ruta en servidor.
+ * Protección:
+ * 1. En NODE_ENV !== 'development', responde 404 inmediatamente con cuerpo vacío (cero fuga de datos).
+ * 2. Las importaciones dinámicas se ejecutan ÚNICAMENTE tras superar la guardia de desarrollo.
+ * 3. En producción nunca se importan ni se ejecutan los módulos de prueba.
  */
 export async function GET() {
   if (process.env.NODE_ENV !== 'development') {
-    return NextResponse.json(
-      { error: 'Not found' },
-      { status: 404 }
-    );
+    return new Response(null, { status: 404 });
   }
 
   // Importaciones dinámicas para evitar que el bundle de producción incluya los tests

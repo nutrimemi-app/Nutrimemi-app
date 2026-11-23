@@ -2,7 +2,7 @@
  * arrayOrdering.test.js — Pruebas Unitarias del Módulo 4 (Ordenamiento Topológico)
  */
 
-import { resolveArrayOrdering, ORDERING_CONFLICTS } from '../arrayOrdering';
+import { resolveArrayOrdering, ORDERING_CONFLICTS } from '../arrayOrdering.js';
 
 export function runArrayOrderingTests() {
   const results = [];

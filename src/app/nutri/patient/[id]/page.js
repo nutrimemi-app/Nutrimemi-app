@@ -1,5 +1,6 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
@@ -33,6 +34,148 @@ export default function PatientFile() {
   const [localPctCho, setLocalPctCho] = useState('');
   const [customSuggestions, setCustomSuggestions] = useState(null);
   const [showEditInitialModal, setShowEditInitialModal] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [editFormData, setEditFormData] = useState(null);
+  const [editActiveTab, setEditActiveTab] = useState('personales'); // 'personales' | 'antropometria' | 'historia' | 'etapas'
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Asegurar que el modal esté cerrado al montar o cambiar de paciente
+  useEffect(() => {
+    setShowEditInitialModal(false);
+  }, [params?.id]);
+
+  // Bloquear scroll de fondo y permitir Escape mientras el modal esté abierto
+  useEffect(() => {
+    if (!showEditInitialModal) {
+      document.body.style.overflow = '';
+      return;
+    }
+    document.body.style.overflow = 'hidden';
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') setShowEditInitialModal(false);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showEditInitialModal]);
+
+  const handleOpenEditModal = () => {
+    if (!patient) return;
+    const det = patient.details || {};
+    const meas = patient.measurements || {};
+    setEditFormData({
+      name: patient.name || det.name || '',
+      ci: det.ci || '',
+      phone: det.phone || '',
+      email: det.email || '',
+      birthDate: det.birthDate || '',
+      gender: det.gender || 'female',
+      isPediatric: Boolean(det.isPediatric),
+      tutorName: det.tutorName || '',
+      tutorPhone: det.tutorPhone || '',
+      mealPlan: det.mealPlan || '3+2 snacks',
+      weight: det.weight !== undefined && det.weight !== null ? String(det.weight) : '',
+      height: det.height !== undefined && det.height !== null ? String(det.height) : '',
+      clinicalHistory: det.clinicalHistory || '',
+      medications: det.medications || '',
+      notas: det.notas || det.notes || '',
+      measurements: {
+        CUELLO: meas.CUELLO !== undefined && meas.CUELLO !== null ? String(meas.CUELLO) : '',
+        BRAZO: meas.BRAZO !== undefined && meas.BRAZO !== null ? String(meas.BRAZO) : '',
+        TORSO: meas.TORSO !== undefined && meas.TORSO !== null ? String(meas.TORSO) : '',
+        CINTURA: meas.CINTURA !== undefined && meas.CINTURA !== null ? String(meas.CINTURA) : '',
+        CADERA: meas.CADERA !== undefined && meas.CADERA !== null ? String(meas.CADERA) : '',
+        GLÚTEOS: meas.GLÚTEOS !== undefined && meas.GLÚTEOS !== null ? String(meas.GLÚTEOS) : '',
+        MUSLO: meas.MUSLO !== undefined && meas.MUSLO !== null ? String(meas.MUSLO) : '',
+        PANTORRILLA: meas.PANTORRILLA !== undefined && meas.PANTORRILLA !== null ? String(meas.PANTORRILLA) : ''
+      }
+    });
+    setEditActiveTab('personales');
+    setShowEditInitialModal(true);
+  };
+
+  const handleSaveInitialData = async (e) => {
+    if (e) e.preventDefault();
+    if (!editFormData || !patient) return;
+    const trimmedName = editFormData.name.trim();
+    if (!trimmedName) {
+      showToast('El nombre del paciente es obligatorio', 'error');
+      return;
+    }
+
+    setIsSavingEdit(true);
+    try {
+      const parsedWeight = editFormData.weight !== '' && !isNaN(parseFloat(editFormData.weight)) ? parseFloat(editFormData.weight) : null;
+      const parsedHeight = editFormData.height !== '' && !isNaN(parseFloat(editFormData.height)) ? parseFloat(editFormData.height) : null;
+
+      const updatedDetails = {
+        ...patient.details,
+        name: trimmedName,
+        ci: editFormData.ci.trim(),
+        phone: editFormData.phone.trim(),
+        email: editFormData.email.trim() || null,
+        birthDate: editFormData.birthDate || null,
+        gender: editFormData.gender || 'female',
+        isPediatric: Boolean(editFormData.isPediatric),
+        tutorName: editFormData.isPediatric ? editFormData.tutorName.trim() : '',
+        tutorPhone: editFormData.isPediatric ? editFormData.tutorPhone.trim() : '',
+        weight: parsedWeight,
+        height: parsedHeight,
+        clinicalHistory: editFormData.clinicalHistory,
+        medications: editFormData.medications,
+        notas: editFormData.notas,
+        notes: editFormData.notas,
+        mealPlan: editFormData.mealPlan
+      };
+
+      const updatedMeasurements = {
+        ...patient.measurements,
+        ...(parsedWeight !== null ? { PESO: parsedWeight } : {}),
+        ...(parsedHeight !== null ? { ESTATURA: parsedHeight } : {}),
+        CUELLO: editFormData.measurements.CUELLO !== '' ? parseFloat(editFormData.measurements.CUELLO) || editFormData.measurements.CUELLO : '',
+        BRAZO: editFormData.measurements.BRAZO !== '' ? parseFloat(editFormData.measurements.BRAZO) || editFormData.measurements.BRAZO : '',
+        TORSO: editFormData.measurements.TORSO !== '' ? parseFloat(editFormData.measurements.TORSO) || editFormData.measurements.TORSO : '',
+        CINTURA: editFormData.measurements.CINTURA !== '' ? parseFloat(editFormData.measurements.CINTURA) || editFormData.measurements.CINTURA : '',
+        CADERA: editFormData.measurements.CADERA !== '' ? parseFloat(editFormData.measurements.CADERA) || editFormData.measurements.CADERA : '',
+        GLÚTEOS: editFormData.measurements.GLÚTEOS !== '' ? parseFloat(editFormData.measurements.GLÚTEOS) || editFormData.measurements.GLÚTEOS : '',
+        MUSLO: editFormData.measurements.MUSLO !== '' ? parseFloat(editFormData.measurements.MUSLO) || editFormData.measurements.MUSLO : '',
+        PANTORRILLA: editFormData.measurements.PANTORRILLA !== '' ? parseFloat(editFormData.measurements.PANTORRILLA) || editFormData.measurements.PANTORRILLA : '',
+        _origin: 'professional',
+        _status: 'reviewed',
+        _recordedAt: new Date().toISOString()
+      };
+
+      const updatedPatientObj = {
+        ...patient,
+        name: trimmedName,
+        details: updatedDetails,
+        measurements: updatedMeasurements
+      };
+
+      savePatientUpdate(updatedPatientObj, {
+        name: trimmedName,
+        details: updatedDetails,
+        measurements: updatedMeasurements
+      });
+
+      showToast('Datos del paciente actualizados con éxito', 'success');
+      setShowEditInitialModal(false);
+    } catch (err) {
+      console.error('Error al guardar datos iniciales:', err);
+      showToast('Error al actualizar los datos', 'error');
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  // Ref para debounce de guardado de porciones (evita escrituras por cada tecla)
+  const menuDebounceRef = useRef(null);
   const [showWeightAdjustSection, setShowWeightAdjustSection] = useState(false);
   const [showIntakeDetails, setShowIntakeDetails] = useState(false);
   const [currentTag, setCurrentTag] = useState('');
@@ -355,7 +498,15 @@ export default function PatientFile() {
       portions: currentPortions
     };
 
-    savePatientUpdate({ ...patient, menu: updatedMenu }, { menu: updatedMenu });
+    // Actualización optimista local inmediata (sin latencia visual)
+    const optimisticPatient = { ...patient, menu: updatedMenu };
+    setPatient(optimisticPatient);
+
+    // Debounce de 600 ms antes de persistir en la base de datos
+    if (menuDebounceRef.current) clearTimeout(menuDebounceRef.current);
+    menuDebounceRef.current = setTimeout(() => {
+      savePatientUpdate(optimisticPatient, { menu: updatedMenu });
+    }, 600);
   };
 
   const saveHistory = async () => {
@@ -482,79 +633,20 @@ export default function PatientFile() {
             </button>
 
             <button
-              onClick={() => setShowEditInitialModal(true)}
+              onClick={handleOpenEditModal}
               style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '14px', borderRadius: '16px', fontSize: '0.85rem', fontWeight: '900', cursor: 'pointer', background: '#FFFFFF', border: '1.5px dashed var(--primary)', color: 'var(--primary)', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}
             >
-              <Edit size={16} /> Ver / Editar datos iniciales
+              <Edit size={16} /> Ver y editar datos
             </button>
+            <Link
+              href={`/nutri/patient/${patient.id}/historia`}
+              style={{ gridColumn: '1 / -1', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px 14px', borderRadius: '16px', fontSize: '0.82rem', fontWeight: '900', background: '#F0F9F4', border: '1.5px solid rgba(29,81,45,0.2)', color: 'var(--primary)' }}
+            >
+              <Activity size={16} /> Historia Clínica Evolutiva ({(patient.history || []).length} entradas)
+            </Link>
           </div>
         </div>
       </header>
-
-      {/* ── MODAL: VER / EDITAR DATOS INICIALES (LAS 6 ETAPAS ORIGINALES) ── */}
-      {showEditInitialModal && (
-        <div
-          onClick={() => setShowEditInitialModal(false)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 10000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{ background: '#FFFFFF', borderRadius: '28px 28px 0 0', padding: '28px 20px 40px', width: '100%', maxWidth: '560px', boxShadow: '0 -8px 40px rgba(0,0,0,0.2)', maxHeight: '90vh', overflowY: 'auto' }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
-              <div>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: '900', margin: 0, color: 'var(--primary)' }}>
-                  Expediente de Datos Iniciales
-                </h3>
-                <p style={{ fontSize: '0.78rem', opacity: 0.65, margin: '4px 0 0', fontWeight: '600' }}>
-                  Consulta o edita directamente cualquiera de las 6 etapas recopiladas durante el ingreso.
-                </p>
-              </div>
-              <button onClick={() => setShowEditInitialModal(false)} style={{ background: 'rgba(0,0,0,0.06)', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                <X size={18} />
-              </button>
-            </div>
-
-            {[
-              { step: 1, icon: <User size={18} color="var(--primary)" />, label: 'Datos personales y objetivos', desc: 'Nombre, C.I., contacto, fecha de nacimiento, sexo, objetivos nutricionales.' },
-              { step: 2, icon: <Stethoscope size={18} color="#D97706" />, label: 'Historia clínica', desc: 'Antecedentes patológicos, medicamentos actuales, notas de ingreso.' },
-              { step: 3, icon: <Utensils size={18} color="#7C3AED" />, label: 'Hábitos y preferencias', desc: 'Comidas favoritas, aversiones, actividad física, hidratación, comidas/día.' },
-              { step: 4, icon: <ClipboardList size={18} color="#059669" />, label: 'Recordatorio de 24 horas', desc: 'Registro de ingestas y horarios habituales del día previo.' },
-              { step: 5, icon: <Ruler size={18} color="#DC2626" />, label: 'Antropometría y medidas iniciales', desc: 'Peso, estatura e historial de las 8 circunferencias corporales.' },
-              { step: 6, icon: <Image size={18} color="#6B7280" />, label: 'Fotografías clínicas iniciales', desc: 'Galería de tomas fotográficas corporales del ingreso.' },
-            ].map(({ step, icon, label, desc }) => (
-              <button
-                key={step}
-                onClick={() => {
-                  setShowEditInitialModal(false);
-                  router.push(`/nutri/new-patient?patientId=${patient.id}&step=${step}`);
-                }}
-                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 16px', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.08)', background: 'rgba(0,0,0,0.015)', cursor: 'pointer', marginBottom: '10px', textAlign: 'left' }}
-              >
-                <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#F4F4F4', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  {icon}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ fontSize: '0.86rem', fontWeight: '900', display: 'block', color: 'var(--text-primary)' }}>
-                    Etapa {step}: {label}
-                  </span>
-                  <span style={{ fontSize: '0.72rem', opacity: 0.6, display: 'block', marginTop: '2px' }}>
-                    {desc}
-                  </span>
-                </div>
-                <ChevronRight size={16} opacity={0.4} />
-              </button>
-            ))}
-
-            <button
-              onClick={() => setShowEditInitialModal(false)}
-              style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.1)', background: 'transparent', fontSize: '0.85rem', fontWeight: '800', cursor: 'pointer', marginTop: '6px' }}
-            >
-              Cerrar
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* ─────────────────────────────────────────────────────────────
           1. RESUMEN ANTROPOMÉTRICO Y EVALUACIÓN NUTRICIONAL
@@ -1455,6 +1547,503 @@ export default function PatientFile() {
       </div>
 
     </div>
+
+    {/* ── MODAL: VER Y EDITAR DATOS (RENDERIZADO VÍA PORTAL EN BODY) ── */}
+    {mounted && showEditInitialModal && editFormData && createPortal(
+      <div style={{ position: 'fixed', inset: 0, zIndex: 99999 }}>
+        {/* 1. Backdrop oscuro e independiente (sin filtros de desenfoque que afecten el contenido) */}
+        <div 
+          onClick={() => setShowEditInitialModal(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.65)',
+            zIndex: 99998
+          }}
+        />
+
+        {/* 2. Contenedor de centrado libre de transforms de ancestros */}
+        <div 
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 99999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px',
+            pointerEvents: 'none'
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              pointerEvents: 'auto',
+              background: '#FFFFFF',
+              borderRadius: '24px',
+              width: '100%',
+              maxWidth: '640px',
+              maxHeight: '90vh',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 25px 70px rgba(0,0,0,0.35)',
+              border: '1px solid rgba(0,0,0,0.08)',
+              overflow: 'hidden'
+            }}
+          >
+            {/* Cabecera del modal */}
+            <div style={{
+              padding: '20px 24px',
+              borderBottom: '1px solid rgba(0,0,0,0.08)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: '#FAFAFA'
+            }}>
+              <div>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: '900', color: 'var(--primary)', margin: 0 }}>
+                  Ver y Editar Datos del Paciente
+                </h3>
+                <p style={{ fontSize: '0.78rem', opacity: 0.65, margin: '2px 0 0' }}>
+                  Expediente clínico de {patient.name}
+                </p>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setShowEditInitialModal(false)}
+                style={{
+                  background: 'rgba(0,0,0,0.06)',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '36px',
+                  height: '36px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer'
+                }}
+                title="Cerrar modal"
+              >
+                <X size={20} color="#333" />
+              </button>
+            </div>
+
+            {/* Pestañas de navegación interna */}
+            <div style={{
+              display: 'flex',
+              background: 'rgba(0,0,0,0.03)',
+              padding: '6px',
+              borderBottom: '1px solid rgba(0,0,0,0.06)',
+              gap: '4px'
+            }}>
+              {[
+                { id: 'personales', label: 'Personales', icon: <User size={15} /> },
+                { id: 'antropometria', label: 'Antropometría', icon: <Ruler size={15} /> },
+                { id: 'historia', label: 'Historia y Notas', icon: <Stethoscope size={15} /> },
+                { id: 'etapas', label: 'Asistente (1-6)', icon: <ChevronRight size={15} /> }
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setEditActiveTab(tab.id)}
+                  style={{
+                    flex: 1,
+                    padding: '8px 4px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: editActiveTab === tab.id ? '#FFFFFF' : 'transparent',
+                    color: editActiveTab === tab.id ? 'var(--primary)' : '#666',
+                    fontWeight: editActiveTab === tab.id ? '900' : '700',
+                    fontSize: '0.78rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px',
+                    boxShadow: editActiveTab === tab.id ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  {tab.icon}
+                  <span>{tab.label}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Cuerpo del formulario (scrolleable) */}
+            <form onSubmit={handleSaveInitialData} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+              <div style={{ padding: '20px 24px', overflowY: 'auto', flex: 1 }}>
+                
+                {/* ── PESTAÑA 1: DATOS PERSONALES ── */}
+                {editActiveTab === 'personales' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    <div>
+                      <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', fontWeight: '850', marginBottom: '4px' }}>
+                        <span>Nombre Completo</span>
+                        <span style={{ color: '#DC2626', fontSize: '0.72rem' }}>* Obligatorio</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        className="input-field"
+                        style={{ width: '100%', padding: '10px 12px', fontSize: '0.9rem', borderRadius: '10px', marginBottom: 0 }}
+                        value={editFormData.name}
+                        onChange={e => setEditFormData({ ...editFormData, name: e.target.value })}
+                      />
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '850', marginBottom: '4px' }}>
+                          Cédula / DNI
+                        </label>
+                        <input
+                          type="text"
+                          className="input-field"
+                          style={{ width: '100%', padding: '10px 12px', fontSize: '0.9rem', borderRadius: '10px', marginBottom: 0 }}
+                          value={editFormData.ci}
+                          onChange={e => setEditFormData({ ...editFormData, ci: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '850', marginBottom: '4px' }}>
+                          Teléfono Móvil
+                        </label>
+                        <input
+                          type="tel"
+                          className="input-field"
+                          style={{ width: '100%', padding: '10px 12px', fontSize: '0.9rem', borderRadius: '10px', marginBottom: 0 }}
+                          value={editFormData.phone}
+                          onChange={e => setEditFormData({ ...editFormData, phone: e.target.value })}
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '850', marginBottom: '4px' }}>
+                          Correo Electrónico
+                        </label>
+                        <input
+                          type="email"
+                          className="input-field"
+                          style={{ width: '100%', padding: '10px 12px', fontSize: '0.9rem', borderRadius: '10px', marginBottom: 0 }}
+                          value={editFormData.email}
+                          onChange={e => setEditFormData({ ...editFormData, email: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '850', marginBottom: '4px' }}>
+                          Fecha de Nacimiento
+                        </label>
+                        <input
+                          type="date"
+                          className="input-field"
+                          style={{ width: '100%', padding: '10px 12px', fontSize: '0.9rem', borderRadius: '10px', marginBottom: 0 }}
+                          value={editFormData.birthDate}
+                          onChange={e => setEditFormData({ ...editFormData, birthDate: e.target.value })}
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '850', marginBottom: '4px' }}>
+                          Sexo Biológico
+                        </label>
+                        <select
+                          className="input-field"
+                          style={{ width: '100%', padding: '10px 12px', fontSize: '0.9rem', borderRadius: '10px', marginBottom: 0, fontWeight: '750' }}
+                          value={editFormData.gender}
+                          onChange={e => setEditFormData({ ...editFormData, gender: e.target.value })}
+                        >
+                          <option value="female">Femenino</option>
+                          <option value="male">Masculino</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '850', marginBottom: '4px' }}>
+                          Tipo de Paciente
+                        </label>
+                        <select
+                          className="input-field"
+                          style={{ width: '100%', padding: '10px 12px', fontSize: '0.9rem', borderRadius: '10px', marginBottom: 0, fontWeight: '750' }}
+                          value={editFormData.isPediatric ? 'si' : 'no'}
+                          onChange={e => setEditFormData({ ...editFormData, isPediatric: e.target.value === 'si' })}
+                        >
+                          <option value="no">Adulto</option>
+                          <option value="si">Pediátrico (&lt; 18 años)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {editFormData.isPediatric && (
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', background: '#EFF6FF', padding: '12px', borderRadius: '12px', border: '1px solid #BFDBFE' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '850', color: '#1E40AF', marginBottom: '4px' }}>
+                            Nombre del Tutor / Representante
+                          </label>
+                          <input
+                            type="text"
+                            className="input-field"
+                            style={{ width: '100%', padding: '8px 10px', fontSize: '0.85rem', borderRadius: '8px', marginBottom: 0 }}
+                            value={editFormData.tutorName}
+                            onChange={e => setEditFormData({ ...editFormData, tutorName: e.target.value })}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '850', color: '#1E40AF', marginBottom: '4px' }}>
+                            Teléfono del Tutor
+                          </label>
+                          <input
+                            type="tel"
+                            className="input-field"
+                            style={{ width: '100%', padding: '8px 10px', fontSize: '0.85rem', borderRadius: '8px', marginBottom: 0 }}
+                            value={editFormData.tutorPhone}
+                            onChange={e => setEditFormData({ ...editFormData, tutorPhone: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '850', marginBottom: '4px' }}>
+                        Distribución de Comidas (Plan)
+                      </label>
+                      <select
+                        className="input-field"
+                        style={{ width: '100%', padding: '10px 12px', fontSize: '0.9rem', borderRadius: '10px', marginBottom: 0, fontWeight: '750' }}
+                        value={editFormData.mealPlan}
+                        onChange={e => setEditFormData({ ...editFormData, mealPlan: e.target.value })}
+                      >
+                        <option value="2 comidas">2 comidas principales</option>
+                        <option value="3 comidas">3 comidas principales</option>
+                        <option value="3+2 snacks">3 comidas principales + 2 snacks</option>
+                        <option value="3+3 snacks">3 comidas principales + 3 snacks</option>
+                        <option value="4 comidas">4 comidas principales</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── PESTAÑA 2: ANTROPOMETRÍA ── */}
+                {editActiveTab === 'antropometria' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      <div style={{ background: 'rgba(29,81,45,0.04)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(29,81,45,0.1)' }}>
+                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '850', color: 'var(--primary)', marginBottom: '4px' }}>
+                          PESO ACTUAL (kg)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          placeholder="Ej. 70.5"
+                          className="input-field"
+                          style={{ width: '100%', padding: '10px 12px', fontSize: '1.1rem', fontWeight: '900', borderRadius: '10px', marginBottom: 0 }}
+                          value={editFormData.weight}
+                          onChange={e => setEditFormData({ ...editFormData, weight: e.target.value })}
+                        />
+                      </div>
+                      <div style={{ background: 'rgba(29,81,45,0.04)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(29,81,45,0.1)' }}>
+                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '850', color: 'var(--primary)', marginBottom: '4px' }}>
+                          ESTATURA (cm)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.5"
+                          placeholder="Ej. 165"
+                          className="input-field"
+                          style={{ width: '100%', padding: '10px 12px', fontSize: '1.1rem', fontWeight: '900', borderRadius: '10px', marginBottom: 0 }}
+                          value={editFormData.height}
+                          onChange={e => setEditFormData({ ...editFormData, height: e.target.value })}
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <span style={{ fontSize: '0.8rem', fontWeight: '900', color: 'var(--primary)', display: 'block', marginBottom: '8px', textTransform: 'uppercase' }}>
+                        Circunferencias Corporales (cm)
+                      </span>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '10px' }}>
+                        {[
+                          { key: 'CUELLO', label: 'Cuello' },
+                          { key: 'CINTURA', label: 'Cintura' },
+                          { key: 'CADERA', label: 'Cadera' },
+                          { key: 'BRAZO', label: 'Brazo' },
+                          { key: 'TORSO', label: 'Torso' },
+                          { key: 'GLÚTEOS', label: 'Glúteos' },
+                          { key: 'MUSLO', label: 'Muslo' },
+                          { key: 'PANTORRILLA', label: 'Pantorrilla' }
+                        ].map(c => (
+                          <div key={c.key} style={{ background: '#FAFAFA', padding: '8px 10px', borderRadius: '10px', border: '1px solid rgba(0,0,0,0.08)' }}>
+                            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '800', opacity: 0.7, marginBottom: '2px' }}>
+                              {c.label}
+                            </label>
+                            <input
+                              type="number"
+                              step="0.1"
+                              placeholder="0.0"
+                              style={{ width: '100%', padding: '6px 8px', fontSize: '0.9rem', fontWeight: '800', border: '1px solid #D1D5DB', borderRadius: '8px', outline: 'none' }}
+                              value={editFormData.measurements[c.key] || ''}
+                              onChange={e => setEditFormData({
+                                ...editFormData,
+                                measurements: { ...editFormData.measurements, [c.key]: e.target.value }
+                              })}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── PESTAÑA 3: HISTORIA Y NOTAS ── */}
+                {editActiveTab === 'historia' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '850', marginBottom: '4px' }}>
+                        Historia Clínica y Antecedentes Patológicos
+                      </label>
+                      <textarea
+                        rows={3}
+                        className="input-field"
+                        style={{ width: '100%', padding: '10px 12px', fontSize: '0.88rem', borderRadius: '10px', marginBottom: 0, resize: 'vertical' }}
+                        placeholder="Diagnósticos, alergias, cirugías previas, antecedentes familiares..."
+                        value={editFormData.clinicalHistory}
+                        onChange={e => setEditFormData({ ...editFormData, clinicalHistory: e.target.value })}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '850', marginBottom: '4px' }}>
+                        Medicamentos Actuales
+                      </label>
+                      <textarea
+                        rows={2}
+                        className="input-field"
+                        style={{ width: '100%', padding: '10px 12px', fontSize: '0.88rem', borderRadius: '10px', marginBottom: 0, resize: 'vertical' }}
+                        placeholder="Fármacos, suplementos, dosis y horarios..."
+                        value={editFormData.medications}
+                        onChange={e => setEditFormData({ ...editFormData, medications: e.target.value })}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '850', marginBottom: '4px' }}>
+                        Notas de Ingreso y Observaciones
+                      </label>
+                      <textarea
+                        rows={3}
+                        className="input-field"
+                        style={{ width: '100%', padding: '10px 12px', fontSize: '0.88rem', borderRadius: '10px', marginBottom: 0, resize: 'vertical' }}
+                        placeholder="Observaciones generales recopiladas en la consulta inicial..."
+                        value={editFormData.notas}
+                        onChange={e => setEditFormData({ ...editFormData, notas: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* ── PESTAÑA 4: ASISTENTE POR ETAPAS (1 A 6) ── */}
+                {editActiveTab === 'etapas' && (
+                  <div>
+                    <p style={{ fontSize: '0.8rem', opacity: 0.7, margin: '0 0 12px' }}>
+                      Si prefieres revisar o completar la información guiada paso a paso, selecciona la etapa deseada:
+                    </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {[
+                        { step: 1, icon: <User size={16} color="var(--primary)" />, label: '1. Datos personales y objetivos' },
+                        { step: 2, icon: <Stethoscope size={16} color="#D97706" />, label: '2. Historia clínica y medicamentos' },
+                        { step: 3, icon: <Utensils size={16} color="#7C3AED" />, label: '3. Hábitos y preferencias alimentarias' },
+                        { step: 4, icon: <ClipboardList size={16} color="#059669" />, label: '4. Recordatorio de 24 horas (R24H)' },
+                        { step: 5, icon: <Ruler size={16} color="#DC2626" />, label: '5. Antropometría y silueta anatómica' },
+                        { step: 6, icon: <Image size={16} color="#6B7280" />, label: '6. Registro fotográfico inicial' }
+                      ].map(st => (
+                        <button
+                          key={st.step}
+                          type="button"
+                          onClick={() => {
+                            setShowEditInitialModal(false);
+                            router.push(`/nutri/new-patient?patientId=${patient.id}&step=${st.step}`);
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '12px 14px',
+                            background: '#F9FAFB',
+                            border: '1px solid rgba(0,0,0,0.08)',
+                            borderRadius: '12px',
+                            cursor: 'pointer',
+                            textAlign: 'left'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            {st.icon}
+                            <span style={{ fontSize: '0.85rem', fontWeight: '800', color: 'var(--text-primary)' }}>{st.label}</span>
+                          </div>
+                          <ChevronRight size={16} opacity={0.4} />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Pie del modal con acciones */}
+              <div style={{
+                padding: '16px 24px',
+                borderTop: '1px solid rgba(0,0,0,0.08)',
+                background: '#FAFAFA',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'flex-end',
+                gap: '12px'
+              }}>
+                <button
+                  type="button"
+                  onClick={() => setShowEditInitialModal(false)}
+                  style={{
+                    padding: '12px 20px',
+                    borderRadius: '12px',
+                    border: '1px solid rgba(0,0,0,0.15)',
+                    background: '#FFFFFF',
+                    color: '#4B5563',
+                    fontSize: '0.85rem',
+                    fontWeight: '800',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingEdit}
+                  style={{
+                    padding: '12px 24px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    background: 'var(--primary)',
+                    color: '#FFFFFF',
+                    fontSize: '0.85rem',
+                    fontWeight: '900',
+                    cursor: isSavingEdit ? 'wait' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    boxShadow: '0 4px 12px rgba(29, 81, 45, 0.25)'
+                  }}
+                >
+                  <Save size={16} />
+                  <span>{isSavingEdit ? 'Guardando...' : 'Guardar Cambios'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>,
+      document.body
+    )}
     </>
   );
 }
